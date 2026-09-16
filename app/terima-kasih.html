@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="id" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#F5F7FC">
+<title>Pembayaran Berhasil · ResepFoto</title>
+<meta property="og:title" content="ResepFoto · Imagine Your Photo">
+<meta property="og:image" content="https://resepfoto.oziera.co.id/brand/og-image.jpg">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap">
+<style>
+:root{--bg:#F5F7FC;--paper:#fff;--ink:#111829;--ink2:#3D4A66;--muted:#66738F;--blue:#2856D8;--blue-d:#1E44B3;--line:#E1E7F2;--mint:#17915A;--mint-soft:#E1F5EB}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-optical-sizing:auto;display:grid;place-items:center;padding:24px 16px}
+.wrap{width:100%;max-width:420px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.top img{width:170px;height:auto;display:block}
+.lang{display:inline-flex;background:#fff;border:1px solid var(--line);border-radius:99px;padding:3px;gap:2px}
+.lang button{font:inherit;border:0;background:none;cursor:pointer;height:30px;min-width:38px;padding:0 10px;border-radius:99px;font-weight:700;font-size:12px;color:var(--muted)}
+.lang button[aria-pressed="true"]{background:var(--bg);color:var(--ink)}
+.card{background:var(--paper);border-radius:28px;padding:32px 24px;text-align:center;box-shadow:0 30px 80px -30px rgba(17,24,41,.28)}
+.check{width:84px;height:84px;border-radius:50%;background:var(--mint-soft);display:grid;place-items:center;margin:0 auto 18px;animation:pop .22s ease-out both}
+.check svg{width:42px;height:42px;stroke:var(--mint);fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:40;stroke-dashoffset:40;animation:draw .4s .2s forwards}
+@keyframes pop{from{transform:scale(.6);opacity:0}}
+@keyframes draw{to{stroke-dashoffset:0}}
+h1{font-size:26px;line-height:1.15;margin:0;letter-spacing:-.022em;text-wrap:balance;font-weight:800}
+p{color:var(--ink2);margin:10px 0 0;line-height:1.55}
+.steps{text-align:left;margin:22px 0 0;padding:16px;border-radius:20px;background:var(--bg);display:grid;gap:12px;list-style:none;counter-reset:s}
+.steps li{display:flex;gap:12px;font-size:14px;color:var(--ink2)}
+.steps li::before{counter-increment:s;content:counter(s);flex:none;width:26px;height:26px;border-radius:9px;background:var(--blue);color:#fff;display:grid;place-items:center;font-weight:800;font-size:13px}
+.btn{display:flex;align-items:center;justify-content:center;height:48px;border-radius:12px;font-weight:650;text-decoration:none;margin-top:18px;background:var(--blue);color:#fff;transition:background .18s}
+.btn:hover{background:var(--blue-d)}
+.note{font-size:12.5px;color:var(--muted);margin-top:14px}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}.check svg{stroke-dashoffset:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <img src="/brand/logo-light-tagline.svg" alt="ResepFoto, Imagine Your Photo">
+    <div class="lang" role="group" aria-label="Bahasa / Language"><button type="button" data-lang="id">ID</button><button type="button" data-lang="en">EN</button></div>
+  </div>
+  <main class="card">
+    <div class="check"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+    <h1 data-t="h">Pembayaran berhasil. Terima kasih!</h1>
+    <p data-t="p">Akses ResepFoto kamu sedang disiapkan.</p>
+    <ol class="steps">
+      <li data-t="s1">Cek email yang kamu isi saat checkout. Username dan kode akses dikirim dalam beberapa menit.</li>
+      <li data-t="s2">Belum ada? Cek folder Spam atau Promosi.</li>
+      <li data-t="s3">Masuk di halaman ResepFoto, lalu mulai salin resep favoritmu.</li>
+    </ol>
+    <a class="btn" href="/" data-t="b">Masuk ke ResepFoto</a>
+    <p class="note" data-t="n">Lebih dari 15 menit belum menerima akses? Hubungi admin dan sertakan email yang kamu pakai saat membayar.</p>
+  </main>
+</div>
+<script>
+(function(){
+  var T = {
+    id: {title:"Pembayaran Berhasil · ResepFoto", h:"Pembayaran berhasil. Terima kasih!", p:"Akses ResepFoto kamu sedang disiapkan.",
+      s1:"Cek email yang kamu isi saat checkout. Username dan kode akses dikirim dalam beberapa menit.", s2:"Belum ada? Cek folder Spam atau Promosi.",
+      s3:"Masuk di halaman ResepFoto, lalu mulai salin resep favoritmu.", b:"Masuk ke ResepFoto",
+      n:"Lebih dari 15 menit belum menerima akses? Hubungi admin dan sertakan email yang kamu pakai saat membayar."},
+    en: {title:"Payment Successful · ResepFoto", h:"Payment successful. Thank you!", p:"Your ResepFoto access is being prepared.",
+      s1:"Check the email you entered at checkout. Your username and access code arrive within a few minutes.", s2:"Nothing yet? Check your Spam or Promotions folder.",
+      s3:"Sign in to ResepFoto and start copying your favorite recipes.", b:"Sign in to ResepFoto",
+      n:"No access after 15 minutes? Contact the admin and include the email you used to pay."}
+  };
+  var lang;
+  try { lang = JSON.parse(localStorage.getItem("rf_lang") || "null"); } catch (e) {}
+  if (lang !== "id" && lang !== "en") lang = /^(id|ms)/i.test(navigator.language || "id") ? "id" : "en";
+  function apply(){
+    document.documentElement.lang = lang; document.title = T[lang].title;
+    document.querySelectorAll("[data-t]").forEach(function(el){ el.textContent = T[lang][el.getAttribute("data-t")]; });
+    document.querySelectorAll("[data-lang]").forEach(function(b){ b.setAttribute("aria-pressed", b.getAttribute("data-lang") === lang); });
+  }
+  document.addEventListener("click", function(e){
+    var b = e.target.closest("[data-lang]"); if (!b) return;
+    lang = b.getAttribute("data-lang"); try { localStorage.setItem("rf_lang", JSON.stringify(lang)); } catch (e) {}
+    apply();
+  });
+  apply();
+})();
+</script>
+</body>
+</html>

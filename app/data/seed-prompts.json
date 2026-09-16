@@ -1,0 +1,302 @@
+[
+ {
+  "id": "p01",
+  "order": 1,
+  "cat": "Foto Jadul",
+  "title": "Studio Foto Era 90-an",
+  "desc": "Gaya foto studio jadul: latar kain berkabut, warna hangat, pose khas tahun 90-an.",
+  "popular": true,
+  "tools": [
+   "Gemini",
+   "ChatGPT"
+  ],
+  "prompt": "Recreate my uploaded photo as a 1990s Indonesian photo-studio portrait. Keep my face, facial features, skin tone and identity exactly the same as in my uploaded photo. Mottled blue-grey cloth backdrop with soft haze, warm slightly faded colors, gentle soft-focus glow, the classic pose with chin resting lightly on one hand, 90s hairstyle and outfit, subtle film grain, printed-photo look with slightly soft edges, 4:5 ratio.",
+  "tips": "Cocok untuk konten nostalgia. Tambahkan \"with a painted garden backdrop\" untuk variasi latar.",
+  "image": "img/p01.jpg"
+ },
+ {
+  "id": "p02",
+  "order": 2,
+  "cat": "Foto Jadul",
+  "title": "Hitam-Putih Klasik 1950-an",
+  "desc": "Potret hitam-putih elegan ala foto keluarga zaman dulu.",
+  "popular": false,
+  "tools": [
+   "Gemini",
+   "ChatGPT"
+  ],
+  "prompt": "Turn my uploaded photo into a 1950s black-and-white studio portrait. Keep my face, facial features, skin tone and identity exactly the same as in my uploaded photo. Classic hairstyle and clothing from the era, soft Rembrandt lighting, deep blacks and silver highlights, fine grain, slight vignette, formal calm expression, printed on aged photo paper with a thin white border, 4:5 ratio.",
+  "tips": "Pakai foto wajah menghadap depan dengan cahaya merata.",
+  "image": "img/p02.jpg"
+ },
+ {
+  "id": "p03",
+  "order": 3,
+  "cat": "Foto Jadul",
+  "title": "Polaroid Hangat 70-an",
+  "desc": "Momen bareng teman dengan warna film tahun 70-an yang hangat.",
+  "popular": false,
+  "tools": [
+   "Gemini",
+   "ChatGPT"
+  ],
+  "prompt": "Transform my uploaded photo into a 1970s instant-film snapshot. Keep every person's face exactly the same. Warm orange and teal color cast, soft flash, slight light leak on one corner, gentle blur and grain, casual candid moment, placed inside a white instant-photo frame with a thicker bottom border, 4:5 ratio.",
+  "tips": "Bisa untuk foto sendiri atau rame-rame. Makin banyak orang, pastikan wajah terlihat jelas.",
+  "image": "img/p03.jpg"
+ },
+ {
+  "id": "p04",
+  "order": 4,
+  "cat": "Foto Jadul",
+  "title": "Restorasi Foto Lama",
+  "desc": "Foto lama yang rusak dan pudar jadi jernih dan berwarna lagi.",
+  "popular": true,
+  "tools": [
+   "Gemini",
+   "ChatGPT"
+  ],
+  "prompt": "Restore my uploaded old photograph. Remove scratches, dust, tears and stains, fix fading, sharpen details naturally, and colorize it with realistic, natural skin tones and period-appropriate colors. Keep every person's face, expression, pose and the original composition exactly the same. Do not add or remove people or objects. High resolution, 4:5 ratio.",
+  "tips": "Scan atau foto ulang foto lama di tempat terang, tanpa pantulan lampu. Hasil ini cocok jadi kado untuk orang tua.",
+  "image": "img/p04.jpg"
+ },
+ {
+  "id": "p05",
+  "order": 5,
+  "cat": "Jalan-jalan",
+  "title": "Kimono di Jalanan Kyoto",
+  "desc": "Jalan-jalan di gang tradisional Kyoto dengan kimono saat senja.",
+  "popular": true,
+  "tools": [
+   "Gemini",
+   "ChatGPT"
+  ],
+  "prompt": "Place me from my uploaded photo walking on a traditional stone street in Kyoto, Japan, with a wooden pagoda in the background at dusk. Keep my face, facial features, skin tone and identity exactly the same as in my uploaded photo. Dress me in an elegant kimono. Warm lantern light, soft blue evening sky, cherry blossom petals in the air, full-body shot from behind at a slight angle, natural travel photography, 4:5 ratio.",
+  "tips": "Ganti \"at dusk\" dengan \"in spring morning\" untuk suasana sakura pagi.",
+  "image": "img/p05.jpg"
+ },
+ {
+  "id": "p06",
+  "order": 6,
+  "cat": "Jalan-jalan",
+  "title": "Balon Udara Cappadocia",
+  "desc": "Berdiri di atas bukit dengan ratusan balon udara di langit.",
+  "popular": false,
+  "tools": [
+   "Gemini",
+   "ChatGPT"
+  ],
+  "prompt": "Place me from my uploaded photo standing on a rocky hilltop in Cappadocia, Turkey, at sunrise, with dozens of colorful hot-air balloons floating in the sky. Keep my face, facial features, skin tone and identity exactly the same as in my uploaded photo. Flowing long dress, soft golden light, gentle haze, wide shot with me in the foreground, dreamy travel photography, 4:5 ratio.",
+  "tips": "Untuk pria, ganti \"flowing long dress\" dengan \"linen shirt and chinos\".",
+  "image": "img/p06.jpg"
+ },
+ {
+  "id": "p07",
+  "order": 7,
+  "cat": "Jalan-jalan",
+  "title": "Petualang Tebing Pantai",
+  "desc": "Pose petualang di tebing karang menghadap laut lepas.",
+  "popular": false,
+  "tools": [
+   "Gemini",
+   "ChatGPT"
+  ],
+  "prompt": "Place me from my uploaded photo standing on dramatic coastal cliffs, looking out at the ocean. Keep my face, facial features, skin tone and identity exactly the same as in my uploaded photo. Casual outdoor outfit with a backpack, pastel sunset sky, waves crashing on dark rocks, wide cinematic composition, adventure travel photography, 4:5 ratio.",
+  "tips": "Tambahkan \"facing the camera\" kalau ingin wajah terlihat.",
+  "image": "img/p07.jpg"
+ },
+ {
+  "id": "p08",
+  "order": 8,
+  "cat": "Jalan-jalan",
+  "title": "Siap Terbang di Bandara",
+  "desc": "Siluet keren di depan jendela besar bandara sebelum liburan.",
+  "popular": false,
+  "tools": [
+   "Gemini",
+   "ChatGPT"
+  ],
+  "prompt": "Place me from my uploaded photo standing in a modern airport terminal in front of a huge glass window, holding a suitcase, with an airplane taking off outside. Keep my face, facial features, skin tone and identity exactly the same as in my uploaded photo. Dramatic backlight at sunrise creating a strong silhouette with a soft glow on my face, polished floor reflection, cinematic travel mood, 4:5 ratio.",
+  "tips": "Cocok untuk konten pengumuman liburan atau perjalanan dinas.",
+  "image": "img/p08.jpg"
+ },
+ {
+  "id": "p09",
+  "order": 9,
+  "cat": "Keluarga",
+  "title": "Keluarga Besar Senja",
+  "desc": "Satu keluarga besar bergandengan menghadap matahari terbenam.",
+  "popular": true,
+  "tools": [
+   "Gemini",
+   "ChatGPT"
+  ],
+  "prompt": "Combine the people from my uploaded photos into one warm family photo. Keep every person's face and identity exactly the same. Everyone stands in a row holding hands on a hilltop at sunset, facing the horizon with some looking back at the camera, matching neutral-toned outfits, golden backlight, gentle lens flare, 4:5 ratio.",
+  "tips": "Upload beberapa foto sekaligus kalau anggota keluarga ada di foto terpisah. Sebutkan jumlah orangnya di prompt, misalnya \"7 people\".",
+  "image": "img/p09.jpg"
+ },
+ {
+  "id": "p10",
+  "order": 10,
+  "cat": "Keluarga",
+  "title": "Liburan Keluarga di Pantai",
+  "desc": "Ayah, ibu, dan anak bergandengan main ombak di pantai.",
+  "popular": false,
+  "tools": [
+   "Gemini",
+   "ChatGPT"
+  ],
+  "prompt": "Place the family from my uploaded photos on a bright tropical beach. Keep every person's face and identity exactly the same. Parents holding their child's hands and walking into gentle waves, sunny sky with a soft sun flare, turquoise water, light summer outfits, candid joyful moment, 4:5 ratio.",
+  "tips": "Pakai foto tiap anggota keluarga yang wajahnya jelas.",
+  "image": "img/p10.jpg"
+ },
+ {
+  "id": "p11",
+  "order": 11,
+  "cat": "Keluarga",
+  "title": "Seru Bareng Ayah",
+  "desc": "Foto candid ayah dan anak-anak yang hangat dan ceria.",
+  "popular": false,
+  "tools": [
+   "Gemini",
+   "ChatGPT"
+  ],
+  "prompt": "Create a joyful portrait of the father and children from my uploaded photos. Keep every person's face exactly the same. The father carries one child on his shoulders and hugs another, everyone laughing, bright natural window light, clean white home background, candid lifestyle photography, 4:5 ratio.",
+  "tips": "Bisa diganti jadi \"mother\" untuk versi ibu. Cocok untuk Hari Ayah atau Hari Ibu.",
+  "image": "img/p11.jpg"
+ },
+ {
+  "id": "p12",
+  "order": 12,
+  "cat": "Momen Spesial",
+  "title": "Wisuda Lempar Toga",
+  "desc": "Foto wisuda estetik di depan gedung kampus.",
+  "popular": true,
+  "tools": [
+   "Gemini",
+   "ChatGPT"
+  ],
+  "prompt": "Create a graduation photo of me from my uploaded photo. Keep my face, facial features, skin tone and identity exactly the same as in my uploaded photo. I am wearing a black graduation gown and holding my graduation cap up high against the sky, a classic campus building in the background, bright afternoon light, low camera angle, proud and happy expression, 4:5 ratio.",
+  "tips": "Tambahkan warna selempang atau nama kampus secara umum, misalnya \"with a gold sash\".",
+  "image": "img/p12.jpg"
+ },
+ {
+  "id": "p13",
+  "order": 13,
+  "cat": "Momen Spesial",
+  "title": "Prewedding Tepi Pantai",
+  "desc": "Prewedding romantis dengan gaun dan kerudung panjang di pantai.",
+  "popular": false,
+  "tools": [
+   "Gemini",
+   "ChatGPT"
+  ],
+  "prompt": "Create a pre-wedding photo of the couple from my uploaded photos. Keep both faces exactly the same. The bride in a white gown with a very long flowing veil, the groom in a dark suit, embracing on a pebble beach, soft overcast light, calm sea behind them, romantic editorial style, 4:5 ratio.",
+  "tips": "Upload foto kalian berdua, atau dua foto terpisah. Untuk busana muslim, tambahkan \"the bride wears an elegant hijab\".",
+  "image": "img/p13.jpg"
+ },
+ {
+  "id": "p14",
+  "order": 14,
+  "cat": "Momen Spesial",
+  "title": "Anniversary Tangan Hati",
+  "desc": "Siluet tangan membentuk hati dengan latar matahari terbenam.",
+  "popular": false,
+  "tools": [
+   "Gemini",
+   "ChatGPT"
+  ],
+  "prompt": "Create a romantic anniversary photo using the couple from my uploaded photos. Keep both faces exactly the same. In the foreground, our hands form a heart shape framing the setting sun, and in the softly blurred background we smile at each other. Warm golden tones, soft bokeh, 4:5 ratio.",
+  "tips": "Tambahkan \"with the text Happy 5th Anniversary\" kalau mau ada tulisan, lalu cek ejaannya.",
+  "image": "img/p14.jpg"
+ },
+ {
+  "id": "p15",
+  "order": 15,
+  "cat": "Profesional",
+  "title": "Foto Profil LinkedIn",
+  "desc": "Foto selfie biasa jadi headshot profesional untuk CV dan LinkedIn.",
+  "popular": true,
+  "tools": [
+   "Gemini",
+   "ChatGPT"
+  ],
+  "prompt": "Transform my uploaded selfie into a professional corporate headshot. Keep my face, facial features, skin tone and identity exactly the same as in my uploaded photo. Dress me in a neat charcoal blazer over a light sweater. Soft gradient blue-grey studio backdrop, flattering three-point lighting, subtle natural retouching, eye-level camera, chest-up framing, 85mm lens look, 4:5 ratio.",
+  "tips": "Pakai foto wajah menghadap kamera tanpa kacamata hitam.",
+  "image": "img/p15.jpg"
+ },
+ {
+  "id": "p16",
+  "order": 16,
+  "cat": "Profesional",
+  "title": "Potret Pebisnis Modern",
+  "desc": "Foto profil ala founder untuk website, proposal, atau media.",
+  "popular": false,
+  "tools": [
+   "Gemini",
+   "ChatGPT"
+  ],
+  "prompt": "Recreate my uploaded photo as a modern business portrait. Keep my face, facial features, skin tone and identity exactly the same as in my uploaded photo. Smart-casual blazer, seated confidently on a stool in a bright office with large windows and a warm orange accent wall, soft daylight, relaxed natural smile, three-quarter body framing, editorial magazine quality, 4:5 ratio.",
+  "tips": "Cocok untuk profil pemilik usaha di website atau katalog.",
+  "image": "img/p16.jpg"
+ },
+ {
+  "id": "p17",
+  "order": 17,
+  "cat": "Tren Viral",
+  "title": "Potret Neon Sinematik",
+  "desc": "Nuansa lampu neon biru-ungu seperti adegan film.",
+  "popular": false,
+  "tools": [
+   "Gemini",
+   "ChatGPT"
+  ],
+  "prompt": "Turn my uploaded photo into a cinematic neon portrait. Keep my face, facial features, skin tone and identity exactly the same as in my uploaded photo. Dark background, cool blue neon light from one side and soft violet fill from the other, subtle haze in the air, moody film color grading, calm confident expression, chest-up framing, shallow depth of field, 4:5 ratio.",
+  "tips": "Hasil paling bagus dengan foto wajah agak menyamping.",
+  "image": "img/p17.jpg"
+ },
+ {
+  "id": "p18",
+  "order": 18,
+  "cat": "Tren Viral",
+  "title": "Sampul Majalah Fashion",
+  "desc": "Potret ala sampul majalah dengan tatapan tajam.",
+  "popular": false,
+  "tools": [
+   "Gemini",
+   "ChatGPT"
+  ],
+  "prompt": "Restyle my uploaded photo as a fashion magazine cover portrait. Keep my face, facial features, skin tone and identity exactly the same as in my uploaded photo. Teal painted wall with a sharp architectural shadow, strong late-afternoon sunlight across the face, glossy natural makeup, gaze slightly past the camera, rich contrast, film grain, empty space at the top for a magazine title, 4:5 ratio.",
+  "tips": "Tambahkan \"with the magazine title STYLE at the top\" kalau mau sekalian ada judul.",
+  "image": "img/p18.jpg"
+ },
+ {
+  "id": "p19",
+  "order": 19,
+  "cat": "Tren Viral",
+  "title": "Hujan Sinematik",
+  "desc": "Adegan dramatis di bawah langit badai seperti poster film.",
+  "popular": false,
+  "tools": [
+   "Gemini",
+   "ChatGPT"
+  ],
+  "prompt": "Place me from my uploaded photo in a dramatic cinematic scene before a storm. Keep my face, facial features, skin tone and identity exactly the same as in my uploaded photo. Dark stormy sky, wind in my hair, light rain, moody desaturated green-grey color grading, strong serious expression, waist-up framing, movie-poster lighting, 4:5 ratio.",
+  "tips": "Ganti \"serious expression\" dengan \"looking up at the sky\" untuk kesan lebih puitis.",
+  "image": "img/p19.jpg"
+ },
+ {
+  "id": "p20",
+  "order": 20,
+  "cat": "Tren Viral",
+  "title": "Peluk Diri Versi Kecil",
+  "desc": "Tren viral: dirimu sekarang memeluk dirimu waktu kecil.",
+  "popular": true,
+  "tools": [
+   "Gemini",
+   "ChatGPT"
+  ],
+  "prompt": "I am uploading two photos: one of me now and one of me as a child. Create a single heartwarming photo where my adult self lifts and hugs my younger self. Keep both faces exactly the same as in their photos. Soft mint studio background, gentle soft light, joyful emotional moment, full-body shot, 4:5 ratio.",
+  "tips": "Upload dua foto sekaligus: foto sekarang dan foto masa kecil. Foto masa kecil yang buram bisa direstorasi dulu pakai resep Restorasi Foto Lama.",
+  "image": "img/p20.jpg"
+ }
+]

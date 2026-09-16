@@ -1,0 +1,7 @@
+# rahasia & data server
+app/config.php
+app/data/*.sqlite*
+app/data/*.log
+app/uploads/*
+!app/uploads/.htaccess
+.DS_Store
