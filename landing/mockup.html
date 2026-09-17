@@ -408,7 +408,10 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
 .toast.show{transform:translate(-50%,0);visibility:visible}
 .mock-banner{background:#3A2A00;color:#FFE58A;text-align:center;font-size:13px;font-weight:800;letter-spacing:.2em;padding:6px 12px}
 .stickwrap{position:sticky;top:0;z-index:45}
-.corner-tag{position:fixed;bottom:calc(14px + env(safe-area-inset-bottom,0px));right:12px;z-index:90;background:#3A2A00;color:#FFE58A;font-size:10px;line-height:1;font-weight:800;letter-spacing:.1em;padding:4px 6px;border-radius:6px;box-shadow:0 4px 12px -4px rgba(0,0,0,.35);pointer-events:none}
+/* label "CONTOH" diambil dari CDN — ganti asset di URL itu, halaman tidak perlu diubah */
+.corner-tag{position:fixed;bottom:calc(14px + env(safe-area-inset-bottom,0px));right:12px;z-index:90;pointer-events:none;line-height:0}
+.corner-tag img{display:block;width:104px;height:auto;filter:drop-shadow(0 6px 14px rgba(0,0,0,.4))}
+.corner-tag.txt{background:#3A2A00;color:#FFE58A;font-size:10px;line-height:1;font-weight:800;letter-spacing:.1em;padding:4px 6px;border-radius:6px;box-shadow:0 4px 12px -4px rgba(0,0,0,.35)}
 @media (min-width:560px){.corner-tag{bottom:24px;right:24px}}
 .confetti{position:fixed;inset:0;pointer-events:none;z-index:70}
 
@@ -817,7 +820,7 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
   <button class="wa-help" id="co-help" type="button"><svg class="ico"><use href="#i-wa"/></svg>Ada pertanyaan? Chat admin</button>
 </div>
 <div class="opop" id="opop" role="status" aria-live="polite"><div class="tx"><strong id="op-name"></strong><span id="op-what"></span><div><span class="st" id="op-st"></span> <span class="ago" id="op-ago"></span></div></div><button class="cl" id="op-close" aria-label="Tutup notifikasi"><svg class="ico"><use href="#i-x"/></svg></button></div>
-<div class="corner-tag" role="note">CONTOH</div>
+<div class="corner-tag" role="note"><img id="ctag-img" src="https://ik.imagekit.io/oziera/contoh.png" alt="CONTOH"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <canvas class="confetti" id="confetti" aria-hidden="true"></canvas>
 
@@ -1251,6 +1254,16 @@ const tList = TESTIMONIALS.length ? TESTIMONIALS.map(t => MOCKUP ? {...t, demo:t
     setInterval(() => { if (!queue.length) queue = demo(); }, 20000);
     setTimeout(tick, 6000);
   }
+})();
+
+/* ---- label CONTOH: kalau gambar CDN gagal dimuat, pakai label teks ---- */
+(() => {
+  const im = $("#ctag-img"); if (!im) return;
+  let done = false;
+  const fall = () => { const b = im.parentNode; if (done || !b) return; done = true; b.classList.add("txt"); b.textContent = "CONTOH"; };
+  im.addEventListener("error", fall);
+  if (im.complete && !im.naturalWidth) fall();
+  else addEventListener("load", () => { if (!im.naturalWidth) fall(); });
 })();
 
 /* ---- latar CTA penutup: pakai gambar asli kalau tersedia ---- */
