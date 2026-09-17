@@ -51,6 +51,7 @@ function db(): PDO {
   $mcols = array_column($pdo->query('PRAGMA table_info(members)')->fetchAll(), 'name');
   if (!in_array('email', $mcols, true)) $pdo->exec('ALTER TABLE members ADD COLUMN email TEXT');
   if (!in_array('phone', $mcols, true)) $pdo->exec('ALTER TABLE members ADD COLUMN phone TEXT');
+  if (!in_array('role', $mcols, true)) $pdo->exec("ALTER TABLE members ADD COLUMN role TEXT DEFAULT 'member'");
   // kolom terjemahan Inggris
   if (!in_array('title_en', $cols, true)) {
     foreach (['cat_en', 'title_en', 'descr_en', 'tips_en'] as $c) $pdo->exec("ALTER TABLE prompts ADD COLUMN $c TEXT DEFAULT ''");
@@ -97,7 +98,7 @@ function memberStatus(array $m): string {
 function publicMember(array $m): array {
   return ['username' => $m['username'], 'name' => $m['name'], 'plan' => $m['plan'], 'expires' => $m['expires'] ?: '',
     'active' => (bool)$m['active'], 'codeHint' => $m['code_hint'], 'status' => memberStatus($m),
-    'email' => $m['email'] ?? '', 'phone' => $m['phone'] ?? '',
+    'email' => $m['email'] ?? '', 'phone' => $m['phone'] ?? '', 'role' => $m['role'] ?? 'member',
     'createdAt' => $m['created_at'], 'lastLogin' => $m['last_login']];
 }
 function findMember(string $username): ?array {
@@ -106,10 +107,10 @@ function findMember(string $username): ?array {
 }
 function saveMember(array $m, ?PDO $pdo = null): void {
   $pdo = $pdo ?: db();
-  $pdo->prepare('INSERT OR REPLACE INTO members (username, name, code_hash, code_hint, plan, expires, active, created_at, last_login, email, phone)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?)')->execute([
+  $pdo->prepare('INSERT OR REPLACE INTO members (username, name, code_hash, code_hint, plan, expires, active, created_at, last_login, email, phone, role)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')->execute([
     $m['username'], $m['name'], $m['code_hash'], $m['code_hint'], $m['plan'], $m['expires'] ?? '', (int)$m['active'],
-    $m['created_at'], $m['last_login'] ?? null, $m['email'] ?? '', $m['phone'] ?? '']);
+    $m['created_at'], $m['last_login'] ?? null, $m['email'] ?? '', $m['phone'] ?? '', $m['role'] ?? 'member']);
 }
 function genCode(): string {
   $a = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; $n = '23456789'; $s = 'RF-';

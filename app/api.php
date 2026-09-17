@@ -38,6 +38,15 @@ function tr(string $msg): string {
     'Terlalu banyak percobaan. Coba lagi 15 menit lagi.' => 'Too many attempts. Try again in 15 minutes.',
     'Username atau kode akses tidak cocok. Cek lagi pesan konfirmasi pembelianmu.' => 'Username or access code doesn\'t match. Check your purchase confirmation again.',
     'Khusus admin.' => 'Admins only.',
+    'Khusus super admin.' => 'Super admins only.',
+    'Username sudah dipakai.' => 'That username is already taken.',
+    'Akun admin tidak ditemukan.' => 'Admin account not found.',
+    'Tidak bisa menghapus akun ini.' => 'This account can\'t be deleted.',
+    'Tidak bisa mengubah super admin utama.' => 'The main super admin can\'t be changed.',
+    'Pilih atau tempel gambar yang berisi prompt.' => 'Choose or paste an image that contains the prompt.',
+    'Tidak menemukan teks prompt di gambar. Pastikan tulisannya jelas terbaca.' => 'No prompt text found in the image. Make sure the text is clearly legible.',
+    'Peran tidak valid.' => 'Invalid role.',
+    'Akun ini dikelola di tab Admin.' => 'This account is managed in the Admin tab.',
     'Metode salah.' => 'Wrong method.',
     'Endpoint tidak dikenal.' => 'Unknown endpoint.',
     'Aksi tidak dikenal.' => 'Unknown action.',
@@ -66,15 +75,19 @@ function fail(string $msg, int $code = 400): void { out(['ok' => false, 'error' 
 function currentUser(): ?array {
   $s = $_SESSION['user'] ?? null;
   if (!$s) return null;
-  if ($s['role'] === 'admin') return ['role' => 'admin', 'username' => ADMIN_USER, 'name' => 'Admin ResepFoto', 'plan' => 'Admin', 'expires' => ''];
+  if ($s['role'] === 'admin') return ['role' => 'admin', 'adminRole' => 'super_admin', 'username' => ADMIN_USER, 'name' => 'Admin ResepFoto', 'plan' => 'Admin', 'expires' => ''];
   $st = db()->prepare('SELECT * FROM members WHERE username = ?');
   $st->execute([$s['username']]);
   $m = $st->fetch();
   if (!$m || memberStatus($m) !== 'ok') { unset($_SESSION['user']); return null; }
-  return ['role' => 'member'] + publicMember($m);
+  $mrole = $m['role'] ?? 'member';
+  $pub = publicMember($m);
+  if ($mrole === 'admin' || $mrole === 'super_admin') return ['role' => 'admin', 'adminRole' => $mrole] + $pub;
+  return ['role' => 'member', 'adminRole' => ''] + $pub;
 }
 function requireUser(): array { $u = currentUser(); if (!$u) fail('Sesi berakhir. Silakan masuk lagi.', 401); return $u; }
 function requireAdmin(): void { $u = requireUser(); if ($u['role'] !== 'admin') fail('Khusus admin.', 403); }
+function requireSuperAdmin(): array { $u = requireUser(); if (($u['adminRole'] ?? '') !== 'super_admin') fail('Khusus super admin.', 403); return $u; }
 function rowToPrompt(array $r): array {
   return ['id' => $r['id'], 'order' => (int)$r['ord'], 'cat' => $r['cat'], 'title' => $r['title'], 'desc' => $r['descr'],
     'popular' => (bool)$r['popular'], 'tools' => json_decode($r['tools'] ?: '[]', true), 'prompt' => $r['prompt'],
@@ -194,7 +207,7 @@ if ($method === 'POST' && !in_array($a, ['lt'], true) && !hash_equals($_SESSION[
 try {
   switch ($a) {
     case 'me':
-      out(['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => currentUser()]);
+      out(['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => currentUser(), 'v' => 'admin-2']);
 
     case 'login': {
       if ($method !== 'POST') fail('Metode salah.', 405);
@@ -309,8 +322,55 @@ try {
 
     case 'members': {
       requireAdmin();
-      $rows = db()->query('SELECT * FROM members ORDER BY name COLLATE NOCASE')->fetchAll();
+      $rows = db()->query("SELECT * FROM members WHERE COALESCE(role,'member') = 'member' ORDER BY name COLLATE NOCASE")->fetchAll();
       out(['ok' => true, 'members' => array_map('publicMember', $rows)]);
+    }
+
+    /* ---------- kelola admin (super admin) ---------- */
+    case 'admins': {
+      $me = requireSuperAdmin();
+      $rows = db()->query("SELECT * FROM members WHERE role IN ('admin','super_admin') ORDER BY role DESC, name COLLATE NOCASE")->fetchAll();
+      $list = [['username' => ADMIN_USER, 'name' => 'Admin Utama', 'role' => 'super_admin', 'active' => true, 'builtin' => true, 'codeHint' => '', 'lastLogin' => null, 'self' => $me['username'] === ADMIN_USER]];
+      foreach ($rows as $m) { $p = publicMember($m); $p['builtin'] = false; $p['self'] = $m['username'] === $me['username']; $list[] = $p; }
+      out(['ok' => true, 'admins' => $list, 'me' => ['username' => $me['username'], 'role' => $me['adminRole']]]);
+    }
+
+    case 'admin_save': {
+      $me = requireSuperAdmin();
+      $in = input(); $pdo = db();
+      $isNew = empty($in['editing']);
+      $username = strtolower(str($in, 'username', 30)); $name = str($in, 'name', 80);
+      $role = in_array($in['role'] ?? '', ['admin', 'super_admin'], true) ? $in['role'] : 'admin';
+      if ($name === '' || $username === '') fail('Nama dan username wajib diisi.');
+      if (!preg_match('/^[a-z0-9._-]{3,30}$/', $username)) fail('Username 3–30 karakter: huruf kecil, angka, titik, garis bawah, atau strip.');
+      if ($username === strtolower(ADMIN_USER)) fail('Tidak bisa mengubah super admin utama.');
+      $st = $pdo->prepare('SELECT * FROM members WHERE username = ?'); $st->execute([$username]);
+      $old = $st->fetch();
+      if ($isNew && $old) fail('Username sudah dipakai.');
+      if (!$isNew && !$old) fail('Akun admin tidak ditemukan.', 404);
+      if ($old && ($old['role'] ?? 'member') === 'member') fail('Username sudah dipakai.'); // jangan bajak akun member jadi admin diam-diam
+      $newCode = null;
+      if ($isNew || !empty($in['resetCode'])) $newCode = strtoupper(str($in, 'code', 40)) ?: genCode();
+      $hash = $newCode ? password_hash($newCode, PASSWORD_DEFAULT) : $old['code_hash'];
+      $hint = $newCode ? substr($newCode, -4) : $old['code_hint'];
+      saveMember(['username' => $username, 'name' => $name, 'code_hash' => $hash, 'code_hint' => $hint,
+        'plan' => 'Admin', 'expires' => '', 'active' => !empty($in['active']) ? 1 : 0,
+        'created_at' => $old['created_at'] ?? gmdate('c'), 'last_login' => $old['last_login'] ?? null,
+        'email' => str($in, 'email', 120) ?: ($old['email'] ?? ''), 'phone' => $old['phone'] ?? '', 'role' => $role], $pdo);
+      $st->execute([$username]);
+      $p = publicMember($st->fetch()); $p['builtin'] = false; $p['self'] = false;
+      out(['ok' => true, 'admin' => $p, 'code' => $newCode]);
+    }
+
+    case 'admin_delete': {
+      $me = requireSuperAdmin();
+      $username = strtolower(str(input(), 'username', 30));
+      if ($username === strtolower(ADMIN_USER) || $username === $me['username']) fail('Tidak bisa menghapus akun ini.');
+      $st = db()->prepare("SELECT role FROM members WHERE username = ?"); $st->execute([$username]);
+      $role = (string)$st->fetchColumn();
+      if ($role !== 'admin' && $role !== 'super_admin') fail('Akun admin tidak ditemukan.', 404);
+      db()->prepare('DELETE FROM members WHERE username = ?')->execute([$username]);
+      out(['ok' => true]);
     }
 
     case 'member_save': {
@@ -329,6 +389,7 @@ try {
       $old = $st->fetch();
       if ($isNew && $old) fail('Username sudah dipakai member lain.');
       if (!$isNew && !$old) fail('Member tidak ditemukan.', 404);
+      if ($old && ($old['role'] ?? 'member') !== 'member') fail('Akun ini dikelola di tab Admin.');
       $newCode = null;
       if ($isNew || !empty($in['resetCode'])) $newCode = strtoupper(str($in, 'code', 40)) ?: genCode();
       $hash = $newCode ? password_hash($newCode, PASSWORD_DEFAULT) : $old['code_hash'];
@@ -338,7 +399,7 @@ try {
       saveMember(['username' => $username, 'name' => $name, 'code_hash' => $hash, 'code_hint' => $hint, 'plan' => $plan,
         'expires' => $expires, 'active' => !empty($in['active']) ? 1 : 0, 'created_at' => $old['created_at'] ?? gmdate('c'),
         'last_login' => $old['last_login'] ?? null, 'email' => $email !== '' ? $email : ($old['email'] ?? ''),
-        'phone' => str($in, 'phone', 30) ?: ($old['phone'] ?? '')], $pdo);
+        'phone' => str($in, 'phone', 30) ?: ($old['phone'] ?? ''), 'role' => 'member'], $pdo);
       $st->execute([$username]);
       out(['ok' => true, 'member' => publicMember($st->fetch()), 'code' => $newCode]);
     }
@@ -410,7 +471,10 @@ try {
 
     case 'member_delete': {
       requireAdmin();
-      db()->prepare('DELETE FROM members WHERE username = ?')->execute([str(input(), 'username', 30)]);
+      $username = str(input(), 'username', 30);
+      $st = db()->prepare("SELECT role FROM members WHERE username = ?"); $st->execute([$username]);
+      if (in_array((string)$st->fetchColumn(), ['admin', 'super_admin'], true)) fail('Akun ini dikelola di tab Admin.');
+      db()->prepare("DELETE FROM members WHERE username = ? AND COALESCE(role,'member') = 'member'")->execute([$username]);
       out(['ok' => true]);
     }
 
@@ -438,7 +502,7 @@ try {
       $in = input();
       $k = trim((string)($in['apiKey'] ?? ''));
       if ($k !== '') {
-        if (!preg_match('/^[A-Za-z0-9_\-]{20,120}$/', $k)) fail('Format API key tidak valid.');
+        if (!preg_match('/^[A-Za-z0-9_.\-]{20,200}$/', $k)) fail('Format API key tidak valid.');
         setSetting('gemini_api_key', $k);
       }
       if (!empty($in['clearKey'])) setSetting('gemini_api_key', '');
@@ -478,6 +542,23 @@ try {
         if (preg_match('#^uploads/(tmp_[a-f0-9]{16}\.jpg|[a-f0-9]{16}\.jpg)$#', $t) && is_file(__DIR__ . '/' . $t)) $path = __DIR__ . '/' . $t;
       }
       out(['ok' => true, 'recipe' => recipeFromUpload($prompt, $path)]);
+    }
+
+    case 'ai_ocr': {
+      requireAdmin();
+      @set_time_limit(120);
+      $in = input();
+      $path = null;
+      if (isset($_FILES['image']) && ($_FILES['image']['error'] ?? 4) === UPLOAD_ERR_OK) {
+        if ($_FILES['image']['size'] > 12 * 1024 * 1024) fail('Gambar terlalu besar. Maksimal 12 MB.');
+        if (!@getimagesize($_FILES['image']['tmp_name'])) fail('File harus gambar JPG, PNG, atau WEBP.');
+        $path = $_FILES['image']['tmp_name'];
+      } else {
+        $t = (string)($in['image_temp'] ?? '');
+        if (preg_match('#^uploads/(tmp_[a-f0-9]{16}\.jpg|[a-f0-9]{16}\.jpg)$#', $t) && is_file(__DIR__ . '/' . $t)) $path = __DIR__ . '/' . $t;
+      }
+      if (!$path) fail('Pilih atau tempel gambar yang berisi prompt.');
+      out(['ok' => true, 'recipe' => recipeFromImagePrompt($path)]);
     }
 
     /* ---------- hasil tes internal ---------- */

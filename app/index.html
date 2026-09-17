@@ -609,6 +609,7 @@ input[type=checkbox]:disabled + *{opacity:.6}
     <div class="lang wide pf-modes" id="pf-modes" role="tablist" aria-label="Cara menambah resep">
       <button type="button" data-mode="link"><svg class="ico" style="width:16px;height:16px"><use href="#i-link"/></svg>Link referensi</button>
       <button type="button" data-mode="upload"><svg class="ico" style="width:16px;height:16px"><use href="#i-image"/></svg>Upload sendiri</button>
+      <button type="button" data-mode="image"><svg class="ico" style="width:16px;height:16px"><use href="#i-spark"/></svg>Prompt dari gambar</button>
     </div>
 
     <div class="studio-box" id="pf-linkbox">
@@ -618,6 +619,18 @@ input[type=checkbox]:disabled + *{opacity:.6}
         <button type="button" class="btn btn-primary" id="pf-link-go" style="flex:none"><svg class="ico"><use href="#i-spark"/></svg>Ambil</button>
       </div>
       <small class="muted">Gemini membaca percakapan di link, lalu mengisi prompt, judul, kategori, deskripsi, tips, versi English, dan mengambil gambar hasilnya. Alat AI otomatis mengikuti sumber link.</small>
+    </div>
+
+    <div class="studio-box" id="pf-ocrbox" hidden>
+      <label class="studio-label">Gambar berisi tulisan prompt (screenshot)</label>
+      <div class="drop drop-sm" id="pf-ocr-drop" tabindex="0" role="button" aria-label="Gambar berisi prompt: klik lalu Ctrl+V untuk menempel, atau pilih file">
+        <img id="pf-ocr-preview" alt="" hidden>
+        <div class="drop-empty" id="pf-ocr-ph"><svg class="ico"><use href="#i-image"/></svg><strong>Klik di sini lalu Ctrl+V</strong><span>tempel screenshot yang ada tulisan prompt-nya</span></div>
+        <div class="drop-bar"><span class="drop-ready">Siap tempel · Ctrl+V</span><label class="btn btn-ghost btn-sm" for="pf-ocr-file"><svg class="ico" style="width:16px;height:16px"><use href="#i-plus"/></svg>Pilih file</label></div>
+        <input id="pf-ocr-file" type="file" accept="image/*" hidden>
+      </div>
+      <button type="button" class="btn btn-primary btn-block" id="pf-ocr-go"><svg class="ico"><use href="#i-spark"/></svg>Baca prompt dari gambar</button>
+      <small class="muted">Gemini membaca (OCR) tulisan prompt di gambar, lalu mengisi kolom Prompt, judul, kategori, deskripsi, dan tips otomatis. Cocok untuk prompt yang bentuknya gambar.</small>
     </div>
 
     <div class="ai-status" id="pf-ai-status" hidden></div>
@@ -1287,7 +1300,7 @@ $$("[data-seg]").forEach(b => b.addEventListener("click", () => { state.seg = b.
 $("#adm-add").addEventListener("click", () => state.seg === "prompts" ? openPromptForm(null) : openMemberForm(null));
 
 /* ---------- prompt studio ---------- */
-const pf = {mode: store.get("rf_pf_mode", "link"), temp: null, file: null, origPrompt: null, source: null, testFile: null, genFile: null, testStatus: "ok"};
+const pf = {mode: store.get("rf_pf_mode", "link"), temp: null, file: null, origPrompt: null, source: null, testFile: null, genFile: null, testStatus: "ok", ocrFile: null};
 function studioStatus(html, kind){
   const el = $("#pf-ai-status");
   if (!html){ el.hidden = true; el.innerHTML = ""; return; }
@@ -1299,7 +1312,8 @@ function setMode(m){
   pf.mode = m; store.set("rf_pf_mode", m);
   $$("#pf-modes [data-mode]").forEach(b => b.setAttribute("aria-pressed", b.dataset.mode === m));
   const editing = !!state.editPrompt;
-  $("#pf-linkbox").hidden = editing || m !== "link";
+  $("#pf-linkbox").hidden = m !== "link";
+  $("#pf-ocrbox").hidden = m !== "image";
   $("#pf-ai-label").textContent = editing ? "Rapikan & lengkapi dengan Gemini" : "Isi otomatis dengan Gemini";
   lockTools(m === "link" && pf.source ? pf.source : null);
 }
@@ -1356,6 +1370,7 @@ function makeDrop(drop, input, onFile){
 makeDrop($("#pf-drop"), $("#pf-file"), f => { setMainImage(URL.createObjectURL(f), f, null); $$("#pf-thumbs button").forEach(b => b.setAttribute("aria-pressed", "false")); });
 makeDrop($("#pt-drop"), $("#pt-file"), f => { pf.testFile = f; $("#pt-preview").src = URL.createObjectURL(f); $("#pt-preview").hidden = false; });
 makeDrop($("#pg-drop"), $("#pg-file"), f => { pf.genFile = f; $("#pg-preview").src = URL.createObjectURL(f); $("#pg-preview").hidden = false; });
+makeDrop($("#pf-ocr-drop"), $("#pf-ocr-file"), f => { pf.ocrFile = f; $("#pf-ocr-preview").src = URL.createObjectURL(f); $("#pf-ocr-preview").hidden = false; $("#pf-ocr-ph").hidden = true; });
 document.addEventListener("paste", e => {
   if (openSheetEl !== $("#sheet-prompt")) return;
   const item = [...(e.clipboardData?.items || [])].find(i => i.kind === "file" && i.type.startsWith("image/"));
@@ -1437,6 +1452,21 @@ $("#pf-ai").addEventListener("click", async () => {
   } catch (ex) { studioStatus(esc(ex.message), "err"); }
   finally { btn.disabled = false; }
 });
+$("#pf-ocr-go").addEventListener("click", async () => {
+  if (!pf.ocrFile){ studioStatus("Tempel atau pilih gambar yang berisi tulisan prompt dulu.", "err"); $("#pf-ocr-drop").focus(); return; }
+  const btn = $("#pf-ocr-go"); btn.disabled = true;
+  studioStatus("Gemini sedang membaca tulisan prompt dari gambar (OCR)…", "busy");
+  const fd = new FormData();
+  fd.append("image", pf.ocrFile);
+  try {
+    const {recipe: r} = await api("ai_ocr", fd, true);
+    applyRecipe(r, {keepTools: true});
+    const conf = Math.round((r.confidence || 0) * 100);
+    studioStatus(`Teks prompt terbaca dari gambar dan kolom terisi otomatis. Keyakinan kategori ${conf}%.${r.notes ? " Catatan AI: " + esc(r.notes) : ""} Cek lagi sebelum menyimpan.`, "ok");
+    $("#pf-prompt").focus();
+  } catch (ex) { studioStatus(esc(ex.message), "err"); }
+  finally { btn.disabled = false; }
+});
 $$("#pf-modes [data-mode]").forEach(b => b.addEventListener("click", () => {
   if (b.dataset.mode !== "link"){ pf.source = null; }
   setMode(b.dataset.mode);
@@ -1445,9 +1475,10 @@ $$("#pf-modes [data-mode]").forEach(b => b.addEventListener("click", () => {
 function openPromptForm(id){
   const p = id ? findPrompt(id) : null;
   state.editPrompt = id || null;
-  Object.assign(pf, {temp: null, file: null, origPrompt: null, source: null, testFile: null, genFile: null});
+  Object.assign(pf, {temp: null, file: null, origPrompt: null, source: null, testFile: null, genFile: null, ocrFile: null});
+  $("#pf-ocr-preview").hidden = true; $("#pf-ocr-preview").removeAttribute("src"); $("#pf-ocr-ph").hidden = false;
   $("#pf-title").textContent = t(p ? "pf.edit" : "pf.add");
-  $("#pf-modes").hidden = !!p;
+  $("#pf-modes").hidden = false;
   $("#pf-link").value = "";
   $("#pf-name").value = p?.title || ""; $("#pf-desc").value = p?.desc || "";
   $("#pf-prompt").value = p?.prompt || ""; $("#pf-tips").value = p?.tips || "";
@@ -1697,5 +1728,6 @@ window.RFAPP = {api, toast, esc, copyText, openSheet, closeSheet, isAdmin, fmtDa
 <script src="admin-ext.js?v=3" defer></script>
 <script src="admin-ai.js?v=1" defer></script>
 <script src="admin-reports.js?v=1" defer></script>
+<script src="admin-team.js?v=1" defer></script>
 </body>
 </html>

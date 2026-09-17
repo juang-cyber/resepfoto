@@ -232,6 +232,27 @@ function recipeFromLink(string $url): array {
   return $rec;
 }
 
+/** Mode gambar: prompt ADA DI DALAM gambar (screenshot). OCR teksnya lalu buat metadata. */
+function recipeFromImagePrompt(string $imagePath): array {
+  $instr = recipeInstructions()
+    . "\n\nSUMBER KHUSUS: teks prompt-nya ADA DI DALAM GAMBAR terlampir (screenshot/foto berisi tulisan prompt). "
+    . "Baca (OCR) SELURUH teks prompt dari gambar dengan teliti dan lengkap — jangan ada kata yang terlewat, jangan mengarang. "
+    . "Kalau di gambar ada beberapa blok teks, ambil bagian yang merupakan prompt foto AI (biasanya paragraf instruksi paling panjang). "
+    . "Tambahkan kunci \"ocr\": teks prompt PERSIS seperti tertulis di gambar (verbatim, apa adanya sebelum dirapikan), "
+    . "dan \"found\": true/false apakah teks prompt ditemukan di gambar.";
+  $res = geminiCall('ocr', [['text' => $instr], imagePart($imagePath)], ['json' => true, 'timeout' => 120]);
+  $j = aiJson($res['text']);
+  $ocr = trim((string)($j['ocr'] ?? ''));
+  if ((isset($j['found']) && !$j['found']) && $ocr === '' && trim((string)($j['prompt'] ?? '')) === '') {
+    throw new RfError('Tidak menemukan teks prompt di gambar. Pastikan tulisannya jelas terbaca.');
+  }
+  $rec = normalizeRecipe($j, $ocr);
+  if ($rec['prompt'] === '' && $ocr !== '') $rec['prompt'] = $ocr;
+  if ($rec['prompt'] === '') throw new RfError('Tidak menemukan teks prompt di gambar. Pastikan tulisannya jelas terbaca.');
+  $rec['ocr'] = mb_substr($ocr, 0, 6000);
+  return $rec;
+}
+
 /** Mode upload: prompt + gambar contoh (opsional). */
 function recipeFromUpload(string $prompt, ?string $imagePath): array {
   $parts = [['text' => recipeInstructions() . "\n\nPrompt dari admin:\n" . $prompt . ($imagePath ? "\n\nGambar terlampir adalah contoh HASIL dari prompt ini." : '')]];
