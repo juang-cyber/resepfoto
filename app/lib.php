@@ -95,6 +95,7 @@ function db(): PDO {
       'plan' => 'Premium', 'expires' => '', 'active' => 1, 'created_at' => gmdate('c'), 'last_login' => null, 'email' => '', 'phone' => ''], $pdo);
   }
   importPromptPacks($pdo, $dir);
+  fixAmbiguousPrompts($pdo);
   backfillPromptAuthors($pdo, $dir);
   return $pdo;
 }
@@ -104,6 +105,34 @@ function db(): PDO {
  * Resep dari paket resep dicatat atas nama super admin bawaan, sisanya atas nama
  * LEGACY_PROMPT_AUTHOR. Resep baru mengisi created_by sendiri lewat `prompt_save`.
  */
+/**
+ * Sekali jalan: bedakan dua judul Spider-Man yang nyaris kembar, dan perjelas bahwa
+ * resep iklan jaring laba-laba butuh foto PRODUK, bukan foto orang — tiga resep itu
+ * bersebelahan di katalog dan mudah tertukar.
+ * importPromptPacks() memakai INSERT OR IGNORE, jadi memperbaiki JSON saja tidak
+ * menyentuh database yang sudah berisi. Nilai hanya diganti kalau MASIH persis seperti
+ * aslinya, sehingga suntingan admin tidak pernah tertimpa.
+ */
+function fixAmbiguousPrompts(PDO $pdo): void {
+  $chk = $pdo->prepare('SELECT 1 FROM settings WHERE k = ?');
+  $chk->execute(['fix_ambigu_spiderman']);
+  if ($chk->fetchColumn() !== false) return;
+  try {
+    $pdo->beginTransaction();
+    $tt = $pdo->prepare('UPDATE prompts SET title = ?, title_en = ? WHERE id = ? AND title = ?');
+    $tt->execute(['Selfie Spider-Man di Times Square', 'Spider-Man Selfie in Times Square', 'p24', 'Selfie Spider-Man']);
+    $tt->execute(['Photobooth Spider-Man 4 Pose', 'Spider-Man Photobooth (4 Poses)', 'p33', 'Photobooth Spider-Man']);
+    $pdo->prepare('UPDATE prompts SET descr = ?, descr_en = ? WHERE id = ? AND descr = ?')->execute([
+      'Upload foto PRODUK (bukan foto orang). Iklan sinematik: produkmu melayang di atas jalanan kota, digantung jaring laba-laba tebal saat senja.',
+      'Upload a PRODUCT photo (not a person). Cinematic ad: your product floats above the city street, slung from thick spiderwebs at dusk.',
+      'p34', 'Iklan sinematik: produkmu melayang di atas jalanan kota, digantung jaring laba-laba tebal saat senja.']);
+    $pdo->prepare('INSERT OR REPLACE INTO settings (k, v) VALUES (?, ?)')->execute(['fix_ambigu_spiderman', gmdate('c')]);
+    $pdo->commit();
+  } catch (Throwable $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+  }
+}
+
 function backfillPromptAuthors(PDO $pdo, string $dir): void {
   $chk = $pdo->prepare('SELECT 1 FROM settings WHERE k = ?');
   $chk->execute(['backfill_created_by']);

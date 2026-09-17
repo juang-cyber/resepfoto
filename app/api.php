@@ -362,6 +362,50 @@ try {
       out(['ok' => true, 'prompt' => rowToPrompt($st->fetch(), true)]);
     }
 
+    case 'prompt_cover_from_test': {
+      // Jadikan hasil generate/tes sebagai gambar contoh resep.
+      requireAdmin();
+      $in = input(); $pdo = db();
+      $tid = (int)($in['test_id'] ?? 0);
+      $st = $pdo->prepare('SELECT prompt_id, image FROM prompt_tests WHERE id = ?'); $st->execute([$tid]);
+      $t = $st->fetch();
+      if (!$t) fail('Hasil tes tidak ditemukan.', 404);
+      $rel = (string)$t['image'];
+      $src = __DIR__ . '/' . $rel;
+      if (strpos($rel, 'uploads/') !== 0 || !is_file($src)) fail('Gambar hasil tes sudah tidak ada di server.', 404);
+      $name = 'uploads/' . bin2hex(random_bytes(8)) . '.jpg';
+      // Disalin, bukan dipindah: galeri tes harus tetap utuh sesudah gambarnya dipakai jadi cover.
+      if (!cropTo45($src, __DIR__ . '/' . $name) && !@copy($src, __DIR__ . '/' . $name)) fail('Gambar tidak bisa disimpan di server.', 500);
+      $ps = $pdo->prepare('SELECT image FROM prompts WHERE id = ?'); $ps->execute([$t['prompt_id']]);
+      $old = (string)$ps->fetchColumn();
+      $pdo->prepare('UPDATE prompts SET image = ?, updated_at = ? WHERE id = ?')->execute([$name, gmdate('c'), $t['prompt_id']]);
+      if ($old !== $name) delUpload($old);          // cover bawaan img/ tidak tersentuh
+      $ps = $pdo->prepare('SELECT * FROM prompts WHERE id = ?'); $ps->execute([$t['prompt_id']]);
+      out(['ok' => true, 'prompt' => rowToPrompt($ps->fetch(), true)]);
+    }
+
+    case 'prompt_review': {
+      // Ubah status QC / penilaian hasil langsung dari daftar, tanpa membuka form penuh.
+      // Sengaja terpisah dari prompt_save supaya tidak perlu mengirim ulang gambar & prompt.
+      requireAdmin();
+      $in = input(); $pdo = db();
+      $id = str($in, 'id', 40);
+      $st = $pdo->prepare('SELECT id FROM prompts WHERE id = ?'); $st->execute([$id]);
+      if (!$st->fetchColumn()) fail('Resep tidak ditemukan.', 404);
+      if (array_key_exists('qc', $in)) {
+        $v = str($in, 'qc', 20);
+        $pdo->prepare('UPDATE prompts SET qc_status = ? WHERE id = ?')
+          ->execute([in_array($v, ['lolos', 'review', 'gagal'], true) ? $v : '', $id]);
+      }
+      if (array_key_exists('result', $in)) {
+        $v = str($in, 'result', 20);
+        $pdo->prepare('UPDATE prompts SET result_status = ? WHERE id = ?')
+          ->execute([in_array($v, ['cocok', 'kurang'], true) ? $v : '', $id]);
+      }
+      $st = $pdo->prepare('SELECT * FROM prompts WHERE id = ?'); $st->execute([$id]);
+      out(['ok' => true, 'prompt' => rowToPrompt($st->fetch(), true)]);
+    }
+
     case 'prompt_delete': {
       $me = requireAdmin();
       $id = str(input(), 'id', 40); $pdo = db();
@@ -738,13 +782,6 @@ try {
       requireSuperAdmin();
       $r = geminiCall('test', [['text' => 'Balas persis dengan satu kata: SIAP']]);
       out(['ok' => true, 'reply' => mb_substr(trim($r['text']), 0, 60), 'ms' => $r['ms'], 'model' => $r['model']]);
-    }
-
-    case 'ai_link': {
-      requireAdmin();
-      @set_time_limit(180);
-      $rec = recipeFromLink(str(input(), 'url', 500));
-      out(['ok' => true, 'recipe' => $rec]);
     }
 
     case 'ai_analyze': {

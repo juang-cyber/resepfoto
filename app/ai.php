@@ -177,60 +177,6 @@ function saveTempImage(string $bytes): ?string {
 }
 
 /** Link referensi: Gemini / ChatGPT share link → data resep. */
-function recipeFromLink(string $url): array {
-  $url = trim($url);
-  if (!preg_match('#^https://#i', $url)) throw new RfError('Link harus diawali https://');
-  $host = strtolower((string)parse_url($url, PHP_URL_HOST));
-  $okHosts = ['g.co', 'gemini.google.com', 'chatgpt.com', 'chat.openai.com', 'aistudio.google.com'];
-  $allowed = false;
-  foreach ($okHosts as $h) if ($host === $h || substr($host, -strlen('.' . $h)) === '.' . $h) $allowed = true;
-  if (!$allowed) throw new RfError('Link harus link share Gemini (g.co/gemini/share/…) atau ChatGPT (chatgpt.com/share/…).');
-  $tool = (strpos($host, 'chatgpt') !== false || strpos($host, 'openai') !== false) ? 'ChatGPT' : 'Gemini';
-
-  // 1) ambil halaman sendiri
-  $pageText = ''; $imgUrls = [];
-  try {
-    $r = httpRequest('GET', $url, ['Accept' => 'text/html', 'Accept-Language' => 'id,en;q=0.8'], null, 25, 6000000);
-    $finalHost = strtolower((string)parse_url($r['url'], PHP_URL_HOST));
-    if ($r['code'] === 200 && (strpos($finalHost, 'google') !== false || strpos($finalHost, 'chatgpt') !== false || strpos($finalHost, 'openai') !== false || $finalHost === 'g.co')) {
-      $html = $r['body'];
-      if (preg_match_all('#https://(?:lh\d|[a-z0-9-]+)\.googleusercontent\.com/[A-Za-z0-9_\-=/.%]+#', $html, $m)) $imgUrls = array_merge($imgUrls, $m[0]);
-      if (preg_match_all('#https://(?:files\.oaiusercontent\.com|[a-z0-9.-]*oaiusercontent\.com)/[^"\'\s\\\\<>]+#', $html, $m)) $imgUrls = array_merge($imgUrls, $m[0]);
-      $clean = preg_replace('#<(script|style|noscript)[^>]*>.*?</\1>#is', ' ', $html);
-      $pageText = trim(preg_replace('/\s+/', ' ', html_entity_decode(strip_tags((string)$clean), ENT_QUOTES | ENT_HTML5, 'UTF-8')));
-    }
-  } catch (Throwable $e) { /* lanjut dengan url_context */ }
-
-  $imgUrls = array_values(array_unique(array_map(fn($u) => html_entity_decode($u), $imgUrls)));
-  // 2) minta Gemini membaca link (url_context) + teks halaman bila ada
-  $instr = recipeInstructions() . "\n\nSumber: link share percakapan " . $tool . ".\nBaca percakapan pada link. Ambil PROMPT yang dipakai pengguna untuk membuat/mengedit foto (biasanya pesan pengguna yang paling lengkap). "
-    . "Tambahkan kunci \"imageUrls\": daftar URL gambar HASIL dari percakapan bila terlihat (boleh kosong), dan \"found\": true/false apakah prompt ditemukan.\n\nLink: $url";
-  if (mb_strlen($pageText) > 200) $instr .= "\n\nTeks halaman (hasil ambil server, bisa terpotong):\n" . mb_substr($pageText, 0, 20000);
-  $res = geminiCall('link', [['text' => $instr]], ['tools' => [['url_context' => new stdClass()]], 'timeout' => 120]);
-  $j = aiJson($res['text']);
-  if (isset($j['found']) && !$j['found'] && trim((string)($j['prompt'] ?? '')) === '') {
-    throw new RfError('Prompt tidak ditemukan di link. Pastikan link share bisa dibuka publik, atau pakai mode Upload sendiri.');
-  }
-  $rec = normalizeRecipe($j);
-  if ($rec['prompt'] === '') throw new RfError('Prompt tidak ditemukan di link. Pakai mode Upload sendiri.');
-  $rec['tool'] = $tool;
-
-  foreach ((array)($j['imageUrls'] ?? []) as $u) if (is_string($u) && preg_match('#^https://#', $u)) $imgUrls[] = $u;
-  $images = [];
-  foreach (array_slice(array_values(array_unique($imgUrls)), 0, 12) as $u) {
-    $h = strtolower((string)parse_url($u, PHP_URL_HOST));
-    if (!preg_match('/(googleusercontent\.com|oaiusercontent\.com)$/', $h)) continue;
-    if (preg_match('#/(a|a-)/|/branding/|logo|avatar|/photo\.jpg#i', $u)) continue; // foto profil & logo
-    try {
-      $g = httpRequest('GET', $u, [], null, 20, 12000000);
-      if ($g['code'] === 200 && ($p = saveTempImage($g['body']))) $images[] = $p;
-    } catch (Throwable $e) {}
-    if (count($images) >= 6) break;
-  }
-  $rec['images'] = $images;
-  $rec['source'] = $url;
-  return $rec;
-}
 
 /** Mode gambar: prompt ADA DI DALAM gambar (screenshot). OCR teksnya lalu buat metadata. */
 function recipeFromImagePrompt(string $imagePath): array {

@@ -102,8 +102,13 @@ Tanpa token cocok, pesanan tetap tercatat tapi hanya `notifyAdmin()` yang jalan 
     member dengan `role='super_admin'`. Semua tab & endpoint.
   - `admin` — member dengan `role='admin'`. Hanya tab **Resep, Member, Cover** (tab lain disembunyikan via
     `superOnly`, dan endpoint-nya ditolak server dengan `requireSuperAdmin()`).
-  - `member` — lihat/salin resep, atur foto profil sendiri. Paket `Standard` hanya melihat resep yang ada saat akun
-    dibuat.
+  - `member` — lihat/salin resep, atur foto profil sendiri. **Jatah katalog per paket** ada di `lib.php`
+    (`planQuota()` + `allowedPromptIds()`): `Trial` = 3 best seller + 1 Tren Viral + 6 regular; `Standard` =
+    10 best seller + 10 Tren Viral + semua regular; `Premium` dan paket lain bebas. Aturan lama "Standard hanya
+    melihat resep yang ada saat akun dibuat" **sudah dihapus** (17 Sep 2026).
+    Resep di luar jatah tetap tampil sebagai thumbnail bertanda gembok, tapi `prompt`/`tips` **tidak pernah
+    dikirim** ke klien — dikosongkan di `rowToPrompt()`. Pemilihannya deterministik (jatah kurasi dari `ord`,
+    jatah acak Trial di-seed username) supaya katalog tidak berubah tiap halaman dimuat.
   - `currentUser()` mengembalikan `role` (`admin`|`member`) + `adminRole` (`super_admin`|`admin`|``).
 - **Frontend:** SPA vanilla JS di `index.html`. Modul admin terpisah menempel lewat `window.RFAPP` (`api, toast, esc,
   copyText, openSheet, closeSheet, isAdmin, fmtDate, state, renderAll, t, lang, setLang, addAdminTab, openPromptForm,
@@ -118,16 +123,19 @@ Tanpa token cocok, pesanan tetap tercatat tapi hanya `notifyAdmin()` yang jalan 
   400×400, tes maks 1600px). Path disimpan relatif `uploads/xxx.jpg`. Hapus lewat `delUpload()`. Foto contoh bawaan ada di `app/img/`
   (`img/pNN.jpg`, ikut repo); `imgSrc()` hanya menerima pola `^(img|uploads)/[\w.-]+$`.
 - **AI (Gemini):** `ai.php`. Model teks `gemini-3.8-flash` (default, bisa diganti di setting), model gambar
-  `gemini-3.1-flash-image`. Fungsi: `recipeFromLink()` (share link Gemini/ChatGPT + url_context),
-  `recipeFromUpload()`, `recipeFromImagePrompt()` (OCR prompt dari screenshot), `generateTestImage()`. Error
+  `gemini-3.1-flash-image`. Fungsi: `recipeFromUpload()`, `recipeFromImagePrompt()` (OCR prompt dari screenshot),
+  `generateTestImage()`. Mode **link referensi sudah dihapus** (17 Sep 2026) — hampir tidak pernah dipakai. Error
   aman-ditampilkan dilempar sebagai `RfError` → HTTP 422. Log ke tabel `ai_log` (maks 300 baris).
 
 ## Data
-Tabel: `prompts, members, attempts, settings, orders, webhook_log, ai_log, prompt_tests, events, lt_events, presence,
-ad_spend`.
+Tabel: `prompts, prompts_trash, members, attempts, settings, orders, webhook_log, ai_log, prompt_tests, events,
+lt_events, presence, ad_spend`.
 Kolom penting `members`: `username, name, code_hash, code_hint, plan, expires, active, email, phone, role, avatar`.
 Kolom penting `prompts`: `id, ord, cat, title, descr, popular, tools, prompt, tips, image, created_at,
-updated_at, cat_en, title_en, descr_en, tips_en, created_by`.
+updated_at, cat_en, title_en, descr_en, tips_en, created_by, qc_status, result_status, en_only`.
+`qc_status` = `''|lolos|review|gagal`, `result_status` = `''|cocok|kurang` — dipakai menyaring di panel admin,
+tidak pernah tampil ke member. Resep yang dihapus pindah ke tabel **`prompts_trash`** (barisnya disimpan utuh
+sebagai JSON); gambar dan galeri tesnya baru benar-benar dibuang saat sampah dikosongkan.
 Kunci `settings`: `admin_hash, admin_avatar, admin_email, mail_from, mayar_webhook_token, auto_without_token, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass, fonnte_token, admin_wa, meta_pixel_id, gemini_api_key, gemini_model, gemini_image_model, cover_title, cover_sub, cover_title_en, cover_sub_en, cover_chip, cover_img1..3`.
 
 **Email & WhatsApp.** `sendMail()` di `lib.php` memakai SMTP kalau `smtp_host` diisi, kalau tidak `mail()` dengan
@@ -162,12 +170,12 @@ paket **Standard** yang mendaftar sebelum itu tidak otomatis melihatnya.
 |---|---|
 | publik | `me` (juga mengembalikan `cover` & `v`), `login`, `logout`, `recent_orders` (pesanan asli + aktivitas keranjang asli, keduanya anonim), `lt` (tracking halaman iklan), `live` (`?page=` opsional), `pixel` (Meta Pixel ID untuk `/promo`) |
 | user | `prompts`, `track`, `avatar_save` (admin boleh isi `username` untuk member lain) |
-| admin | `prompt_save`, `prompt_delete`, `members`, `member_save` (FormData, boleh `avatar`/`clearAvatar`), `member_delete`, `cover_save`, `ai_link`, `ai_analyze`, `ai_ocr`, `prompt_tests`, `prompt_test_add/generate/update/delete` |
+| admin | `prompt_save`, `prompt_review` (ubah status QC/hasil dari daftar), `prompt_cover_from_test` (hasil tes jadi gambar contoh), `prompt_delete` (→ tempat sampah), `trash`, `trash_restore`, `trash_purge`, `members`, `member_save` (FormData, boleh `avatar`/`clearAvatar`), `member_delete`, `cover_save`, `ai_analyze`, `ai_ocr`, `prompt_tests`, `prompt_test_add/generate/update/delete` |
 | super | `admins`, `admin_save`, `admin_delete`, `admin_change_code`, `orders`, `order_action`, `settings_save`, `test_email`, `test_wa`, `ai_settings`, `ai_settings_save`, `ai_test`, `report_users`, `report_ads`, `ad_spend_save` |
 
 ## Fitur yang sudah ada (jangan dibuat ulang)
-Login & katalog resep (kategori, cari, favorit, populer), detail resep + salin prompt (tombol pil), tombol Buka Gemini/ChatGPT dengan deep-link app (Android `intent://` + fallback Play Store; iOS Universal Link + tautan App Store), panduan & FAQ, profil (foto: upload → **editor crop 1:1** → simpan; klik foto → lightbox), bahasa & tema.
-Panel admin: Resep (toolbar cari + chip kategori + tag), studio resep dengan 3 mode (link referensi / upload sendiri / **prompt dari gambar—OCR**) dan galeri tes internal; Member (foto, paket, masa aktif, kode akses); Pesanan Mayar + email akses + **WhatsApp otomatis via Fonnte** (pengaturan SMTP & Fonnte ada di tab Pesanan, lengkap dengan tombol kirim tes); AI Gemini; Pengguna & Iklan (laporan, UTM, biaya iklan, ROAS); Admin (akun admin/super admin, ganti kode akses admin utama); Cover (3 foto + teks halaman login).
+Login & katalog resep (kategori, cari, favorit, populer), detail resep + salin prompt (tombol pil), tombol Buka Gemini/ChatGPT dengan deep-link app (Android `intent://` + fallback Play Store; iOS Universal Link + tautan App Store), section **Tren viral** di bawah best seller, **slider ukuran thumbnail** 1–5 kolom, panduan & FAQ, profil (foto: upload → **editor crop 1:1** → simpan; klik foto → lightbox), bahasa & tema.
+Panel admin: Resep (toolbar cari + chip kategori + **filter review**: status QC, penilaian hasil, penulis, tanpa deskripsi, belum ada EN, English saja; tombol status cepat per baris; **tempat sampah** dengan pulihkan/hapus permanen), studio resep dengan 2 mode (upload sendiri / **prompt dari gambar—OCR**) dan galeri tes internal yang hasilnya bisa **dijadikan gambar contoh resep**; Member (foto, paket, masa aktif, kode akses); Pesanan Mayar + email akses + **WhatsApp otomatis via Fonnte** (pengaturan SMTP & Fonnte ada di tab Pesanan, lengkap dengan tombol kirim tes); AI Gemini; Pengguna & Iklan (laporan, UTM, biaya iklan, ROAS); Admin (akun admin/super admin, ganti kode akses admin utama); Cover (3 foto + teks halaman login).
 Halaman iklan `/promo` dengan pelacakan corong lengkap, penghitung pengunjung aktif, dan notifikasi aktivitas
 (pesanan + keranjang) — **semuanya dari data asli**, lihat `landing/CLAUDE.md` bagian bukti sosial.
 **Meta Pixel** opsional di `/promo`: ID-nya diisi di Admin → Iklan (kunci `meta_pixel_id`), halaman membacanya lewat
