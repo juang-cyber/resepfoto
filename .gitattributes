@@ -1,0 +1,9 @@
+# Akhir baris selalu LF di working tree, di PC mana pun — skrip build & pola regex di landing/build-promo.mjs
+# mengandalkan \n. Tanpa ini, Git for Windows (core.autocrlf=true) mengubahnya jadi CRLF saat checkout.
+* text=auto eol=lf
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.webp binary
+*.ico binary
+*.zip binary

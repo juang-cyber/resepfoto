@@ -56,13 +56,28 @@ https://resepfoto.oziera.co.id/promo?utm_source=facebook&utm_medium=paid&utm_cam
 Pembeli klik paket di `/promo` → checkout Mayar → Mayar POST ke `webhook-mayar.php` → member dibuat otomatis,
 email akses dikirim ke pembeli (dan WhatsApp kalau token Fonnte diisi), notifikasi dikirim ke admin.
 
-Yang perlu disiapkan di dashboard Mayar:
-1. Harga produk: Standard `49900`, Premium `79900`.
+Setelan di dashboard Mayar (**sudah terpasang 17 Sep 2026** — cek ulang kalau produk atau harga diganti):
+1. Harga produk: Standard `49900`, Premium `79900` — harus sama dengan `PLANS` di `landing/mockup.html`.
 2. **Nama produk wajib memuat kata "Standard" / "Premium"** — nama inilah yang menentukan paket pembeli, bukan
    nominalnya. Slug URL tidak dibaca.
-3. Webhook → `https://resepfoto.oziera.co.id/webhook-mayar.php`.
+3. Webhook → `https://resepfoto.oziera.co.id/webhook-mayar.php`, event **Purchase** aktif.
 4. Webhook Token dari Mayar → tempel di **Admin → Pesanan**. Tanpa token, pesanan tercatat tapi harus diaktifkan
-   manual.
+   manual. Verifikasi: tombol **TEST URL** di Mayar harus menghasilkan baris "token cocok" di Riwayat webhook.
+
+Yang **belum** ada: reminder untuk order yang belum dibayar. Mayar mengirim event *Reminder*, tapi
+`webhook-mayar.php` hanya memproses `payment.received` — event lain dicatat di Riwayat webhook lalu diabaikan.
+
+## Setup di PC baru
+Semua sumber kebenaran ada di GitHub dan server — tidak ada yang hanya hidup di satu PC.
+1. Pasang alat: `winget install Git.Git GitHub.cli PHP.PHP.8.3` dan Node.js (untuk `node --check` dan build halaman iklan).
+2. `git clone https://github.com/juang-cyber/resepfoto.git`, lalu `gh auth login --web` sekali — dibutuhkan untuk
+   push dan merge PR. `.gitattributes` memaksa akhir baris LF, jadi skrip build jalan sama di Windows dan Linux.
+3. Cek cepat: `php -l app/api.php`, `node --check landing/build-promo.mjs`, `node landing/build-promo.mjs`
+   (harus mengakhiri dengan "landing/index.html dibuat", bukan error).
+4. Rahasia tidak ada di repo: `config.php`, database, token Mayar/Fonnte, dan setelan SMTP semuanya di server
+   (cPanel dan tabel `settings`). Tidak ada yang perlu disalin dari PC lama.
+5. `CLAUDE.local.md` (catatan privat hosting) di-gitignore — kalau ada di PC lama, salin manual; kalau tidak ada,
+   tidak masalah: yang penting soal hosting sudah tertulis di README ini dan `CLAUDE.md`.
 
 ## Setup server baru
 Salin `app/config.example.php` → `config.php` di server lalu isi hash admin & nama database acak.

@@ -121,7 +121,8 @@ tombol samping, alur di-mask lewat `.bezel` → `.screen`.
 ## Slot aset yang dipanggil dari luar
 - **Label CONTOH** → `https://ik.imagekit.io/oziera/contoh.png`, dipanggil lewat URL supaya pemilik repo bisa
   memperbarui desainnya tanpa menyentuh kode. Ada fallback teks kalau gambarnya gagal dimuat. Lebar 104px, dan
-  **belum pernah bisa dilihat dari environment agent** (ImageKit diblokir, lihat di bawah).
+  **tidak bisa dilihat dari sesi remote** (ImageKit diblokir di sana). Dari PC lokal sudah diverifikasi termuat di
+  `/promo` — 104×39 px di pojok kanan-bawah (17 Sep 2026).
 - **Latar CTA penutup** → skrip mencoba `img/bg-final.jpg`, `.png`, lalu `.webp`. Kalau tidak ada satu pun, hiasan
   CSS bergradien yang dipakai. Filenya **belum pernah diterima**; slotnya sudah siap.
 
@@ -137,8 +138,9 @@ Link iklan Meta:
 https://resepfoto.oziera.co.id/promo?utm_source=facebook&utm_medium=paid&utm_campaign=NAMA&utm_content={{ad.name}}
 ```
 
-## Pembayaran Mayar — yang harus dikerjakan pemilik repo
-Kode sudah siap dan sudah diuji; yang tersisa murni setelan dashboard:
+## Pembayaran Mayar — setelan dashboard
+Kode sudah siap dan sudah diuji. Setelan dashboard **sudah terpasang 17 Sep 2026**; daftar ini untuk pengecekan ulang
+kalau produk atau harga diganti:
 1. Harga produk: Standard `49900`, Premium `79900`.
 2. **Nama produk wajib memuat kata "Standard" / "Premium"** — mis. `ResepFoto Standard`, `ResepFoto Premium`.
    Slug URL tidak dibaca.
@@ -187,9 +189,11 @@ SMTP `localhost:25` tanpa autentikasi. Rinciannya di `CLAUDE.md` root, bagian Em
 
 Render: cek di lebar 390px dan 520px, tidak boleh ada luber horizontal. Hormati `prefers-reduced-motion`.
 
-## Environment agent: yang diblokir
-Sesi Claude Code remote **tidak bisa** menjangkau host berikut (403 pada CONNECT / HTTP 000). Jangan buang waktu
-mencoba, dan jangan menjanjikan bisa mengerjakannya:
+## Environment agent remote: yang diblokir
+Berlaku untuk sesi Claude Code **remote/cloud** saja. Dari sesi lokal di PC pemilik (browser pane) semua host di bawah
+bisa dijangkau — dashboard Mayar, Fonnte, dan cPanel sudah pernah dikerjakan dari sana. Sesi remote **tidak bisa**
+menjangkau host berikut (403 pada CONNECT / HTTP 000). Jangan buang waktu mencoba, dan jangan menjanjikan bisa
+mengerjakannya:
 
 | Host | Akibatnya |
 |---|---|
@@ -205,6 +209,10 @@ lampiran file sungguhan yang mendarat di `/root/.claude/uploads/`. Kalau butuh f
 dilampirkan sebagai file atau lewat Drive.
 
 ## Gotcha yang pernah terjadi
+- **Build gagal `viewers: pola tidak ketemu` di Windows** (17 Sep 2026): checkout dengan `core.autocrlf=true`
+  mengubah LF→CRLF, sedangkan pola regex skrip memakai `\n`. Sekarang skrip menormalkan ke LF saat membaca dan
+  `.gitattributes` memaksa LF di working tree. Kalau muncul lagi: `git config core.autocrlf` lalu
+  `git add --renormalize .`. Jangan pernah menyunting `landing/index.html` tangan untuk mengakalinya.
 - **Playwright** di container ini: build Chromium-nya 1194 sedangkan playwright mengharapkan 1243. Wajib
   `chromium.launch({executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox']})`. Jangan jalankan
   `playwright install`.
@@ -231,7 +239,8 @@ dilampirkan sebagai file atau lewat Drive.
 
 ## Yang masih terbuka
 1. **Ganti 16 foto `p21`–`p66` di halaman iklan** sebelum iklan berbayar jalan — lihat bagian hak cipta di atas.
-2. Setelan Mayar (lihat di atas) — menunggu pemilik repo.
+2. ~~Setelan Mayar~~ — sudah beres 17 Sep 2026: harga 49.900 / 79.900, webhook terdaftar, token terverifikasi
+   ("token cocok" di Riwayat webhook).
 3. File gambar latar biru untuk CTA penutup; slot `img/bg-final.*` sudah siap.
 4. Label "Satisfaction Guarantee" masih bahasa Inggris — belum diputuskan mau diindonesiakan atau tidak.
 5. FAQ "Ini aplikasi atau apa?" masih memakai frasa "resep prompt siap tempel" — belum diseragamkan jadi "siap pake".

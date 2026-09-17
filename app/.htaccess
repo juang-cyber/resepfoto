@@ -8,7 +8,7 @@ RewriteCond %{HTTP:X-Forwarded-Proto} !https
 RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 </IfModule>
 
-<FilesMatch "^(config\.php|lib\.php|ai\.php|.*\.(sqlite|sqlite-wal|sqlite-shm|json|part|md|log))$">
+<FilesMatch "^(config\.php|config\.example\.php|lib\.php|ai\.php|php\.ini|\.user\.ini|\.autodeploy|.*\.(sqlite|sqlite-wal|sqlite-shm|json|part|md|log|zip|sql|bak|tar|gz))$">
   <IfModule mod_authz_core.c>
     Require all denied
   </IfModule>
@@ -22,6 +22,8 @@ RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
   Header always set X-Content-Type-Options "nosniff"
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
   Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Strict-Transport-Security "max-age=31536000"
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
   # HTML shell selalu dicek ulang ke server (JS/CSS inline atau ber-versi ?v=), supaya update langsung terlihat
   <FilesMatch "\.html$">
     Header set Cache-Control "no-cache, must-revalidate, max-age=0"

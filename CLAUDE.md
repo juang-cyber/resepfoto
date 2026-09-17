@@ -25,9 +25,8 @@ app/            ← yang di-deploy ke document root website
   webhook-mayar.php webhook pembayaran Mayar
   terima-kasih.html halaman sesudah bayar
   img/          foto contoh resep bawaan (p01…p66.jpg, 4:5) — ikut ter-deploy
-  promo/        HALAMAN IKLAN — dibangkitkan, JANGAN diedit tangan (lihat landing/CLAUDE.md)
   .htaccess     blokir file sensitif, paksa HTTPS, header keamanan, cache
-  .autodeploy   penanda warisan; skrip deploy sekarang tidak mengeceknya, tapi jangan dihapus
+  .autodeploy   PENANDA WAJIB — cron hanya men-deploy kalau file ini ada. Jangan dihapus
   config.example.php  template config (config.php asli TIDAK di repo)
   data/         seed-prompts.json, seed-en.json, pack2-prompts.json (database .sqlite TIDAK di repo)
   uploads/      hanya .htaccess (file upload TIDAK di repo)
@@ -134,8 +133,12 @@ walau SPF & DKIM sudah benar.
 > tanpa menulis error. Setelan yang bekerja dan sedang dipakai: `smtp_host=localhost`, `smtp_port=25`,
 > `smtp_secure=none`, `smtp_user`/`smtp_pass` kosong (Exim lokal menerima submission tanpa autentikasi lalu
 > merelai keluar). SPF sudah memuat IP server dan cPanel menandatangani DKIM `default._domainkey`, jadi
-> autentikasi tetap lolos. Kalau pindah hosting, cek ulang lewat tab Pesanan → **Kirim email tes**. `waSend()` mengirim lewat Fonnte (`fonnte_token`); `sendAccessWa()` dipanggil
-dari `fulfillOrder()` sesudah email, dan hasilnya disimpan di kolom `orders.wa_sent`.
+> autentikasi tetap lolos. Kalau pindah hosting, cek ulang lewat tab Pesanan → **Kirim email tes**.
+
+`waSend()` mengirim lewat Fonnte (`fonnte_token`); `sendAccessWa()` dipanggil dari `fulfillOrder()` sesudah email,
+dan hasilnya disimpan di kolom `orders.wa_sent`. Nomor admin (`admin_wa`) harus nomor **lain** dari nomor device
+Fonnte — pesan dari device ke nomornya sendiri sering tidak sampai. WA ke pembeli hanya terkirim kalau payload
+webhook Mayar memuat `customerMobile`.
 
 **Penulis resep (`created_by`).** Diisi otomatis dengan username admin yang menyimpan lewat `prompt_save`, dan dipertahankan saat resep diedit admin lain. Resep lama diisi sekali lewat `backfillPromptAuthors()` (ditandai kunci `backfill_created_by` di `settings`): resep dari paket resep atas nama super admin bawaan, sisanya atas nama `LEGACY_PROMPT_AUTHOR`, yang dicocokkan ke akun admin yang ada lewat `resolveAuthorUsername()` supaya foto profilnya ikut terpakai. Endpoint `prompts` hanya menyertakan `createdBy` dan peta `authors` (nama + foto) untuk admin — member biasa tidak melihatnya.
 
@@ -181,8 +184,8 @@ Halaman iklan `/promo` dengan pelacakan corong lengkap.
 ## Pengujian lokal
 ```bash
 # 1) salinan terisolasi + DB bersih (jangan sentuh data asli)
-T=/tmp/rf-test && rm -rf $T && mkdir -p $T && cp -a app/. $T/ && cd $T
-rm -rf data && mkdir data && cp ~/resepfoto/app/data/seed-*.json data/
+R=$(pwd) && T=/tmp/rf-test && rm -rf $T && mkdir -p $T && cp -a app/. $T/ && cd $T   # jalankan dari root repo
+rm -rf data && mkdir data && cp "$R"/app/data/seed-*.json data/
 cp config.example.php config.php   # lalu isi ADMIN_HASH (password_hash) & DB_FILE
 php -S 127.0.0.1:8090
 
@@ -202,15 +205,17 @@ node -e "const h=require('fs').readFileSync('app/index.html','utf8');for(const b
 ```
 Tes Gemini butuh API key sungguhan; `RF_GEMINI_BASE` env bisa mengarahkan ke mock server.
 
-## Environment agent (Claude Code remote): yang diblokir
-`resepfoto.oziera.co.id`, `kitlab.myr.id`, `mayar.id`, `web.mayar.id`, dan `ik.imagekit.io` **tidak bisa dijangkau**
-(403 pada CONNECT / HTTP 000) — jadi agent tidak bisa membaca database live, tidak bisa menyetel Mayar, dan tidak bisa
-melihat aset ImageKit. Jangan mencoba merutekan lewat jalan lain; minta pemilik repo mengirim data sebagai lampiran
-file atau lewat Google Drive. `github.com`, `raw.githubusercontent.com`, `fonts.googleapis.com`, serta registry npm
-dan pypi bisa dijangkau.
-
-**Gambar yang ditempel langsung di chat tidak tersimpan sebagai file** — hanya lampiran file sungguhan yang mendarat
-di `/root/.claude/uploads/`.
+## Dua jenis sesi Claude Code — jangan tertukar
+- **Sesi remote/cloud** (yang membuat PR #1, #3, #4): `resepfoto.oziera.co.id`, `kitlab.myr.id`, `mayar.id`,
+  `web.mayar.id`, dan `ik.imagekit.io` **tidak bisa dijangkau** (403 pada CONNECT / HTTP 000). Agent di sana tidak bisa
+  membaca database live, menyetel Mayar, atau melihat aset ImageKit — minta pemilik repo mengirim data sebagai
+  lampiran file. Gambar yang ditempel di chat tidak tersimpan sebagai file; hanya lampiran yang mendarat di
+  `/root/.claude/uploads/`. Yang bisa dijangkau: `github.com`, `raw.githubusercontent.com`, `fonts.googleapis.com`,
+  registry npm & pypi.
+- **Sesi lokal di PC pemilik** (desktop app dengan browser pane): semua host di atas **bisa** dijangkau, termasuk
+  dashboard Mayar, Fonnte, dan cPanel bila pemilik sudah login di browser pane. Yang tetap harus dijalankan pemilik
+  dari terminalnya: merge PR (`gh pr ready N` lalu `gh pr merge N --merge --repo juang-cyber/resepfoto`) dan
+  menempelkan token/kredensial ke kolom mana pun.
 
 ## Gotcha yang pernah terjadi
 - Browser sempat men-cache `index.html` lama → sekarang `.htaccess` memberi `no-cache` untuk `.html`/`.js`. Kalau
