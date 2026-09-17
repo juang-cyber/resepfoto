@@ -837,14 +837,13 @@ const CHECKOUT = {              // link pembayaran Mayar
    PREVIEW = false → hanya data asli di bawah yang tampil; bagian yang kosong otomatis disembunyikan. */
 const PREVIEW = true;
 const MOCKUP = true; // versi presentasi: semua data di bawah adalah ILUSTRASI, pembayaran dinonaktifkan
-// Testimoni asli (sudah izin). photo = foto hasil/foto pembeli, avatar = foto profil (opsional).
+// Testimoni ILUSTRASI untuk presentasi. Avatar diambil dari img/av1-4.jpg; kalau file itu
+// belum ada, kartu otomatis memakai foto hasilnya. Nama sengaja disamarkan.
 const TESTIMONIALS = [
-  {name:"Nadia", ig:"", photo:"img/p12.jpg", stars:5, title:"Foto wisuda jadi kayak studio", text:"Nggak sempat foto studio pas wisuda. Pakai resep ini di Gemini, hasilnya rapi banget dan wajahku tetap mirip. Langsung jadi foto profil.", plan:"Premium", date:""},
-  {name:"Dimas", ig:"", photo:"img/p15.jpg", stars:5, title:"Headshot LinkedIn dari selfie", text:"Cuma modal selfie di depan jendela. Tinggal salin resep, tempel di ChatGPT, beberapa menit kemudian sudah punya headshot buat CV.", plan:"Standard", date:""},
-  {name:"Sari & Bima", ig:"", photo:"img/p13.jpg", stars:5, title:"Prewedding hemat banget", text:"Iseng coba resep prewedding pantai, ternyata hasilnya cakep. Beberapa foto kami pakai buat undangan digital.", plan:"Premium", date:""},
-  {name:"Pak Hendra", ig:"", photo:"img/p04.jpg", stars:5, title:"Foto lama orang tua jadi jernih", text:"Foto almarhum bapak yang sudah pudar jadi jelas dan berwarna lagi. Ibu sampai terharu lihatnya.", plan:"Premium", date:""},
-  {name:"Kirana", ig:"", photo:"img/p18.jpg", stars:4, title:"Feed IG makin estetik", text:"Resep sampul majalah favoritku. Kadang perlu dua kali generate, tapi tipsnya membantu banget.", plan:"Premium", date:""},
-  // {name:"Nama Pembeli", ig:"akun_ig", avatar:"", photo:"img/p12.jpg", stars:5, title:"Judul singkat", text:"Komentar asli pembeli.", plan:"Premium", date:"Sep 2026"},
+  {name:"Dinda ****", ig:"", avatar:"img/av1.jpg", photo:"img/555773730623622a.jpg", stars:5, title:"Keponakanku ngira aku beneran foto sama boneka", text:"Awalnya cuma iseng buat konten. Aku upload selfie biasa, tempel resepnya di Gemini, eh jadi kayak lagi pegangan sama karakter 3D beneran. Keponakan sampai nanya belinya di mana.", plan:"Premium", date:""},
+  {name:"Raka ****", ig:"", avatar:"img/av2.jpg", photo:"img/720bf73c3613f0ba.jpg", stars:4, title:"Nggak perlu nunggu libur buat naik gunung", text:"Percobaan pertama wajahnya agak melenceng, jadi aku ulang pakai foto yang lebih terang. Yang kedua langsung pas. Sekarang jadi foto profil semua sosmedku.", plan:"Premium", date:""},
+  {name:"Bagas ****", ig:"", avatar:"img/av3.jpg", photo:"img/p59.jpg", stars:5, title:"Kayak ada yang motoin dari jauh", text:"Modalnya cuma selfie di kamar. Hasilnya malah kelihatan kayak difoto orang dari seberang jalan. Beberapa teman serius nanya aku sewa fotografer di mana.", plan:"Standard", date:""},
+  {name:"Anisa ****", ig:"", avatar:"img/av4.jpg", photo:"img/942a7d4c1c4d417e.jpg", stars:5, title:"Dipakai buat foto profil kantor", text:"Butuh foto formal tapi malas ke studio. Hasilnya rapi dan wajahnya masih aku banget, nggak jadi orang lain. Sekarang dipakai di profil kantor sama LinkedIn.", plan:"Premium", date:""},
 ];
 // Ringkasan rating dari ulasan asli, contoh: {avg: 4.8, count: 37}. Biarkan null kalau belum ada.
 const RATING = {avg: 4.9, count: 483}; // ILUSTRASI untuk presentasi
@@ -1234,11 +1233,11 @@ const starSvg = n => `<span class="stars" aria-label="${n} dari 5 bintang">${Arr
 const escH = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const demoTag = "";
 const SAMPLE_T = [
-  {photo:"img/p12.jpg", title:"Judul testimoni #1"},
-  {photo:"img/p15.jpg", title:"Judul testimoni #2"},
-  {photo:"img/p13.jpg", title:"Judul testimoni #3"},
-  {photo:"img/p01.jpg", title:"Judul testimoni #4"},
-  {photo:"img/p09.jpg", title:"Judul testimoni #5"}
+  {photo:"img/p22.jpg", title:"Judul testimoni #1"},
+  {photo:"img/p46.jpg", title:"Judul testimoni #2"},
+  {photo:"img/p50.jpg", title:"Judul testimoni #3"},
+  {photo:"img/23bc9ae4209a057d.jpg", title:"Judul testimoni #4"},
+  {photo:"img/9b8fbd21dbf21c2f.jpg", title:"Judul testimoni #5"}
 ].map((x, i) => ({...x, name:"Nama Pembeli " + (i+1), ig:"akun_ig_" + (i+1), stars:5, text:"Tulis komentar asli dari pembeli di sini (sudah minta izin). Ganti isi ini di bagian TESTIMONIALS.", plan:"Premium", date:"—", demo:true}));
 const tList = TESTIMONIALS.length ? TESTIMONIALS.map(t => MOCKUP ? {...t, demo:true} : t).slice().sort((a,b) => (b.stars||0) - (a.stars||0)).slice(0,5) : (PREVIEW ? SAMPLE_T : []);
 
@@ -1285,7 +1284,7 @@ const tList = TESTIMONIALS.length ? TESTIMONIALS.map(t => MOCKUP ? {...t, demo:t
   track.innerHTML = tList.map((t, i) => `
     <article class="t-card" aria-roledescription="slide" aria-label="${i+1} dari ${tList.length}">
       <div class="t-top">
-        <span class="t-ava"><img src="${escH(t.avatar || t.photo)}" alt=""></span>
+        <span class="t-ava"><img src="${escH(t.avatar || t.photo)}" alt="" data-fb="${escH(t.photo)}"></span>
         <div class="t-who"><strong>${escH(t.name)}</strong>${t.ig ? `<a href="https://instagram.com/${encodeURIComponent(t.ig)}" target="_blank" rel="noopener">@${escH(t.ig)}</a>` : ""}${starSvg(t.stars || 5)}</div>
         ${t.demo ? demoTag : ""}
       </div>
@@ -1298,6 +1297,9 @@ const tList = TESTIMONIALS.length ? TESTIMONIALS.map(t => MOCKUP ? {...t, demo:t
         ${t.photo ? `<div class="t-photo"><img loading="lazy" src="${escH(t.photo)}" alt="Hasil foto ${escH(t.name)}"></div>` : ""}
       </div>
     </article>`).join("");
+  $$(".t-ava img").forEach(im => im.addEventListener("error", () => {
+    const fb = im.dataset.fb; if (fb && !im.src.endsWith(fb)) im.src = fb;
+  }, {once: true}));
   dots.innerHTML = tList.map((_, i) => `<button aria-label="Testimoni ${i+1}"></button>`).join("");
   let idx = 0, timer = null;
   const cards = [...track.children];
