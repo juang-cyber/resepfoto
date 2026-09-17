@@ -352,6 +352,10 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 .final .g2{width:78px;height:88px;right:-20px;top:76px;transform:rotate(15deg)}
 .final .g3{width:74px;height:84px;left:-22px;bottom:40px;transform:rotate(11deg)}
 .final .g4{width:66px;height:66px;right:16px;bottom:24px;transform:rotate(-7deg)}
+/* kalau img/bg-final.(jpg|png|webp) ada, gambar asli dipakai dan hiasan CSS dimatikan */
+.final.bg-img{background-color:#1550E0;background-position:center;background-size:cover;background-repeat:no-repeat}
+.final.bg-img::before{display:none}
+.final.bg-img .glass{display:none}
 .final h2{font-size:34px;color:#fff}
 .collage{position:relative;height:210px;margin:26px auto 10px;max-width:320px}
 .collage img{position:absolute;width:118px;height:148px;object-fit:cover;border-radius:18px;border:4px solid #fff;box-shadow:0 18px 30px -12px rgba(0,0,0,.4);transition:transform .4s}
@@ -658,11 +662,11 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
       <div class="qty"><span id="qty-out">10</span> <small>foto</small></div>
       <input type="range" id="qty" min="1" max="1000" value="10">
       <div class="cmp">
-        <div class="cmp-row"><span>Foto di studio</span><div class="cmp-bar studio" id="bar-studio">Rp 500.000</div></div>
+        <div class="cmp-row"><span>Foto di studio</span><div class="cmp-bar studio" id="bar-studio">Rp 461.000</div></div>
         <div class="cmp-row"><span>ResepFoto</span><div class="cmp-bar rf" id="bar-rf">Rp 79.900</div></div>
       </div>
-      <div class="save"><span>Kamu hemat sekitar</span><b id="save">Rp 420.100</b></div>
-      <p class="assume">*Estimasi Rp 50.000 per foto hasil edit studio. Harga studio bisa berbeda di tiap kota.</p>
+      <div class="save"><span>Kamu hemat sekitar</span><b id="save">Rp 381.100</b></div>
+      <p class="assume">*Estimasi mulai Rp 50.000 per foto hasil edit studio dan makin murah per foto untuk jumlah banyak, maksimal sekitar Rp 3.000.000 untuk satu paket studio penuh. Harga studio berbeda di tiap kota.</p>
     </div>
   </section>
 
@@ -996,7 +1000,10 @@ $("#aud").addEventListener("click", e => { const b = e.target.closest("[data-aud
 renderAud();
 
 /* ---- calculator ---- */
-const PER_PHOTO = 50000;
+const PER_PHOTO = 50000;        // biaya foto pertama di studio
+const STUDIO_MAX = 3000000;     // paket studio penuh: biaya studio melandai ke angka ini
+// makin banyak foto, makin murah per fotonya (seperti paket studio), berhenti di STUDIO_MAX
+const studioCost = q => Math.round(STUDIO_MAX * (1 - Math.exp(-q * PER_PHOTO / STUDIO_MAX)) / 1000) * 1000;
 function countTo(el, to){
   const from = el._v || 0; el._v = to;
   if (reduce){ el.textContent = rp(to); return; }
@@ -1007,7 +1014,7 @@ function countTo(el, to){
 function calc(){
   const q = +$("#qty").value;
   const price = PLANS[plan].price;
-  const studio = q * PER_PHOTO;
+  const studio = studioCost(q);
   $("#qty-out").textContent = q >= 1000 ? "1000+" : q;
   $("#qty").style.setProperty("--fill", ((q - 1) / 999 * 100) + "%");
   const max = Math.max(studio, price);
@@ -1248,6 +1255,21 @@ const tList = TESTIMONIALS.length ? TESTIMONIALS.map(t => MOCKUP ? {...t, demo:t
     setInterval(() => { if (!queue.length) queue = demo(); }, 20000);
     setTimeout(tick, 6000);
   }
+})();
+
+/* ---- latar CTA penutup: pakai gambar asli kalau tersedia ---- */
+(() => {
+  const el = $(".final");
+  const names = ["img/bg-final.jpg", "img/bg-final.png", "img/bg-final.webp"];
+  let i = 0;
+  const tryNext = () => {
+    if (i >= names.length) return;                 // tidak ada file: pakai latar CSS
+    const src = names[i++], im = new Image();
+    im.onload = () => { el.style.backgroundImage = `url("${src}")`; el.classList.add("bg-img"); };
+    im.onerror = tryNext;
+    im.src = src;
+  };
+  tryNext();
 })();
 
 /* ---- init ---- */
