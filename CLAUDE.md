@@ -26,7 +26,7 @@ app/            ← yang di-deploy ke document root website
   img/          foto contoh resep bawaan (p01…p66.jpg, 4:5) — ikut ter-deploy
   uploads/      hanya .htaccess (file upload TIDAK di repo)
 brand/          logo, ikon, og-image
-landing/        landing page promosi (resepfoto-promo.html) + mockup; TIDAK di-deploy otomatis
+landing/        index.html → di-deploy otomatis ke /promo; mockup.html TIDAK ikut (bukan untuk publik)
 deploy/         rf-deploy.sh lama (versi SSH) — referensi saja, yang aktif adalah cron di server
 ```
 `.gitignore` mengecualikan `app/config.php`, `app/data/*.sqlite*`, `app/data/*.log`, `app/uploads/*` (kecuali `.htaccess`), dan `CLAUDE.local.md`.
@@ -34,8 +34,8 @@ deploy/         rf-deploy.sh lama (versi SSH) — referensi saja, yang aktif ada
 ## Alur deploy (sudah otomatis)
 1. Edit file di `app/`.
 2. `git add -A && git commit -m "..." && git push` (branch `main`).
-3. Cron di hosting (tiap 5 menit) menarik `origin/main`, dan **hanya jika commit berubah dan `app/.autodeploy` ada**, menyalin `app/.` ke document root. `config.php`, database, `uploads/` tidak pernah tersentuh.
-4. Verifikasi: `curl -s https://resepfoto.oziera.co.id/api.php?a=me` → lihat field `"v"`.
+3. Cron di hosting (tiap 5 menit) menarik `origin/main`, dan **hanya jika commit berubah dan `app/.autodeploy` ada**, menyalin `app/.` ke document root **dan** `landing/index.html` + `landing/img/` ke `promo/`. `config.php`, database, `uploads/` tidak pernah tersentuh; `landing/mockup.html` sengaja tidak ikut.
+4. Verifikasi: `curl -s https://resepfoto.oziera.co.id/api.php?a=me` → lihat field `"v"`; landing: `curl -sI https://resepfoto.oziera.co.id/promo/`.
 
 **Konvensi rilis:** tiap rilis naikkan penanda versi di route `me` (`'v' => 'admin-N'`) di `api.php`, dan naikkan `?v=` pada `<script src="admin-*.js?v=N">` di `index.html` untuk file JS yang berubah. HTML/JS sudah `Cache-Control: no-cache` lewat `.htaccess`, gambar di-cache 30 hari.
 
@@ -55,7 +55,13 @@ deploy/         rf-deploy.sh lama (versi SSH) — referensi saja, yang aktif ada
 ## Data
 Tabel: `prompts, members, attempts, settings, orders, webhook_log, ai_log, prompt_tests, events, lt_events, presence, ad_spend`.
 Kolom penting `members`: `username, name, code_hash, code_hint, plan, expires, active, email, phone, role, avatar`.
-Kunci `settings`: `admin_hash, admin_avatar, admin_email, mail_from, mayar_webhook_token, auto_without_token, gemini_api_key, gemini_model, gemini_image_model, cover_title, cover_sub, cover_title_en, cover_sub_en, cover_chip, cover_img1..3`.
+Kunci `settings`: `admin_hash, admin_avatar, admin_email, mail_from, mayar_webhook_token, auto_without_token, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass, fonnte_token, admin_wa, gemini_api_key, gemini_model, gemini_image_model, cover_title, cover_sub, cover_title_en, cover_sub_en, cover_chip, cover_img1..3`.
+
+**Email & WhatsApp.** `sendMail()` di `lib.php` memakai SMTP kalau `smtp_host` diisi, kalau tidak `mail()` dengan
+envelope sender (`-f`) supaya Return-Path sejajar dengan `From` — itu syarat SPF/DMARC lolos. Header wajib
+(`Date`, `Message-ID`, `MIME-Version`, body base64) dibuat di `mailHeaders()`; tanpa itu email dinilai spam
+walau SPF & DKIM sudah benar. `waSend()` mengirim lewat Fonnte (`fonnte_token`); `sendAccessWa()` dipanggil
+dari `fulfillOrder()` sesudah email, dan hasilnya disimpan di kolom `orders.wa_sent`.
 
 **Menambah resep massal — paket resep.** `seed-prompts.json` hanya jalan saat tabel `prompts` masih kosong, jadi
 database yang sudah dipakai tidak bisa diisi lewat situ. Gunakan **paket resep**: file `data/pack*-prompts.json`
@@ -70,11 +76,11 @@ Ganti `version` kalau paket yang sama perlu diimpor ulang.
 |---|---|
 | user | `prompts`, `track`, `avatar_save` (admin boleh isi `username` untuk member lain) |
 | admin | `prompt_save`, `prompt_delete`, `members`, `member_save` (FormData, boleh `avatar`/`clearAvatar`), `member_delete`, `cover_save`, `ai_link`, `ai_analyze`, `ai_ocr`, `prompt_tests`, `prompt_test_add/generate/update/delete` |
-| super | `admins`, `admin_save`, `admin_delete`, `admin_change_code`, `orders`, `order_action`, `settings_save`, `test_email`, `ai_settings`, `ai_settings_save`, `ai_test`, `report_users`, `report_ads`, `ad_spend_save` |
+| super | `admins`, `admin_save`, `admin_delete`, `admin_change_code`, `orders`, `order_action`, `settings_save`, `test_email`, `test_wa`, `ai_settings`, `ai_settings_save`, `ai_test`, `report_users`, `report_ads`, `ad_spend_save` |
 
 ## Fitur yang sudah ada (jangan dibuat ulang)
 Login & katalog resep (kategori, cari, favorit, populer), detail resep + salin prompt (tombol pil), tombol Buka Gemini/ChatGPT dengan deep-link app (Android `intent://` + fallback Play Store; iOS Universal Link + tautan App Store), panduan & FAQ, profil (foto: upload → **editor crop 1:1** → simpan; klik foto → lightbox), bahasa & tema.
-Panel admin: Resep (toolbar cari + chip kategori + tag), studio resep dengan 3 mode (link referensi / upload sendiri / **prompt dari gambar—OCR**) dan galeri tes internal; Member (foto, paket, masa aktif, kode akses); Pesanan Mayar + email akses; AI Gemini; Pengguna & Iklan (laporan, UTM, biaya iklan, ROAS); Admin (akun admin/super admin, ganti kode akses admin utama); Cover (3 foto + teks halaman login).
+Panel admin: Resep (toolbar cari + chip kategori + tag), studio resep dengan 3 mode (link referensi / upload sendiri / **prompt dari gambar—OCR**) dan galeri tes internal; Member (foto, paket, masa aktif, kode akses); Pesanan Mayar + email akses + **WhatsApp otomatis via Fonnte** (pengaturan SMTP & Fonnte ada di tab Pesanan, lengkap dengan tombol kirim tes); AI Gemini; Pengguna & Iklan (laporan, UTM, biaya iklan, ROAS); Admin (akun admin/super admin, ganti kode akses admin utama); Cover (3 foto + teks halaman login).
 
 ## Aturan kerja
 1. **Escape semua data dinamis** di HTML dengan `esc()`; teks pakai `textContent`. Jangan pernah `innerHTML` nilai user tanpa `esc()`.
@@ -120,13 +126,14 @@ Tes Gemini butuh API key sungguhan (masukkan lewat tab AI Gemini); `RF_GEMINI_BA
 - Cover login: dukung video/animasi ringan; pratinjau langsung di tab Cover.
 - Halaman panduan pembeli (PDF/HTML) yang bisa diunduh dari panel admin.
 - Ekspor/impor resep lewat panel admin (impor massal sudah ada lewat paket resep di `data/pack*-prompts.json`, tapi belum ada UI-nya).
-- Notifikasi WhatsApp otomatis setelah pembayaran (saat ini salin pesan manual).
 - Tes otomatis Playwright di CI (GitHub Actions) sebelum deploy.
+- Isi bukti sosial asli di `landing/index.html` (`TESTIMONIALS`, `RATING`) dan `WA_NUMBER` untuk tombol bantuan.
 
 ## Checklist serah-terima ke pembeli
 1. Ganti kode akses admin utama (tab Admin → "Ganti kode akses admin utama").
 2. Hapus member contoh `demo` (tab Member).
 3. Isi API key Gemini (tab AI Gemini, key `AIza…` dari aistudio.google.com).
 4. Isi token webhook Mayar + email admin (tab Pesanan); daftarkan URL webhook di Mayar.
-5. Ganti foto & teks cover login (tab Cover).
-6. Pindahkan repo GitHub ke akun pembeli dan perbarui URL repo di cron hosting (lihat `CLAUDE.local.md`).
+5. Isi token Fonnte + nomor WhatsApp admin (tab Pesanan → WhatsApp otomatis), lalu tekan "Kirim WA tes".
+6. Ganti foto & teks cover login (tab Cover).
+7. Pindahkan repo GitHub ke akun pembeli dan perbarui URL repo di cron hosting (lihat `CLAUDE.local.md`).

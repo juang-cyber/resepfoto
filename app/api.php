@@ -66,6 +66,10 @@ function tr(string $msg): string {
     'Username 3–30 karakter: huruf kecil, angka, titik, garis bawah, atau strip.' => 'Username must be 3–30 characters: lowercase letters, numbers, dots, underscores or hyphens.',
     'Format tanggal berlaku tidak valid.' => 'Invalid expiry date format.',
     'Format email tidak valid.' => 'Invalid email format.',
+    'Email pengirim tidak valid.' => 'Invalid sender email.',
+    'Nomor WhatsApp admin tidak valid.' => 'Invalid admin WhatsApp number.',
+    'Isi nomor WhatsApp admin dulu.' => 'Set the admin WhatsApp number first.',
+    'Isi dan simpan email admin dulu.' => 'Set and save the admin email first.',
   ];
   if (isset($map[$msg])) return $map[$msg];
   if (strpos($msg, 'Lengkapi dulu: ') === 0) {
@@ -239,7 +243,7 @@ if ($method === 'POST' && !in_array($a, ['lt'], true) && !hash_equals($_SESSION[
 try {
   switch ($a) {
     case 'me':
-      out(['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => currentUser(), 'cover' => coverConfig(), 'v' => 'admin-7']);
+      out(['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => currentUser(), 'cover' => coverConfig(), 'v' => 'admin-8']);
 
     case 'cover_save': {
       requireAdmin();
@@ -475,6 +479,10 @@ try {
         'adminEmail' => setting('admin_email'), 'mailFrom' => setting('mail_from', 'no-reply@oziera.co.id'),
         'webhookUrl' => siteUrl() . 'webhook-mayar.php',
         'autoWithoutToken' => setting('auto_without_token') === '1',
+        'smtpHost' => setting('smtp_host'), 'smtpPort' => (int)setting('smtp_port', '587'),
+        'smtpSecure' => setting('smtp_secure', 'tls'), 'smtpUser' => setting('smtp_user'),
+        'hasSmtpPass' => setting('smtp_pass') !== '',
+        'hasFonnte' => setting('fonnte_token') !== '', 'adminWa' => setting('admin_wa'),
       ]]);
     }
 
@@ -510,25 +518,61 @@ try {
       $in = input();
       if (array_key_exists('token', $in) && trim((string)$in['token']) !== '') setSetting('mayar_webhook_token', trim((string)$in['token']));
       if (!empty($in['clearToken'])) setSetting('mayar_webhook_token', '');
-      $ae = str($in, 'adminEmail', 120);
-      if ($ae !== '' && !filter_var($ae, FILTER_VALIDATE_EMAIL)) fail('Email admin tidak valid.');
-      setSetting('admin_email', $ae);
-      $mf = str($in, 'mailFrom', 120);
-      if ($mf !== '' && !filter_var($mf, FILTER_VALIDATE_EMAIL)) fail('Email pengirim tidak valid.');
-      setSetting('mail_from', $mf !== '' ? $mf : 'no-reply@oziera.co.id');
-      setSetting('auto_without_token', !empty($in['autoWithoutToken']) ? '1' : '0');
+      // hanya perbarui kunci yang benar-benar dikirim, supaya simpan sebagian
+      // (mis. hanya SMTP) tidak mengosongkan setelan lain
+      if (array_key_exists('adminEmail', $in)) {
+        $ae = str($in, 'adminEmail', 120);
+        if ($ae !== '' && !filter_var($ae, FILTER_VALIDATE_EMAIL)) fail('Email admin tidak valid.');
+        setSetting('admin_email', $ae);
+      }
+      if (array_key_exists('mailFrom', $in)) {
+        $mf = str($in, 'mailFrom', 120);
+        if ($mf !== '' && !filter_var($mf, FILTER_VALIDATE_EMAIL)) fail('Email pengirim tidak valid.');
+        setSetting('mail_from', $mf !== '' ? $mf : 'no-reply@oziera.co.id');
+      }
+      if (array_key_exists('autoWithoutToken', $in)) setSetting('auto_without_token', !empty($in['autoWithoutToken']) ? '1' : '0');
+      // SMTP opsional — kalau host dikosongkan, pengiriman kembali memakai mail()
+      if (array_key_exists('smtpHost', $in)) {
+        setSetting('smtp_host', str($in, 'smtpHost', 120));
+        $sp = (int)($in['smtpPort'] ?? 0);
+        setSetting('smtp_port', (string)($sp > 0 && $sp < 65536 ? $sp : 587));
+        $sec = strtolower(str($in, 'smtpSecure', 8));
+        setSetting('smtp_secure', in_array($sec, ['tls', 'ssl', 'none'], true) ? $sec : 'tls');
+        setSetting('smtp_user', str($in, 'smtpUser', 120));
+      }
+      if (array_key_exists('smtpPass', $in) && trim((string)$in['smtpPass']) !== '') setSetting('smtp_pass', trim((string)$in['smtpPass']));
+      if (!empty($in['clearSmtp'])) foreach (['smtp_host', 'smtp_user', 'smtp_pass'] as $k) setSetting($k, '');
+      // WhatsApp (Fonnte)
+      if (array_key_exists('fonnteToken', $in) && trim((string)$in['fonnteToken']) !== '') setSetting('fonnte_token', trim((string)$in['fonnteToken']));
+      if (!empty($in['clearFonnte'])) setSetting('fonnte_token', '');
+      if (array_key_exists('adminWa', $in)) {
+        $aw = str($in, 'adminWa', 20);
+        if ($aw !== '' && waNumber($aw) === '') fail('Nomor WhatsApp admin tidak valid.');
+        setSetting('admin_wa', $aw === '' ? '' : waNumber($aw));
+      }
       out(['ok' => true]);
     }
 
     case 'test_email': {
       requireSuperAdmin();
-      $to = setting('admin_email');
+      $to = str(input(), 'to', 120);
+      if ($to === '') $to = setting('admin_email');
       if (!filter_var($to, FILTER_VALIDATE_EMAIL)) fail('Isi dan simpan email admin dulu.');
-      $ok = @mail($to, 'Tes email ResepFoto', "Email dari server ResepFoto berhasil terkirim.
+      try {
+        sendMailOrFail($to, 'Tes email ResepFoto', "Email dari server ResepFoto berhasil terkirim.\n\n" . siteUrl());
+      } catch (Throwable $e) { fail($e->getMessage()); }
+      out(['ok' => true, 'to' => $to]);
+    }
 
-" . siteUrl(), mailHeaders());
-      if (!$ok) fail('Server menolak mengirim email. Cek pengaturan email di cPanel.');
-      out(['ok' => true]);
+    case 'test_wa': {
+      requireSuperAdmin();
+      $to = str(input(), 'to', 20);
+      if ($to === '') $to = setting('admin_wa');
+      if ($to === '') fail('Isi nomor WhatsApp admin dulu.');
+      try {
+        waSendOrFail($to, "Tes WhatsApp ResepFoto\n\nKoneksi Fonnte berhasil. " . siteUrl());
+      } catch (Throwable $e) { fail($e->getMessage()); }
+      out(['ok' => true, 'to' => waNumber($to)]);
     }
 
     case 'member_delete': {

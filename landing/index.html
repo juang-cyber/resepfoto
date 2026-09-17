@@ -722,7 +722,7 @@ const CHECKOUT = {              // link pembayaran Mayar
 /* ---- bukti sosial: isi dengan data ASLI ----
    PREVIEW = true  → tampilkan data pratinjau desain.
    PREVIEW = false → hanya data asli di bawah yang tampil; bagian yang kosong otomatis disembunyikan. */
-const PREVIEW = true;
+const PREVIEW = false;
 // Testimoni asli (sudah izin). photo = foto hasil/foto pembeli, avatar = foto profil (opsional).
 const TESTIMONIALS = [
   // {name:"Nama Pembeli", ig:"akun_ig", avatar:"", photo:"img/p12.jpg", stars:5, title:"Judul singkat", text:"Komentar asli pembeli.", plan:"Premium", date:"Sep 2026"},
@@ -730,12 +730,12 @@ const TESTIMONIALS = [
 // Ringkasan rating dari ulasan asli, contoh: {avg: 4.8, count: 37}. Biarkan null kalau belum ada.
 const RATING = null;
 // Notifikasi order asli dari server (aktif setelah landing page ada di domain resepfoto.oziera.co.id).
-const ORDER_FEED_URL = "";      // contoh: "/api.php?a=recent_orders"
+const ORDER_FEED_URL = "/api.php?a=recent_orders";
 // Jumlah pengunjung aktif dari sistem analitik asli (angka), atau null untuk disembunyikan.
 const LIVE_VIEWERS = null;
 // Pelacakan kunjungan & klik untuk Admin → Iklan (aktif setelah landing page ada di resepfoto.oziera.co.id).
 // Isi "/api.php" saat di-deploy. Kosong = tidak melacak. Penanda "sedang melihat" juga memakai data ini (angka asli).
-const TRACK_URL = "";
+const TRACK_URL = "/api.php";
 
 const PLANS = { standard: {name: "Standard", price: 50000}, premium: {name: "Premium", price: 99000} };
 

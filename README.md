@@ -6,18 +6,22 @@ Resep prompt foto siap salin untuk Gemini & ChatGPT.
 | Folder | Isi | Online? |
 |---|---|---|
 | `app/` | Aplikasi member + admin (PHP 7.4+ & SQLite), webhook Mayar, halaman terima kasih | Ya, auto-deploy ke resepfoto.oziera.co.id |
-| `landing/index.html` | Halaman jualan. Data bukti sosial diatur di bagian `bukti sosial` di script (`PREVIEW`, `TESTIMONIALS`, `RATING`, `ORDER_FEED_URL`, `LIVE_VIEWERS`) | Belum (tidak ikut auto-deploy) |
+| `landing/index.html` | Halaman jualan. Data bukti sosial diatur di bagian `bukti sosial` di script (`PREVIEW`, `TESTIMONIALS`, `RATING`, `ORDER_FEED_URL`, `LIVE_VIEWERS`) | Ya, auto-deploy ke resepfoto.oziera.co.id/promo |
 | `landing/mockup.html` | Mockup presentasi, pembayaran nonaktif | Tidak untuk publik |
 | `brand/` | Logo, ikon, gambar share + skrip pembuatnya | – |
 
 ## Auto-deploy (server menarik dari GitHub)
-Server cPanel menjalankan `deploy/rf-deploy.sh` lewat cron tiap 2 menit:
-1. `git fetch` branch `main` memakai deploy key `~/.ssh/rf_github` (terdaftar di GitHub → Settings → Deploy keys).
-2. Kalau ada commit baru, isi folder `app/` disalin ke `~/resepfoto.oziera.co.id/`.
-3. Riwayat deploy: `~/rf-deploy/deploy.log`.
+Cron di cPanel jalan tiap **5 menit** (perintahnya ada di cPanel → Cron Jobs, bukan di `deploy/rf-deploy.sh`
+yang tinggal jadi referensi versi SSH lama):
+1. `git fetch` + `git reset --hard origin/main` di `~/repositories/resepfoto` (clone HTTPS, repo publik).
+2. Kalau commit berubah **dan** `app/.autodeploy` ada:
+   - isi `app/` disalin ke `~/resepfoto.oziera.co.id/`;
+   - `landing/index.html` + `landing/img/` disalin ke `~/resepfoto.oziera.co.id/promo/`.
+3. Riwayat deploy: `~/rf-deploy/deploy.log`, keluaran mentah: `~/rf-deploy/cron.log`.
 
-Jadi cukup push ke `main`, website ter-update dalam ±2 menit. Tidak ada password yang disimpan di GitHub.
+Jadi cukup push ke `main`, website ter-update dalam ±5 menit. Tidak ada password yang disimpan di GitHub.
 Yang **tidak** pernah disentuh: `config.php`, database `data/*.sqlite`, folder `uploads/` (tidak ada di repo).
+`landing/mockup.html` sengaja tidak ikut ter-deploy.
 
 ## Setup server baru
 Salin `app/config.example.php` → `config.php` di server lalu isi hash admin & nama database acak.
@@ -43,6 +47,15 @@ ingin paket yang sama diimpor ulang. Resep baru memakai `created_at` saat impor,
 - **Tambah resep**: mode *Link referensi* (link share Gemini/ChatGPT) atau *Upload sendiri* (klik area gambar lalu Ctrl+V / pilih file + tempel prompt → "Isi otomatis dengan Gemini"). Di bawah form ada *Hasil tes internal* (upload/tempel hasil atau generate dengan Gemini).
 - **Pengguna**: laporan member, pemakaian app (buka/salin/favorit), resep terpopuler, pesanan.
 - **Iklan**: laporan landing page (pengunjung, corong, kampanye UTM, perangkat), input biaya iklan harian, ROAS/CPA, pembuat link UTM. Aktif setelah landing page di-deploy dan `TRACK_URL = "/api.php"`.
+
+## Admin: email & WhatsApp (tab Pesanan)
+- **Email**: standarnya lewat pengiriman bawaan server dengan envelope sender (`-f`) agar `Return-Path` sejajar
+  dengan `From`, plus header `Date`/`Message-ID`/`MIME-Version` — syarat SPF & DMARC lolos. Isi host SMTP hanya
+  kalau ingin lewat penyedia lain; kosongkan untuk kembali ke pengiriman server. Tombol **Kirim email tes**
+  bisa diarahkan ke alamat mana saja.
+- **WhatsApp (Fonnte)**: isi token perangkat dari Fonnte → Device. Kalau terisi, detail akses otomatis dikirim
+  ke WhatsApp pembeli sesudah pembayaran lunas (hasilnya tersimpan di kolom `orders.wa_sent` dan tampil
+  sebagai pil "WA terkirim"). Nomor admin dipakai untuk notifikasi penjualan baru.
 
 ## Catatan
 - Setelah upload `lib.php` baru, migrasi database berjalan otomatis (kolom English untuk resep diisi dari `data/seed-en.json`).
