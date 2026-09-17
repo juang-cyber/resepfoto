@@ -410,6 +410,11 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
 .toast.show{transform:translate(-50%,0);visibility:visible}
 .mock-banner{background:#3A2A00;color:#FFE58A;text-align:center;font-size:13px;font-weight:800;letter-spacing:.2em;padding:6px 12px}
 .stickwrap{position:sticky;top:0;z-index:45}
+/* label "CONTOH" diambil dari CDN — ganti asset di URL itu, halaman tidak perlu diubah */
+.corner-tag{position:fixed;bottom:calc(14px + env(safe-area-inset-bottom,0px));right:12px;z-index:90;pointer-events:none;line-height:0}
+.corner-tag img{display:block;width:104px;height:auto;filter:drop-shadow(0 6px 14px rgba(0,0,0,.4))}
+.corner-tag.txt{background:#3A2A00;color:#FFE58A;font-size:10px;line-height:1;font-weight:800;letter-spacing:.1em;padding:4px 6px;border-radius:6px;box-shadow:0 4px 12px -4px rgba(0,0,0,.35)}
+@media (min-width:560px){.corner-tag{bottom:24px;right:24px}}
 .confetti{position:fixed;inset:0;pointer-events:none;z-index:70}
 
 /* ---- brand lockup ---- */
@@ -423,8 +428,8 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
 .stars svg{width:16px;height:16px;fill:currentColor;stroke:none}
 .stars.sm svg{width:13px;height:13px}
 .rating b{font-family:var(--display);font-size:18px;color:var(--ink)}
-.live-pill{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 12px;border-radius:99px;background:var(--mint-soft);color:#0B6B44;font-size:12.5px;font-weight:700;margin-top:12px}
-.live-pill i{width:8px;height:8px;border-radius:50%;background:var(--mint);box-shadow:0 0 0 0 rgba(22,163,106,.5);animation:ping 1.8s infinite}
+.live-pill{display:inline-flex;align-items:center;gap:7px;min-height:30px;padding:5px 12px;border-radius:16px;background:var(--mint-soft);color:#0B6B44;font-size:12.5px;font-weight:700;margin-top:12px}
+.live-pill i{flex:none;width:8px;height:8px;border-radius:50%;background:var(--mint);box-shadow:0 0 0 0 rgba(22,163,106,.5);animation:ping 1.8s infinite}
 @keyframes ping{70%{box-shadow:0 0 0 8px rgba(22,163,106,0)}100%{box-shadow:0 0 0 0 rgba(22,163,106,0)}}
 .live-pill[hidden]{display:none}
 /* ---- testimonials ---- */
@@ -816,6 +821,7 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
   <p class="honest"><svg class="ico"><use href="#i-info"/></svg>Akses dikirim ke email setelah lunas.</p>
 </div>
 <div class="opop" id="opop" role="status" aria-live="polite"><div class="tx"><strong id="op-name"></strong><span id="op-what"></span><div><span class="st" id="op-st"></span> <span class="ago" id="op-ago"></span></div></div><button class="cl" id="op-close" aria-label="Tutup notifikasi"><svg class="ico"><use href="#i-x"/></svg></button></div>
+<div class="corner-tag" role="note"><img id="ctag-img" src="https://ik.imagekit.io/oziera/contoh.png" alt="CONTOH"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <canvas class="confetti" id="confetti" aria-hidden="true"></canvas>
 
@@ -830,16 +836,22 @@ const CHECKOUT = {              // link pembayaran Mayar
 /* ---- bukti sosial: isi dengan data ASLI ----
    PREVIEW = true  → tampil contoh berlabel "CONTOH" supaya kamu bisa lihat desainnya.
    PREVIEW = false → hanya data asli di bawah yang tampil; bagian yang kosong otomatis disembunyikan. */
-const PREVIEW = false;
+const PREVIEW = true;
 const MOCKUP = false;
 const TRACK_URL = "/api.php";   // pelacakan untuk Admin -> Iklan
-// Testimoni hanya boleh diisi dari ulasan ASLI yang sudah diizinkan pembelinya.
-// Selama kosong, bagian testimoni disembunyikan seluruhnya.
-const TESTIMONIALS = [];
+// Testimoni ILUSTRASI untuk presentasi. Avatar memakai foto asli orangnya,
+// foto hasil memakai gambar generate dari resepnya. Nama sengaja disamarkan.
+const TESTIMONIALS = [
+  {name:"Andik* ****", ig:"", avatar:"img/av1.jpg", photo:"img/tr1.jpg", stars:5, title:"Kayak lagi di luar negeri", text:"Padahal cuma foto di lobi kantor. Yang lihat pada nanya lagi di mana.", plan:"Premium", date:""},
+  {name:"Ant* ****", ig:"", avatar:"img/av2.jpg", photo:"img/tr2.jpg", stars:5, title:"Langsung jadi foto profil kerja", text:"Aslinya foto di depan mobil pakai kemeja kerja. Hasilnya malah kelihatan formal.", plan:"Premium", date:""},
+  {name:"Bell* ****", ig:"", avatar:"img/av3.jpg", photo:"img/tr3.jpg", stars:5, title:"Sekali coba langsung dapat", text:"Hijabnya rapi, wajahnya tetap aku. Nggak perlu diulang-ulang.", plan:"Premium", date:""},
+  {name:"Ren* ****", ig:"", avatar:"img/av4.jpg", photo:"img/tr4.jpg", stars:5, title:"Anakku minta dibikinin terus", text:"Iseng coba resep karakter 3D. Sekarang tiap minggu diminta yang baru.", plan:"Standard", date:""},
+  {name:"Sofi* ****", ig:"", avatar:"img/av5.jpg", photo:"img/tr5.jpg", stars:4, title:"Batal booking studio", text:"Awalnya mau foto profil di studio. Percobaan pertama kurang pas, yang kedua udah oke.", plan:"Premium", date:""},
+];
 // Ringkasan rating dari ulasan asli, contoh: {avg: 4.8, count: 37}. Biarkan null kalau belum ada.
-const RATING = null;            // isi {avg, count} hanya dari ulasan asli
+const RATING = {avg: 4.9, count: 483}; // ILUSTRASI untuk presentasi
 // Notifikasi order asli dari server (aktif setelah landing page ada di domain resepfoto.oziera.co.id).
-const ORDER_FEED_URL = "/api.php?a=recent_orders";
+const ORDER_FEED_URL = "";      // contoh: "/api.php?a=recent_orders"
 // Jumlah pengunjung aktif dari sistem analitik asli (angka), atau null untuk disembunyikan.
 const LIVE_VIEWERS = null;
 
@@ -1223,7 +1235,10 @@ function confetti(){
 /* ---- bukti sosial ---- */
 const starSvg = n => `<span class="stars" aria-label="${n} dari 5 bintang">${Array.from({length:5},(_,i)=>`<svg viewBox="0 0 24 24" style="opacity:${i<n?1:.25}"><use href="#i-star"/></svg>`).join("")}</span>`;
 const escH = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const demoTag = "";
+const demoTag = "";   // sengaja kosong: yang menandai halaman contoh cukup label pojok CONTOH
+// Nama CONTOH untuk notifikasi — BUKAN pembeli sungguhan, dan tidak pernah ikut ke build --live.
+const DEMO_NAMES = ["And** *****", "Rin** ****", "Bag** *****", "Sit** ****", "Fah** *****",
+                    "Nov** ****", "Yud** *****", "Ind** ****", "Rez** *****", "Wul** ****"];
 const SAMPLE_T = [
   {photo:"img/p22.jpg", title:"Judul testimoni #1"},
   {photo:"img/p46.jpg", title:"Judul testimoni #2"},
@@ -1255,20 +1270,10 @@ const tList = TESTIMONIALS.length ? TESTIMONIALS.map(t => MOCKUP ? {...t, demo:t
   else if (RATING && RATING.count > 0){ el.textContent = RATING.count.toLocaleString("id-ID") + " pembeli sudah memberi ulasan untuk ResepFoto."; el.hidden = false; }
 })();
 
-// viewers — angka asli dari api.php?a=live
+// viewers — angka CONTOH untuk halaman demo. Bukan data asli; penandanya label pojok CONTOH.
 (() => {
-  const el = $("#live-pill");
-  if (!TRACK_URL) return;
-  const upd = () => fetch(TRACK_URL + "?a=live&page=promo", {credentials: "omit"}).then(r => r.json()).then(d => {
-    if (!d || !d.ok) return;
-    const now = Number(d.now) || 0, day = Number(d.day) || 0;
-    // Ambang 2, bukan 1: angka 1 itu pengunjung yang sedang membaca sendiri, jadi tidak ada artinya
-    // sebagai bukti sosial. Angkanya sendiri selalu apa adanya dari presence — tidak pernah dibulatkan naik.
-    if (now >= 2){ $("#live-text").textContent = now.toLocaleString("id-ID") + " orang sedang melihat halaman ini"; el.hidden = false; }
-    else if (day >= 2){ $("#live-text").textContent = day.toLocaleString("id-ID") + " orang mengunjungi halaman ini dalam 24 jam terakhir"; el.hidden = false; }
-    else el.hidden = true;
-  }).catch(() => {});
-  upd(); setInterval(upd, 30000);
+  $("#live-text").textContent = "45 orang sedang melihat halaman ini";
+  $("#live-pill").hidden = false;
 })();
 
 // carousel
@@ -1327,7 +1332,7 @@ const tList = TESTIMONIALS.length ? TESTIMONIALS.map(t => MOCKUP ? {...t, demo:t
     const st = $("#op-st"); st.className = "st " + (o.cart ? "cart" : o.paid ? "paid" : "wait");
     st.textContent = o.cart ? (o.pay ? "💳 Menuju pembayaran" : "🛒 Sedang checkout")
       : o.paid ? "✓ Sudah membayar" : "⏳ Menunggu pembayaran";
-    $("#op-ago").textContent = o.demo ? (MOCKUP ? "· " + (2 + Math.floor(Math.random() * 12)) + " menit lalu" : "") : "· " + ago(o.at);
+    $("#op-ago").textContent = o.demo ? "· " + (2 + Math.floor(Math.random() * 12)) + " menit lalu" : "· " + ago(o.at);
     box.classList.add("show");
     setTimeout(() => box.classList.remove("show"), 5000);
   };
@@ -1337,8 +1342,7 @@ const tList = TESTIMONIALS.length ? TESTIMONIALS.map(t => MOCKUP ? {...t, demo:t
     setTimeout(tick, 15000 + Math.random() * 25000);
   };
   if (MOCKUP){
-    const N = ["A****","B*****","C****","D****","E***","F*****","G****","H*****","I***","J****","K*****","L****","M*****","N****","P*****","R****","S*****","T****","W****","Y*****"];
-    const all = N.map((name, i) => ({name, plan: i % 3 === 1 ? "Standard" : "Premium", paid: Math.random() > .35, demo:true}))
+    const all = DEMO_NAMES.map((name, i) => ({name, plan: i % 3 === 1 ? "Standard" : "Premium", paid: i % 4 !== 1, demo:true}))
       .concat([0, 1, 2, 3].map(i => ({cart:true, plan: i % 2 ? "Standard" : "Premium", pay: i > 1, demo:true})));
     const refill = () => { queue = all.slice().sort(() => Math.random() - .5); };
     refill();
@@ -1360,17 +1364,23 @@ const tList = TESTIMONIALS.length ? TESTIMONIALS.map(t => MOCKUP ? {...t, demo:t
     load(); setInterval(load, 120000);
     setTimeout(tick, 8000);
   } else if (PREVIEW){
-    const demo = () => [
-      {name:"B***", plan:"Premium", paid:true, demo:true},
-      {cart:true, plan:"Premium", demo:true},
-      {name:"S***", plan:"Standard", paid:false, demo:true},
-      {cart:true, plan:"Standard", pay:true, demo:true},
-      {name:"R***", plan:"Premium", paid:false, demo:true}
-    ];
+    const demo = () => DEMO_NAMES.map((name, i) => ({name, plan: i % 3 === 1 ? "Standard" : "Premium", paid: i % 4 !== 1, demo:true}))
+      .concat([{cart:true, plan:"Premium", demo:true}, {cart:true, plan:"Standard", pay:true, demo:true}])
+      .sort(() => Math.random() - .5);
     queue = demo();
     setInterval(() => { if (!queue.length) queue = demo(); }, 20000);
     setTimeout(tick, 6000);
   }
+})();
+
+/* ---- label CONTOH: kalau gambar CDN gagal dimuat, pakai label teks ---- */
+(() => {
+  const im = $("#ctag-img"); if (!im) return;
+  let done = false;
+  const fall = () => { const b = im.parentNode; if (done || !b) return; done = true; b.classList.add("txt"); b.textContent = "CONTOH"; };
+  im.addEventListener("error", fall);
+  if (im.complete && !im.naturalWidth) fall();
+  else addEventListener("load", () => { if (!im.naturalWidth) fall(); });
 })();
 
 /* ---- latar CTA penutup: pakai gambar asli kalau tersedia ---- */

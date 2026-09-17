@@ -3,10 +3,10 @@
 // Mockup adalah sumber desain. Dua mode:
 //
 //   node landing/build-promo.mjs            PRATINJAU (default)
-//     Pembayaran Mayar aktif, pelacakan aktif, notifikasi pesanan/keranjang &
-//     penghitung pengunjung memakai data asli. Testimoni, rating, dan label CONTOH tetap
-//     tampil — jadi halaman jujur menyatakan dirinya contoh. Untuk dites sendiri
-//     dan dibagikan ke tim, BUKAN untuk dipasang di iklan.
+//     Halaman DEMO. Pembayaran Mayar & pelacakan tetap aktif sungguhan, tapi semua
+//     bukti sosial adalah CONTOH: 10 nama karangan di notifikasi, "45 orang sedang
+//     melihat", testimoni & rating contoh. Penandanya label pojok CONTOH di kanan
+//     bawah. Untuk presentasi dan tes sendiri, BUKAN untuk dipasang di iklan.
 //
 //   node landing/build-promo.mjs --live     PRODUKSI
 //     Sama, tapi semua data ilustrasi dibuang: testimoni karangan, rating, dan
@@ -35,13 +35,14 @@ rep("<title>ResepFoto · Mockup Presentasi</title>",
     "<title>ResepFoto — Resep foto AI siap pake</title>", "judul");
 
 /* setelan produksi */
-rep('const PREVIEW = true;', 'const PREVIEW = false;', "PREVIEW");
+if (LIVE) rep('const PREVIEW = true;', 'const PREVIEW = false;', "PREVIEW");   // pratinjau butuh PREVIEW tetap true
 rep('const MOCKUP = true; // versi presentasi: semua data di bawah adalah ILUSTRASI, pembayaran dinonaktifkan',
     'const MOCKUP = false;\nconst TRACK_URL = "/api.php";   // pelacakan untuk Admin -> Iklan', "MOCKUP + TRACK_URL");
-rep('const ORDER_FEED_URL = "";      // contoh: "/api.php?a=recent_orders"',
-    'const ORDER_FEED_URL = "/api.php?a=recent_orders";', "ORDER_FEED_URL");
-
 if (LIVE) {
+  /* umpan pesanan+keranjang asli hanya di produksi; pratinjau memakai kartu CONTOH berlabel */
+  rep('const ORDER_FEED_URL = "";      // contoh: "/api.php?a=recent_orders"',
+      'const ORDER_FEED_URL = "/api.php?a=recent_orders";', "ORDER_FEED_URL");
+
   /* testimoni karangan tidak boleh tampil di halaman yang menarik uang */
   sub(/^\/\/ Testimoni ILUSTRASI[\s\S]*?^\];/m,
       '// Testimoni hanya boleh diisi dari ulasan ASLI yang sudah diizinkan pembelinya.\n' +
@@ -55,8 +56,8 @@ if (LIVE) {
   sub(/\/\* ---- label CONTOH[\s\S]*?\n\}\)\(\);\n\n/, "", "label CONTOH (skrip)");
 }
 
-/* penghitung pengunjung: pakai data asli dari api.php?a=live */
-sub(/\/\/ viewers\n\(\(\) => \{[\s\S]*?\n\}\)\(\);/,
+/* penghitung pengunjung: angka asli di produksi, angka CONTOH berlabel di pratinjau */
+sub(/\/\/ viewers\n\(\(\) => \{[\s\S]*?\n\}\)\(\);/, LIVE ?
 `// viewers — angka asli dari api.php?a=live
 (() => {
   const el = $("#live-pill");
@@ -71,6 +72,11 @@ sub(/\/\/ viewers\n\(\(\) => \{[\s\S]*?\n\}\)\(\);/,
     else el.hidden = true;
   }).catch(() => {});
   upd(); setInterval(upd, 30000);
+})();` :
+`// viewers — angka CONTOH untuk halaman demo. Bukan data asli; penandanya label pojok CONTOH.
+(() => {
+  $("#live-text").textContent = "45 orang sedang melihat halaman ini";
+  $("#live-pill").hidden = false;
 })();`, "viewers");
 
 /* sembunyikan seluruh bagian testimoni kalau belum ada ulasan asli */

@@ -58,14 +58,19 @@ Tayang di `resepfoto.oziera.co.id/promo`, disajikan dari **`landing/index.html`*
 **Sumber desainnya `landing/mockup.html`** — `landing/index.html` dibangkitkan, jangan diedit tangan:
 
 ```bash
-node landing/build-promo.mjs           # PRATINJAU — testimoni contoh, rating, dan label CONTOH tetap tampil
-node landing/build-promo.mjs --live    # PRODUKSI — ketiganya dibuang; WAJIB sebelum dipasang di iklan
+node landing/build-promo.mjs           # PRATINJAU — halaman demo: nama contoh, "45 orang sedang melihat",
+                                       #   testimoni & rating contoh, semuanya berlabel CONTOH
+node landing/build-promo.mjs --live    # PRODUKSI — semua data karangan dibuang, diganti data asli;
+                                       #   WAJIB sebelum dipasang di iklan
 ```
 
-Yang ter-commit sekarang adalah **mode `--live`** (17 Sep 2026): tidak ada lagi label CONTOH, testimoni contoh,
-maupun rating contoh. Yang tampil hanya angka pengunjung aktif dan notifikasi aktivitas (pesanan + keranjang) dari
-data asli; bagian testimoni disembunyikan sampai ada ulasan asli. Detail lengkap, aturan bukti sosial, dan checklist
-go-live ada di **`landing/CLAUDE.md`** — baca itu sebelum menyentuh apa pun soal iklan.
+Yang ter-commit sekarang adalah **mode pratinjau** (17 Sep 2026): `/promo` sengaja jadi **halaman demo** — 10 nama
+karangan di notifikasi, "45 orang sedang melihat", testimoni & rating contoh. Penandanya **label pojok CONTOH di
+kanan bawah**, satu untuk seluruh halaman — jangan tambah chip per angka, itu sudah dicoba dan diminta dibuang.
+Pembayaran Mayar tetap hidup supaya bisa dites.
+**Sebelum iklan Meta diarahkan ke situ, wajib bangun ulang dengan `--live`** — itu yang membuang semua data karangan
+dan menggantinya dengan data asli. Detail lengkap, aturan bukti sosial, dan checklist go-live ada di
+**`landing/CLAUDE.md`** — baca itu sebelum menyentuh apa pun soal iklan.
 
 ## Pembayaran Mayar
 Alur: pembeli klik paket di `/promo` → checkout Mayar → Mayar POST ke `app/webhook-mayar.php` → `fulfillOrder()`
