@@ -130,11 +130,17 @@ h2{font-size:30px;line-height:1.08;font-weight:800;margin-top:8px}
 .step-btn .bar{position:absolute;left:0;bottom:0;height:3px;background:var(--blue);width:0}
 .step-btn[aria-pressed="true"] .bar{animation:prog 3.2s linear forwards}
 .step-btn.paused .bar{animation-play-state:paused}
-.phone{margin:18px auto 0;width:min(300px,100%);aspect-ratio:9/17;border-radius:40px;background:var(--ink);padding:10px;box-shadow:var(--shadow-lg);position:relative}
-.screen{position:relative;width:100%;height:100%;border-radius:31px;background:#F7F8FC;overflow:hidden}
-.scene{position:absolute;inset:0;padding:34px 14px 14px;display:flex;flex-direction:column;gap:9px;opacity:0;transform:translateX(24px) scale(.98);transition:opacity .45s, transform .45s cubic-bezier(.2,.8,.2,1);pointer-events:none}
+/* iPhone 17 (Lavender) — digambar dengan CSS, proporsi bodi 71,5 x 149,6 mm & layar 1206 x 2622 */
+.phone{margin:18px auto 0;width:min(300px,100%);aspect-ratio:715/1496;position:relative;padding:1.9%;border-radius:13.8%/6.6%;background:linear-gradient(103deg,#7C73B6 0%,#E8E4F8 8%,#BCB3E4 21%,#A79ED6 44%,#9B92CE 61%,#E1DCF4 81%,#8880C0 100%);box-shadow:var(--shadow-lg),0 0 0 .5px rgba(58,48,108,.4)}
+.phone>.sb{position:absolute;width:1.15%;border-radius:1.5px;background:linear-gradient(90deg,#7A71B2,#D2CCEE 50%,#8C83C1);z-index:0}
+.phone>.sb.l{left:-.85%}
+.phone>.sb.r{right:-.85%}
+.bezel{width:100%;height:100%;border-radius:12.4%/5.8%;background:#08080F;padding:1.66%;box-shadow:inset 0 0 0 1px rgba(255,255,255,.13)}
+.screen{position:relative;width:100%;height:100%;border-radius:11.1%/5.1%;background:#F7F8FC;overflow:hidden}
+.island{position:absolute;top:1.4%;left:50%;transform:translateX(-50%);width:31%;aspect-ratio:125/36.7;border-radius:99px;background:#06060B;z-index:3;display:flex;align-items:center;justify-content:flex-end;padding-right:6.5%}
+.island .cam{width:21%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 34% 30%,#31456F 0%,#141F3A 46%,#04050A 78%)}
+.scene{position:absolute;inset:0;padding:42px 14px 14px;display:flex;flex-direction:column;gap:9px;opacity:0;transform:translateX(24px) scale(.98);transition:opacity .45s, transform .45s cubic-bezier(.2,.8,.2,1);pointer-events:none}
 .scene.on{opacity:1;transform:none}
-.notch{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:84px;height:20px;border-radius:12px;background:var(--ink);z-index:3}
 .app-h{font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
 .rcard{display:flex;gap:9px;align-items:center;background:#fff;border-radius:14px;padding:7px;box-shadow:0 4px 12px -8px rgba(20,40,100,.3)}
 .rcard img{width:38px;height:46px;border-radius:9px;object-fit:cover}
@@ -254,6 +260,9 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 .price .num{font-family:var(--display);font-size:54px;font-weight:800;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
 .price .per{color:var(--muted);font-weight:600;font-size:13px}
 .plan-desc{margin:6px 0 0;color:var(--ink2);font-size:14px}
+.was{display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap}
+.was s{color:var(--muted);font-weight:700;font-size:15.5px;font-variant-numeric:tabular-nums;text-decoration-thickness:2px;text-decoration-color:var(--coral)}
+.was .off{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:99px;background:var(--coral);color:#fff;font-size:11.5px;font-weight:800}
 .checks{list-style:none;padding:0;margin:18px 0 0;display:grid;gap:10px}
 .checks li{display:flex;gap:10px;align-items:flex-start;font-size:14px;font-weight:600}
 .checks li .ck{flex:none;width:22px;height:22px;border-radius:7px;display:grid;place-items:center;background:var(--mint-soft);color:var(--mint)}
@@ -280,6 +289,7 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 .vs thead th{font-family:var(--display);font-size:15px}
 .vs .yes{color:var(--mint);font-weight:800}
 .vs .nope{color:var(--muted)}
+.vs s{display:block;color:var(--muted);font-weight:600;font-size:12px;text-decoration-color:var(--coral)}
 
 /* guarantee */
 .guar{display:flex;gap:16px;align-items:center;padding:20px;border-radius:26px;background:var(--mint-soft);margin-top:4px}
@@ -344,7 +354,8 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
 .opt .grow{flex:1}
 .opt strong{display:block}
 .opt small{color:var(--muted);font-size:12px}
-.opt .p{font-family:var(--display);font-weight:800;font-size:20px;font-variant-numeric:tabular-nums}
+.opt .p{font-family:var(--display);font-weight:800;font-size:19px;font-variant-numeric:tabular-nums;text-align:right;line-height:1.15}
+.opt .p s{display:block;font-family:var(--font);font-size:11px;font-weight:700;color:var(--muted);text-decoration-color:var(--coral)}
 .field{display:grid;gap:6px;margin-top:14px}
 .field label{font-size:13px;font-weight:700;color:var(--ink2)}
 .input{height:52px;border-radius:14px;border:1.5px solid var(--line);background:var(--bg);padding:0 14px;outline:none;width:100%}
@@ -504,9 +515,14 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
       <button class="step-btn" data-step="1" aria-pressed="false"><b>2</b>Tempel + upload foto<span class="bar"></span></button>
       <button class="step-btn" data-step="2" aria-pressed="false"><b>3</b>Fotomu jadi<span class="bar"></span></button>
     </div>
-    <div class="phone" aria-label="Ilustrasi alur penggunaan">
+    <div class="phone" aria-label="Ilustrasi alur penggunaan di iPhone">
+      <i class="sb l" style="top:13.4%;height:4.3%" aria-hidden="true"></i>
+      <i class="sb l" style="top:20.4%;height:7.3%" aria-hidden="true"></i>
+      <i class="sb l" style="top:29.4%;height:7.3%" aria-hidden="true"></i>
+      <i class="sb r" style="top:22%;height:10.6%" aria-hidden="true"></i>
+      <div class="bezel">
       <div class="screen">
-        <span class="notch"></span>
+        <span class="island" aria-hidden="true"><i class="cam"></i></span>
         <div class="scene on" data-scene="0">
           <div class="app-h">ResepFoto</div>
           <div class="rcard"><img src="img/p01.jpg" alt=""><div>Studio Foto Era 90-an<small>Foto Jadul</small></div><span class="cp">Salin</span></div>
@@ -526,6 +542,7 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
           <div class="result"><img src="img/p12.jpg" alt="Contoh hasil wisuda"><span class="spark"></span></div>
           <div class="saved"><span>Simpan</span><span>Bagikan</span></div>
         </div>
+      </div>
       </div>
     </div>
     <p class="demo-note">Ilustrasi alur. Foto dibuat oleh Gemini/ChatGPT memakai resep dari ResepFoto.</p>
@@ -571,9 +588,9 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
       <input type="range" id="qty" min="1" max="50" value="10">
       <div class="cmp">
         <div class="cmp-row"><span>Foto di studio</span><div class="cmp-bar studio" id="bar-studio">Rp 500.000</div></div>
-        <div class="cmp-row"><span>ResepFoto</span><div class="cmp-bar rf" id="bar-rf">Rp 50.000</div></div>
+        <div class="cmp-row"><span>ResepFoto</span><div class="cmp-bar rf" id="bar-rf">Rp 79.900</div></div>
       </div>
-      <div class="save"><span>Kamu hemat sekitar</span><b id="save">Rp 450.000</b></div>
+      <div class="save"><span>Kamu hemat sekitar</span><b id="save">Rp 420.100</b></div>
       <p class="assume">*Estimasi Rp 50.000 per foto hasil edit studio. Harga studio bisa berbeda di tiap kota.</p>
     </div>
   </section>
@@ -591,7 +608,8 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
     <div class="plans">
       <article class="plan" id="plan-standard" hidden>
         <div class="plan-top"><div class="plan-name">Standard</div><span class="ribbon calm">Hemat</span></div>
-        <div class="price"><span class="rp">Rp</span><span class="num" data-count="50000">50.000</span><span class="per">/ sekali bayar</span></div>
+        <div class="price"><span class="rp">Rp</span><span class="num" data-count="49900">49.900</span><span class="per">/ sekali bayar</span></div>
+        <div class="was"><s>Rp 150.000</s><span class="off">Hemat 67%</span></div>
         <p class="plan-desc">Semua resep yang tersedia saat kamu beli, akses selamanya.</p>
         <ul class="checks">
           <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Akses web selamanya</li>
@@ -606,7 +624,8 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
 
       <article class="plan premium" id="plan-premium">
         <div class="plan-top"><div class="plan-name">Premium</div><span class="ribbon">Paling laris</span></div>
-        <div class="price"><span class="rp">Rp</span><span class="num" data-count="99000">99.000</span><span class="per">/ sekali bayar</span></div>
+        <div class="price"><span class="rp">Rp</span><span class="num" data-count="79900">79.900</span><span class="per">/ sekali bayar</span></div>
+        <div class="was"><s>Rp 299.000</s><span class="off">Hemat 73%</span></div>
         <p class="plan-desc">Semua resep + update resep baru & tren viral, selamanya.</p>
         <ul class="checks">
           <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Akses web selamanya</li>
@@ -631,7 +650,7 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
         <table>
           <thead><tr><th></th><th>Standard</th><th>Premium</th></tr></thead>
           <tbody>
-            <tr><td>Harga</td><td>Rp 50.000</td><td>Rp 99.000</td></tr>
+            <tr><td>Harga</td><td><s>Rp 150.000</s>Rp 49.900</td><td><s>Rp 299.000</s>Rp 79.900</td></tr>
             <tr><td>Akses</td><td class="yes">Selamanya</td><td class="yes">Selamanya</td></tr>
             <tr><td>Resep saat beli</td><td class="yes">✓</td><td class="yes">✓</td></tr>
             <tr><td>Update resep baru</td><td class="nope">–</td><td class="yes">✓</td></tr>
@@ -641,14 +660,6 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
         </table>
       </div>
     </details>
-  </section>
-
-  <!-- GUARANTEE -->
-  <section class="wrap" style="padding-top:12px">
-    <div class="guar">
-      <div class="stamp"><div><b>7</b><span>HARI</span></div></div>
-      <div><h3>Garansi Puas 7 Hari</h3><p>Hasil tidak memuaskan? Chat kami dalam 7 hari, uang kembali.</p></div>
-    </div>
   </section>
 
   <!-- TESTIMONI -->
@@ -672,13 +683,12 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
     <span class="eyebrow">Tanya jawab</span>
     <h2>Yang sering ditanyakan</h2>
     <div class="faq">
-      <details><summary>Ini aplikasi atau apa?<span class="pm"><svg class="ico" style="width:15px;height:15px"><use href="#i-plus"/></svg></span></summary><p>ResepFoto adalah kumpulan resep prompt siap tempel. Kamu salin resepnya, tempel di Gemini atau ChatGPT bersama fotomu, lalu fotonya dibuat di sana.</p></details>
       <details><summary>Perlu bayar Gemini/ChatGPT?<span class="pm"><svg class="ico" style="width:15px;height:15px"><use href="#i-plus"/></svg></span></summary><p>Tidak wajib. Versi gratis keduanya sudah bisa mengedit foto, dengan batas jumlah per hari.</p></details>
       <details><summary>Wajahku bakal berubah?<span class="pm"><svg class="ico" style="width:15px;height:15px"><use href="#i-plus"/></svg></span></summary><p>Setiap resep sudah berisi perintah menjaga wajah asli. Pakai foto yang jelas dan terang supaya hasilnya paling mirip.</p></details>
       <details><summary>Bisa dipakai di HP?<span class="pm"><svg class="ico" style="width:15px;height:15px"><use href="#i-plus"/></svg></span></summary><p>Bisa. Semua resep dibuka lewat browser HP, tinggal tekan tombol salin.</p></details>
       <details><summary>Setelah bayar, aksesnya gimana?<span class="pm"><svg class="ico" style="width:15px;height:15px"><use href="#i-plus"/></svg></span></summary><p>Pilih paket, bayar lewat halaman pembayaran Mayar (QRIS, transfer bank, atau e-wallet). Setelah lunas, username dan kode akses otomatis dikirim ke email yang kamu isi.</p></details>
       <details><summary>Apa beda Standard dan Premium?<span class="pm"><svg class="ico" style="width:15px;height:15px"><use href="#i-plus"/></svg></span></summary><p>Standard berisi resep yang tersedia saat kamu beli. Premium mendapat semua update resep baru dan tren viral, dengan koleksi yang terus bertambah menuju 1000+ resep.</p></details>
-      <details><summary>Kalau hasilnya kurang cocok?<span class="pm"><svg class="ico" style="width:15px;height:15px"><use href="#i-plus"/></svg></span></summary><p>Ada Garansi Puas 7 Hari. Chat kami, uang kembali.</p></details>
+      <details><summary>Ini aplikasi atau apa?<span class="pm"><svg class="ico" style="width:15px;height:15px"><use href="#i-plus"/></svg></span></summary><p>ResepFoto adalah kumpulan resep prompt siap tempel. Kamu salin resepnya, tempel di Gemini atau ChatGPT bersama fotomu, lalu fotonya dibuat di sana.</p></details>
     </div>
   </section>
 
@@ -688,9 +698,9 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
     <h2>Fotomu berikutnya bisa jadi foto terbaikmu.</h2>
     <div class="collage"><img src="img/p02.jpg" alt=""><img src="img/p13.jpg" alt=""><img src="img/p06.jpg" alt=""></div>
     <button class="btn btn-main btn-block" data-buy="premium">Ambil Premium Sekarang</button>
-    <p class="honest"><svg class="ico"><use href="#i-info"/></svg>Resep prompt untuk Gemini/ChatGPT · Garansi Puas 7 Hari</p>
+    <p class="honest"><svg class="ico"><use href="#i-info"/></svg>Resep prompt siap tempel untuk Gemini/ChatGPT</p>
   </section>
-  <footer>© 2026 ResepFoto · resepfoto.oziera.co.id<br>Gemini dan ChatGPT adalah merek milik pemiliknya masing-masing dan tidak berafiliasi dengan ResepFoto.</footer>
+  <footer>© 2026 ResepFoto<br>ResepFoto dirancang untuk melengkapi workflow kreatif bersama berbagai platform AI populer, termasuk Gemini™ dan ChatGPT™. Seluruh merek dagang merupakan milik pemiliknya masing-masing.</footer>
 </div>
 
 
@@ -700,12 +710,12 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
   <div class="grab"></div>
   <h3 id="co-title">Pilih paket kamu</h3>
   <p class="lead" style="margin-top:4px;font-size:14px">Kamu akan diarahkan ke halaman pembayaran aman Mayar. Isi nama, email, dan nomor HP di sana.</p>
-  <label class="opt"><input type="radio" name="plan" value="standard" id="co-standard"><span class="grow"><strong>Standard</strong><small>Resep saat beli · akses selamanya</small></span><span class="p">50rb</span></label>
-  <label class="opt"><input type="radio" name="plan" value="premium" id="co-premium" checked><span class="grow"><strong>Premium</strong><small>+ update resep & tren viral</small></span><span class="p">99rb</span></label>
+  <label class="opt"><input type="radio" name="plan" value="standard" id="co-standard"><span class="grow"><strong>Standard</strong><small>Resep saat beli · akses selamanya</small></span><span class="p"><s>Rp 150.000</s>Rp 49.900</span></label>
+  <label class="opt"><input type="radio" name="plan" value="premium" id="co-premium" checked><span class="grow"><strong>Premium</strong><small>+ update resep & tren viral</small></span><span class="p"><s>Rp 299.000</s>Rp 79.900</span></label>
  <div class="pays"><span>QRIS</span><span>Transfer bank</span><span>E-wallet</span></div>
-  <div class="sum"><div><span>Paket</span><span id="sum-plan">Premium</span></div><div><span>Akses</span><span>Selamanya</span></div><div class="tot"><span>Total</span><span id="sum-total">Rp 99.000</span></div></div>
+  <div class="sum"><div><span>Paket</span><span id="sum-plan">Premium</span></div><div><span>Akses</span><span>Selamanya</span></div><div class="tot"><span>Total</span><span id="sum-total">Rp 79.900</span></div></div>
   <button class="btn btn-main btn-block" id="co-send" style="margin-top:14px">Lanjut ke pembayaran</button>
-  <p class="honest"><svg class="ico"><use href="#i-info"/></svg>Produk berupa resep prompt siap tempel untuk Gemini/ChatGPT. Akses dikirim ke email setelah lunas. Garansi Puas 7 Hari.</p>
+  <p class="honest"><svg class="ico"><use href="#i-info"/></svg>Produk berupa resep prompt siap tempel untuk Gemini/ChatGPT. Akses dikirim ke email setelah lunas.</p>
   <button class="wa-help" id="co-help" type="button"><svg class="ico"><use href="#i-wa"/></svg>Ada pertanyaan? Chat admin</button>
 </div>
 <div class="opop" id="opop" role="status" aria-live="polite"><div class="tx"><strong id="op-name"></strong><span id="op-what"></span><div><span class="st" id="op-st"></span> <span class="ago" id="op-ago"></span></div></div><button class="cl" id="op-close" aria-label="Tutup notifikasi"><svg class="ico"><use href="#i-x"/></svg></button></div>
@@ -743,7 +753,7 @@ const ORDER_FEED_URL = "";      // contoh: "/api.php?a=recent_orders"
 // Jumlah pengunjung aktif dari sistem analitik asli (angka), atau null untuk disembunyikan.
 const LIVE_VIEWERS = null;
 
-const PLANS = { standard: {name: "Standard", price: 50000}, premium: {name: "Premium", price: 99000} };
+const PLANS = { standard: {name: "Standard", price: 49900, was: 150000}, premium: {name: "Premium", price: 79900, was: 299000} };
 
 const $ = (s, r=document) => r.querySelector(s);
 const $$ = (s, r=document) => [...r.querySelectorAll(s)];
