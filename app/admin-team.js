@@ -59,8 +59,21 @@ function render(){
       <pre id="team-msg">${esc(pendingCode.msg)}</pre>
       <button class="btn btn-primary btn-sm" type="button" id="team-copy" style="margin-top:8px">${ico("copy")}Salin pesan</button>
     </div>` : "";
+  const meBuiltin = admins.some(a => a.builtin && a.self);
+  const codeCard = meBuiltin ? `
+    <details class="adm-team-form" id="team-pw" style="display:block">
+      <summary style="cursor:pointer;font-weight:700;list-style:none">${ico("key")} Ganti kode akses admin utama</summary>
+      <div class="two" style="margin-top:12px">
+        <div class="field"><label for="team-pw-cur">Kode saat ini</label><input class="input adm-code" id="team-pw-cur" type="password" autocomplete="current-password"></div>
+        <div class="field"><label for="team-pw-new">Kode baru (min. 8)</label><input class="input adm-code" id="team-pw-new" type="password" autocomplete="new-password"></div>
+      </div>
+      <div class="error" id="team-pw-err" hidden></div>
+      <button type="button" class="btn btn-primary btn-sm" id="team-pw-save" style="justify-self:start;margin-top:10px">Simpan kode baru</button>
+      <small class="muted" style="display:block;margin-top:8px">Kode ini yang dipakai login sebagai <b>@${esc(admins[0].username)}</b>. Simpan di tempat aman.</small>
+    </details>` : "";
   box.innerHTML = `
     <p class="adm-team-note">Admin bisa kelola resep & member. Super admin juga bisa kelola akun admin di sini.</p>
+    ${codeCard}
     <div class="row between" style="margin:2px 2px 12px"><h3 style="margin:0;font-size:15px">Akun admin (${admins.length})</h3>
       <button class="btn btn-primary btn-sm" id="team-add">${ico("plus")}Tambah admin</button></div>
     <form class="adm-team-form" id="team-form" hidden>
@@ -95,7 +108,7 @@ function cardHtml(a){
   }
   const st = a.builtin ? `<span class="pill ok">Bawaan</span>` : (a.active ? `<span class="pill ok">Aktif</span>` : `<span class="pill bad">Nonaktif</span>`);
   return `<div class="li">
-    <div class="avatar" style="flex:none">${esc((a.name || "?")[0].toUpperCase())}</div>
+    <div class="avatar" style="flex:none">${a.avatar ? `<img src="${esc(a.avatar)}" alt="">` : esc((a.name || "?")[0].toUpperCase())}</div>
     <div class="grow"><strong>${esc(a.name)}${a.self ? " (kamu)" : ""}</strong><small>@${esc(a.username)}${a.codeHint ? ` · kode ••••${esc(a.codeHint)}` : ""}</small>
       <div class="row" style="gap:6px;margin-top:5px;flex-wrap:wrap">${roleBadge(a.role)}${st}</div></div>
     <div class="actions" style="flex-direction:column">${acts.join("")}</div>
@@ -121,6 +134,16 @@ function openForm(a){
 
 function bind(){
   $("#team-add").onclick = () => { pendingCode = null; openForm(null); };
+  const pwBtn = $("#team-pw-save");
+  if (pwBtn) pwBtn.onclick = async () => {
+    const err = $("#team-pw-err"); err.hidden = true;
+    const cur = $("#team-pw-cur").value, code = $("#team-pw-new").value;
+    if (code.length < 8){ err.textContent = "Kode baru minimal 8 karakter."; err.hidden = false; return; }
+    pwBtn.disabled = true;
+    try { await api("admin_change_code", { current: cur, code }); toast("Kode akses admin utama diganti"); $("#team-pw-cur").value = ""; $("#team-pw-new").value = ""; $("#team-pw").open = false; }
+    catch (e){ err.textContent = e.message; err.hidden = false; }
+    finally { pwBtn.disabled = false; }
+  };
   if ($("#team-copy")) $("#team-copy").onclick = async () => toast(await copyText(pendingCode.msg) ? "Pesan tersalin" : "Gagal menyalin", false);
   const form = $("#team-form");
   if (!form) return;

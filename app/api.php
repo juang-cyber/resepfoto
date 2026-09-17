@@ -48,6 +48,9 @@ function tr(string $msg): string {
     'Peran tidak valid.' => 'Invalid role.',
     'Akun ini dikelola di tab Admin.' => 'This account is managed in the Admin tab.',
     'Pilih atau tempel foto dulu.' => 'Choose or paste a photo first.',
+    'Hanya untuk akun admin utama.' => 'Only for the main admin account.',
+    'Kode akses saat ini salah.' => 'Current access code is wrong.',
+    'Kode baru minimal 8 karakter.' => 'New code must be at least 8 characters.',
     'Gambar tidak bisa dibaca.' => 'The image could not be read.',
     'Metode salah.' => 'Wrong method.',
     'Endpoint tidak dikenal.' => 'Unknown endpoint.',
@@ -236,7 +239,7 @@ if ($method === 'POST' && !in_array($a, ['lt'], true) && !hash_equals($_SESSION[
 try {
   switch ($a) {
     case 'me':
-      out(['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => currentUser(), 'cover' => coverConfig(), 'v' => 'admin-4']);
+      out(['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => currentUser(), 'cover' => coverConfig(), 'v' => 'admin-6']);
 
     case 'cover_save': {
       requireAdmin();
@@ -263,7 +266,7 @@ try {
       if ($user === '' || $code === '') fail('Isi username dan kode akses dulu.');
       $ok = false; $role = 'member';
       if ($user === strtolower(ADMIN_USER)) {
-        $ok = password_verify($code, ADMIN_HASH); $role = 'admin';
+        $ok = password_verify($code, setting('admin_hash') ?: ADMIN_HASH); $role = 'admin';
         if (!$ok) { $pdo->prepare('INSERT INTO attempts VALUES (?,?)')->execute([$ip, time()]); fail('Kode akses admin salah.'); }
       } else {
         $st = $pdo->prepare('SELECT * FROM members WHERE username = ?'); $st->execute([$user]);
@@ -400,20 +403,32 @@ try {
       saveMember(['username' => $username, 'name' => $name, 'code_hash' => $hash, 'code_hint' => $hint,
         'plan' => 'Admin', 'expires' => '', 'active' => !empty($in['active']) ? 1 : 0,
         'created_at' => $old['created_at'] ?? gmdate('c'), 'last_login' => $old['last_login'] ?? null,
-        'email' => str($in, 'email', 120) ?: ($old['email'] ?? ''), 'phone' => $old['phone'] ?? '', 'role' => $role], $pdo);
+        'email' => str($in, 'email', 120) ?: ($old['email'] ?? ''), 'phone' => $old['phone'] ?? '', 'role' => $role,
+        'avatar' => $old['avatar'] ?? ''], $pdo);
       $st->execute([$username]);
       $p = publicMember($st->fetch()); $p['builtin'] = false; $p['self'] = false;
       out(['ok' => true, 'admin' => $p, 'code' => $newCode]);
+    }
+
+    case 'admin_change_code': {
+      requireSuperAdmin();
+      if (($_SESSION['user']['role'] ?? '') !== 'admin') fail('Hanya untuk akun admin utama.');
+      $in = input(); $cur = str($in, 'current', 80); $new = str($in, 'code', 80);
+      if (!password_verify($cur, setting('admin_hash') ?: ADMIN_HASH)) fail('Kode akses saat ini salah.');
+      if (strlen($new) < 8) fail('Kode baru minimal 8 karakter.');
+      setSetting('admin_hash', password_hash($new, PASSWORD_DEFAULT));
+      out(['ok' => true]);
     }
 
     case 'admin_delete': {
       $me = requireSuperAdmin();
       $username = strtolower(str(input(), 'username', 30));
       if ($username === strtolower(ADMIN_USER) || $username === $me['username']) fail('Tidak bisa menghapus akun ini.');
-      $st = db()->prepare("SELECT role FROM members WHERE username = ?"); $st->execute([$username]);
-      $role = (string)$st->fetchColumn();
+      $st = db()->prepare("SELECT role, avatar FROM members WHERE username = ?"); $st->execute([$username]);
+      $row = $st->fetch(); $role = (string)($row['role'] ?? '');
       if ($role !== 'admin' && $role !== 'super_admin') fail('Akun admin tidak ditemukan.', 404);
       db()->prepare('DELETE FROM members WHERE username = ?')->execute([$username]);
+      delUpload($row['avatar'] ?? '');
       out(['ok' => true]);
     }
 
@@ -519,9 +534,11 @@ try {
     case 'member_delete': {
       requireAdmin();
       $username = str(input(), 'username', 30);
-      $st = db()->prepare("SELECT role FROM members WHERE username = ?"); $st->execute([$username]);
-      if (in_array((string)$st->fetchColumn(), ['admin', 'super_admin'], true)) fail('Akun ini dikelola di tab Admin.');
+      $st = db()->prepare("SELECT role, avatar FROM members WHERE username = ?"); $st->execute([$username]);
+      $row = $st->fetch();
+      if ($row && in_array((string)$row['role'], ['admin', 'super_admin'], true)) fail('Akun ini dikelola di tab Admin.');
       db()->prepare("DELETE FROM members WHERE username = ? AND COALESCE(role,'member') = 'member'")->execute([$username]);
+      if ($row) delUpload($row['avatar'] ?? '');
       out(['ok' => true]);
     }
 

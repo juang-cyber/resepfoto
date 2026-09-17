@@ -179,6 +179,21 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 .av-cam{position:absolute;right:-3px;bottom:-3px;width:24px;height:24px;border-radius:50%;background:#fff;color:var(--accent-deep);border:2px solid var(--accent);display:grid;place-items:center;cursor:pointer;padding:0;box-shadow:0 1px 4px rgba(0,0,0,.25)}
 .av-cam .ico{width:12px;height:12px}
 .av-cam[aria-busy="true"]{opacity:.6;pointer-events:none}
+.avatar img{cursor:zoom-in}
+.lightbox{position:fixed;inset:0;z-index:200;background:rgba(6,12,28,.82);display:none;align-items:center;justify-content:center;padding:24px;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+.lightbox.show{display:flex}
+.lightbox img{max-width:min(460px,92vw);max-height:82vh;border-radius:24px;box-shadow:0 30px 80px -20px rgba(0,0,0,.6);cursor:zoom-out}
+.lb-close{position:fixed;top:18px;right:18px;width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.16);color:#fff;font-size:20px;border:0;cursor:pointer;display:grid;place-items:center}
+.crop-stage{position:relative;width:min(78vw,320px);height:min(78vw,320px);margin:2px auto 16px;border-radius:18px;overflow:hidden;background:var(--surface-2);touch-action:none;cursor:grab;user-select:none}
+.crop-stage.drag{cursor:grabbing}
+.crop-stage img{position:absolute;left:0;top:0;transform-origin:0 0;-webkit-user-drag:none;user-select:none;max-width:none}
+.crop-ring{position:absolute;inset:0;pointer-events:none}
+.crop-ring::after{content:"";position:absolute;inset:8px;border-radius:50%;border:2px solid rgba(255,255,255,.8);box-shadow:0 0 0 100vmax rgba(0,0,0,.3)}
+.crop-zoom{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.crop-zoom input[type=range]{flex:1;accent-color:var(--accent)}
+#crop-back{position:absolute;inset:0;background:rgba(6,12,28,.55);z-index:40;opacity:0;transition:opacity .3s}
+#crop-back.show{opacity:1}
+#sheet-crop{z-index:41}
 .hello small{display:flex;align-items:center;gap:4px;color:var(--muted);font-size:12px;font-weight:600}
 .hello strong{display:block;font-size:15px}
 .search{display:flex;gap:10px;margin-top:18px}
@@ -777,6 +792,17 @@ input[type=checkbox]:disabled + *{opacity:.6}
       <button class="btn btn-primary btn-block" type="submit" data-i18n="mf.save">Simpan member</button>
     </form>
   </div>
+
+  <!-- crop foto 1:1 -->
+  <div id="crop-back" hidden></div>
+  <div class="sheet" id="sheet-crop" hidden role="dialog" aria-modal="true" aria-label="Sesuaikan foto">
+    <div class="grab"></div>
+    <div class="row between" style="margin-bottom:12px"><h2 class="h-md">Sesuaikan foto</h2><button type="button" class="btn btn-ghost btn-sm" id="crop-cancel">Batal</button></div>
+    <div class="crop-stage" id="crop-stage"><img id="crop-img" alt="" draggable="false"><div class="crop-ring"></div></div>
+    <div class="crop-zoom"><svg class="ico" style="width:15px;height:15px"><use href="#i-image"/></svg><input type="range" id="crop-zoom" min="1" max="3" step="0.01" value="1" aria-label="Zoom"></div>
+    <button type="button" class="btn btn-primary btn-block" id="crop-apply">Pakai foto</button>
+    <p class="muted" style="font-size:12px;text-align:center;margin:8px 0 0">Geser untuk atur posisi, tarik slider untuk zoom. Foto dipotong 1:1.</p>
+  </div>
 </main>
 
 <script>
@@ -1224,8 +1250,9 @@ $("#a-avatar-file").addEventListener("change", async () => {
   const f = $("#a-avatar-file").files[0]; $("#a-avatar-file").value = "";
   if (!f || !/^image\/(jpeg|png|webp)$/.test(f.type)){ toast(t("pf.fileType"), true); return; }
   if (f.size > 8 * 1024 * 1024){ toast("Foto terlalu besar. Maksimal 8 MB.", true); return; }
+  const blob = await openCropper(f); if (!blob) return;
   const btn = $("#a-avatar-btn"); btn.setAttribute("aria-busy", "true");
-  const fd = new FormData(); fd.append("avatar", f);
+  const fd = new FormData(); fd.append("avatar", new File([blob], "avatar.jpg", {type: "image/jpeg"}));
   try {
     const r = await api("avatar_save", fd, true);
     if (state.user){ state.user.avatar = r.avatar; paintAvatar($("#a-avatar"), state.user); paintAvatar($("#h-avatar"), state.user); }
@@ -1233,6 +1260,8 @@ $("#a-avatar-file").addEventListener("change", async () => {
   } catch (ex) { toast(ex.message, true); }
   finally { btn.removeAttribute("aria-busy"); }
 });
+$("#a-avatar").addEventListener("click", () => { if (state.user && state.user.avatar) showLightbox(state.user.avatar); });
+$("#h-avatar").addEventListener("click", () => { if (state.user && state.user.avatar) showLightbox(state.user.avatar); });
 
 /* ------------ navigation & interactions ------------ */
 function openDetail(id){
@@ -1350,6 +1379,88 @@ function closeSheet(){
   setTimeout(() => { el.hidden = true; scrim.hidden = true; }, reduce ? 0 : 420);
 }
 $("#scrim").addEventListener("click", closeSheet);
+
+/* ---------- lightbox foto ---------- */
+function showLightbox(src){
+  if (!src) return;
+  let el = $("#lightbox");
+  if (!el){
+    el = document.createElement("div"); el.id = "lightbox"; el.className = "lightbox";
+    el.innerHTML = `<img alt=""><button type="button" class="lb-close" aria-label="Tutup">✕</button>`;
+    document.body.appendChild(el);
+    el.addEventListener("click", () => el.classList.remove("show"));
+  }
+  el.querySelector("img").src = src;
+  el.classList.add("show");
+}
+
+/* ---------- crop foto 1:1 ---------- */
+let cropResolve = null, cropState = null;
+function openCropper(file){
+  return new Promise(resolve => {
+    resolveCrop(null); // batalkan yang tertunda kalau ada
+    cropResolve = resolve;
+    const img = $("#crop-img");
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const V = $("#crop-stage").clientWidth || Math.min(320, innerWidth * 0.78);
+      const natW = img.naturalWidth, natH = img.naturalHeight;
+      const cover = Math.max(V / natW, V / natH);
+      cropState = {V, natW, natH, cover, scale: cover, tx: 0, ty: 0, url};
+      $("#crop-zoom").value = 1;
+      centerCrop(); applyCropTransform();
+    };
+    img.src = url;
+    const sheet = $("#sheet-crop"), back = $("#crop-back");
+    back.hidden = false; sheet.hidden = false;
+    requestAnimationFrame(() => { back.classList.add("show"); sheet.classList.add("show"); });
+  });
+}
+function closeCrop(){
+  const sheet = $("#sheet-crop"), back = $("#crop-back");
+  sheet.classList.remove("show"); back.classList.remove("show");
+  setTimeout(() => { sheet.hidden = true; back.hidden = true; }, reduce ? 0 : 420);
+}
+function resolveCrop(blob){
+  if (!cropResolve) return;
+  const r = cropResolve; cropResolve = null;
+  if (cropState && cropState.url) URL.revokeObjectURL(cropState.url);
+  cropState = null;
+  r(blob);
+}
+function centerCrop(){ const s = cropState; s.tx = (s.V - s.natW * s.scale) / 2; s.ty = (s.V - s.natH * s.scale) / 2; clampCrop(); }
+function clampCrop(){
+  const s = cropState; const w = s.natW * s.scale, h = s.natH * s.scale;
+  s.tx = Math.min(0, Math.max(s.V - w, s.tx));
+  s.ty = Math.min(0, Math.max(s.V - h, s.ty));
+}
+function applyCropTransform(){
+  const s = cropState, img = $("#crop-img");
+  img.style.width = (s.natW * s.scale) + "px"; img.style.height = (s.natH * s.scale) + "px";
+  img.style.transform = `translate(${s.tx}px,${s.ty}px)`;
+}
+$("#crop-zoom").addEventListener("input", () => {
+  const s = cropState; if (!s) return;
+  const z = parseFloat($("#crop-zoom").value), newScale = s.cover * z, k = newScale / s.scale, c = s.V / 2;
+  s.tx = c - (c - s.tx) * k; s.ty = c - (c - s.ty) * k; s.scale = newScale;
+  clampCrop(); applyCropTransform();
+});
+(() => {
+  const stage = $("#crop-stage"); let drag = false, lx = 0, ly = 0;
+  stage.addEventListener("pointerdown", e => { if (!cropState) return; drag = true; lx = e.clientX; ly = e.clientY; stage.setPointerCapture(e.pointerId); stage.classList.add("drag"); });
+  stage.addEventListener("pointermove", e => { if (!drag || !cropState) return; cropState.tx += e.clientX - lx; cropState.ty += e.clientY - ly; lx = e.clientX; ly = e.clientY; clampCrop(); applyCropTransform(); });
+  const end = () => { drag = false; stage.classList.remove("drag"); };
+  stage.addEventListener("pointerup", end); stage.addEventListener("pointercancel", end);
+})();
+$("#crop-apply").addEventListener("click", () => {
+  const s = cropState; if (!s) return;
+  const OUT = 400, c = document.createElement("canvas"); c.width = c.height = OUT;
+  c.getContext("2d").drawImage($("#crop-img"), -s.tx / s.scale, -s.ty / s.scale, s.V / s.scale, s.V / s.scale, 0, 0, OUT, OUT);
+  c.toBlob(b => { resolveCrop(b); closeCrop(); }, "image/jpeg", 0.9);
+});
+$("#crop-cancel").addEventListener("click", () => { resolveCrop(null); closeCrop(); });
+$("#crop-back").addEventListener("click", () => { resolveCrop(null); closeCrop(); });
+
 $$("[data-seg]").forEach(b => b.addEventListener("click", () => { state.seg = b.dataset.seg; renderAdmin(); }));
 $("#adm-add").addEventListener("click", () => state.seg === "prompts" ? openPromptForm(null) : openMemberForm(null));
 
@@ -1685,12 +1796,13 @@ function genCode(){
 }
 let resetCode = false;
 const memAv = {file: null, clear: false};
-$("#mf-av-file").addEventListener("change", () => {
+$("#mf-av-file").addEventListener("change", async () => {
   const f = $("#mf-av-file").files[0]; $("#mf-av-file").value = "";
   if (!f || !/^image\/(jpeg|png|webp)$/.test(f.type)){ toast(t("pf.fileType"), true); return; }
   if (f.size > 8 * 1024 * 1024){ toast("Foto terlalu besar. Maksimal 8 MB.", true); return; }
-  memAv.file = f; memAv.clear = false;
-  $("#mf-av").innerHTML = `<img src="${URL.createObjectURL(f)}" alt="">`;
+  const blob = await openCropper(f); if (!blob) return;
+  memAv.file = new File([blob], "avatar.jpg", {type: "image/jpeg"}); memAv.clear = false;
+  $("#mf-av").innerHTML = `<img src="${URL.createObjectURL(blob)}" alt="">`;
   $("#mf-av-clear").hidden = false;
 });
 $("#mf-av-clear").addEventListener("click", () => {
@@ -1771,6 +1883,7 @@ function armDelete(btn, run){
   setTimeout(() => { if (btn.isConnected){ delete btn.dataset.armed; btn.classList.remove("confirm"); btn.innerHTML = prev; } }, 2600);
 }
 $("#s-admin").addEventListener("click", e => {
+  const avi = e.target.closest(".avatar img"); if (avi) return showLightbox(avi.getAttribute("src"));
   const ep = e.target.closest("[data-edit-prompt]"); if (ep) return openPromptForm(ep.dataset.editPrompt);
   const em = e.target.closest("[data-edit-member]"); if (em) return openMemberForm(em.dataset.editMember);
   const dp = e.target.closest("[data-del-prompt]");
