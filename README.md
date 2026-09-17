@@ -10,16 +10,14 @@ Resep prompt foto siap salin untuk Gemini & ChatGPT.
 | `landing/mockup.html` | Mockup presentasi, pembayaran nonaktif | Tidak untuk publik |
 | `brand/` | Logo, ikon, gambar share + skrip pembuatnya | – |
 
-## Auto-deploy (GitHub Actions)
-1. cPanel → **FTP Accounts** → buat akun FTP khusus dengan direktori `resepfoto.oziera.co.id`.
-2. GitHub repo → **Settings → Secrets and variables → Actions** → tambah:
-   - `FTP_SERVER` (contoh: `ftp.oziera.co.id`)
-   - `FTP_USERNAME`
-   - `FTP_PASSWORD`
-3. Setiap push ke `main` yang mengubah folder `app/` akan otomatis ter-upload (hanya file yang berubah).
+## Auto-deploy (server menarik dari GitHub)
+Server cPanel menjalankan `deploy/rf-deploy.sh` lewat cron tiap 2 menit:
+1. `git fetch` branch `main` memakai deploy key `~/.ssh/rf_github` (terdaftar di GitHub → Settings → Deploy keys).
+2. Kalau ada commit baru, isi folder `app/` disalin ke `~/resepfoto.oziera.co.id/`.
+3. Riwayat deploy: `~/rf-deploy/deploy.log`.
 
-Yang **tidak** pernah ter-upload / tidak boleh di-commit: `app/config.php`, database `app/data/*.sqlite`, folder `app/uploads/`.
-Upload pertama FTP-Deploy-Action akan mengirim semua file di `app/` (kecuali yang dikecualikan); `config.php` dan database yang sudah ada di server tetap aman.
+Jadi cukup push ke `main`, website ter-update dalam ±2 menit. Tidak ada password yang disimpan di GitHub.
+Yang **tidak** pernah disentuh: `config.php`, database `data/*.sqlite`, folder `uploads/` (tidak ada di repo).
 
 ## Setup server baru
 Salin `app/config.example.php` → `config.php` di server lalu isi hash admin & nama database acak.
