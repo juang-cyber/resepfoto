@@ -6,8 +6,9 @@ Resep prompt foto siap salin untuk Gemini & ChatGPT.
 | Folder | Isi | Online? |
 |---|---|---|
 | `app/` | Aplikasi member + admin (PHP 7.4+ & SQLite), webhook Mayar, halaman terima kasih | Ya, auto-deploy ke resepfoto.oziera.co.id |
-| `landing/index.html` | Halaman jualan. Data bukti sosial diatur di bagian `bukti sosial` di script (`PREVIEW`, `TESTIMONIALS`, `RATING`, `ORDER_FEED_URL`, `LIVE_VIEWERS`) | Ya, auto-deploy ke resepfoto.oziera.co.id/promo |
-| `landing/mockup.html` | Mockup presentasi, pembayaran nonaktif | Tidak untuk publik |
+| `landing/index.html` | **Halaman iklan.** Dibangkitkan oleh `landing/build-promo.mjs` — jangan diedit langsung | Ya, auto-deploy ke resepfoto.oziera.co.id/promo |
+| `landing/mockup.html` | **Sumber desain** halaman iklan, sekaligus versi presentasi (pembayaran nonaktif, berlabel CONTOH) | Tidak untuk publik, tidak ikut deploy |
+| `landing/build-promo.mjs` | Skrip build halaman iklan (tanpa dependency) | – |
 | `brand/` | Logo, ikon, gambar share + skrip pembuatnya | – |
 
 ## Auto-deploy (server menarik dari GitHub)
@@ -22,6 +23,46 @@ yang tinggal jadi referensi versi SSH lama):
 Jadi cukup push ke `main`, website ter-update dalam ±5 menit. Tidak ada password yang disimpan di GitHub.
 Yang **tidak** pernah disentuh: `config.php`, database `data/*.sqlite`, folder `uploads/` (tidak ada di repo).
 `landing/mockup.html` sengaja tidak ikut ter-deploy.
+
+## Halaman iklan `/promo`
+Desainnya dirawat di `landing/mockup.html`, **bukan** di `landing/index.html`. Sesudah mengubah mockup, bangun ulang:
+
+```bash
+node landing/build-promo.mjs           # PRATINJAU -> landing/index.html
+node landing/build-promo.mjs --live    # PRODUKSI, wajib sebelum dipasang di iklan
+```
+
+Dua-duanya menyalakan pembayaran Mayar, pelacakan iklan (`TRACK_URL = "/api.php"`), notifikasi pesanan, dan
+penghitung pengunjung dari data asli. Bedanya cuma data ilustrasi:
+
+| | Pratinjau (default) | `--live` |
+|---|---|---|
+| Testimoni contoh | tampil | dibuang |
+| Rating 4,9 · 483 ulasan | tampil | dibuang |
+| Label **CONTOH** di pojok | tampil | dibuang |
+
+Pratinjau untuk dites sendiri dan dibagikan ke tim — halaman jujur menyatakan dirinya contoh.
+**Sebelum iklan diarahkan ke halaman ini, bangun ulang dengan `--live`.** Bagian testimoni otomatis disembunyikan
+selama `TESTIMONIALS` kosong — isi hanya dengan ulasan asli yang sudah diizinkan pembelinya. Aturan selengkapnya di
+`landing/CLAUDE.md`.
+
+Link iklan Meta:
+
+```
+https://resepfoto.oziera.co.id/promo?utm_source=facebook&utm_medium=paid&utm_campaign=NAMA&utm_content={{ad.name}}
+```
+
+## Pembayaran Mayar
+Pembeli klik paket di `/promo` → checkout Mayar → Mayar POST ke `webhook-mayar.php` → member dibuat otomatis,
+email akses dikirim ke pembeli (dan WhatsApp kalau token Fonnte diisi), notifikasi dikirim ke admin.
+
+Yang perlu disiapkan di dashboard Mayar:
+1. Harga produk: Standard `49900`, Premium `79900`.
+2. **Nama produk wajib memuat kata "Standard" / "Premium"** — nama inilah yang menentukan paket pembeli, bukan
+   nominalnya. Slug URL tidak dibaca.
+3. Webhook → `https://resepfoto.oziera.co.id/webhook-mayar.php`.
+4. Webhook Token dari Mayar → tempel di **Admin → Pesanan**. Tanpa token, pesanan tercatat tapi harus diaktifkan
+   manual.
 
 ## Setup server baru
 Salin `app/config.example.php` → `config.php` di server lalu isi hash admin & nama database acak.
