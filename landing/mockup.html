@@ -198,6 +198,10 @@ h2{font-size:30px;line-height:1.08;font-weight:800;margin-top:8px}
 .shot:active{transform:scale(.97)}
 .shot .ph{position:relative;aspect-ratio:4/5;max-width:100%;overflow:hidden}
 .shot .ph img{width:100%;height:100%;object-fit:cover;transition:transform .5s}
+.shot .noimg{width:100%;height:100%;display:grid;align-content:center;justify-items:center;gap:10px;padding:18px 14px;text-align:center;background:linear-gradient(155deg,var(--c1),var(--c2))}
+.shot .noimg svg{width:40px;height:40px;fill:none;stroke:var(--c3);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;opacity:.9}
+.shot .noimg b{font-family:var(--display);font-size:16px;line-height:1.2;color:var(--ink);letter-spacing:-.01em}
+.shot .noimg i{font-style:normal;font-size:11px;font-weight:700;color:var(--muted)}
 .shot:hover .ph img{transform:scale(1.05)}
 .shot .ph .badge{position:absolute;left:10px;top:10px;background:var(--sun);color:#3A2A00;font-size:11px;font-weight:800;padding:4px 9px;border-radius:99px;box-shadow:0 4px 10px -4px rgba(0,0,0,.35)}
 .shot .meta{padding:11px 13px 13px}
@@ -621,7 +625,7 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
   <!-- GALLERY -->
   <section class="wrap" id="galeri">
     <span class="eyebrow">Paling laris</span>
-    <h2>Resep yang paling sering dipakai member.</h2>
+    <h2>14 resep yang paling sering dipakai member.</h2>
     <div class="shots" id="shots"></div>
     <div class="swipe-hint"><svg class="ico" style="width:16px;height:16px"><use href="#i-swipe"/></svg>Geser untuk lihat lainnya</div>
   </section>
@@ -977,10 +981,39 @@ new IntersectionObserver(([e]) => {
 
 /* ---- gallery ---- */
 // resep bertanda "paling laris" (popular) di app — urut sesuai yang paling sering dipakai
-const BEST = ["rtlhqfm5b68", "rtlhx4154b6", "rtlhwnq0386", "p21", "rtlhwlo6ac4"];
+const BESTSELLERS = [
+  ["rtlhqfm5b68","Jalan-jalan","Potret Sinematik Motion Blur Kota","img/ra3.jpg"],
+  ["rtlhwlo6ac4","Entertainment","Foto Scrapbook Chibi 3D Gemas","img/ra1.jpg"],
+  ["rtlhwnq0386","Entertainment","Mini Chibi Gemas di Telapak Tangan","img/ra5.jpg"],
+  ["rtlhx4154b6","Profesional","Potret Fisheye Sudut Atas","img/ra6.jpg"],
+  ["p21","Foto Jadul","Potret Gaya 1985","img/ra4.jpg"],
+  ["rtlhxp6cc8c","Profesional","Potret Studio Editorial Hijab",""],
+  ["p23","Editorial","Lift Mewah Ala 90-an",""],
+  ["p24","Tren Viral","Selfie Spider-Man",""],
+  ["p27","Tren Viral","Singgasana Shinobi Gelap",""],
+  ["p29","Tren Viral","Mirror Selfie Kamera Digital",""],
+  ["p33","Tren Viral","Photobooth Spider-Man",""],
+  ["p36","Tren Viral","Selfie Cermin Cembung Minimarket",""],
+  ["p39","Jalan-jalan","Ladang Bunga Kuning",""],
+  ["p65","Editorial","Taksi Kuning Malam Hari",""]
+].map(([id, cat, title, img]) => ({id, cat, title, img}));
 function renderShots(){
-  const list = BEST.map(id => RECIPES.find(r => r.id === id)).filter(Boolean);
-  $("#shots").innerHTML = list.map(r => `<a class="shot" href="#harga" data-rec="${r.id}"><div class="ph"><img loading="lazy" src="${r.img}" alt="Contoh hasil ${r.title}"><span class="badge">★ Paling laris</span></div><div class="meta"><strong>${r.title}</strong><span>${r.cat} · ada di paket →</span></div></a>`).join("");
+  // semua resep bertanda "paling laris"; yang fotonya belum ada tampil sebagai kartu bertint
+  const TINT = {
+    "Jalan-jalan":   ["#DCE9FE","#F1F6FF","#2B66F6"],
+    "Entertainment": ["#FFE0E8","#FFF1F4","#FF5C7A"],
+    "Profesional":   ["#E2EAFF","#F2F5FF","#1C4BD0"],
+    "Foto Jadul":    ["#FFF0BE","#FFF9E4","#B07D00"],
+    "Editorial":     ["#E7E2F8","#F4F1FD","#6B4FD0"],
+    "Tren Viral":    ["#D6F2E5","#EDFAF3","#0B6B44"]
+  };
+  $("#shots").innerHTML = BESTSELLERS.map(r => {
+    const t = TINT[r.cat] || ["#E9EEF8","#F5F8FD","#7481A0"];
+    const ph = r.img
+      ? `<img loading="lazy" src="${r.img}" alt="Contoh hasil ${r.title}">`
+      : `<div class="noimg" style="--c1:${t[0]};--c2:${t[1]};--c3:${t[2]}"><svg viewBox="0 0 24 24"><use href="#g-photo"/></svg><b>${r.title}</b></div>`;
+    return `<a class="shot" href="#harga" data-rec="${r.id}"><div class="ph">${ph}<span class="badge">★ Paling laris</span></div><div class="meta"><strong>${r.title}</strong><span>${r.cat} · ada di paket →</span></div></a>`;
+  }).join("");
   if (!reduce) $$(".shot").forEach((s, i) => s.animate([{opacity: .3, transform: "translateY(10px)"}, {opacity: 1, transform: "none"}], {duration: 380, delay: i * 40, easing: "cubic-bezier(.2,.8,.2,1)"}));
 }
 renderShots();
