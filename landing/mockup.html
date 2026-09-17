@@ -837,13 +837,14 @@ const CHECKOUT = {              // link pembayaran Mayar
    PREVIEW = false → hanya data asli di bawah yang tampil; bagian yang kosong otomatis disembunyikan. */
 const PREVIEW = true;
 const MOCKUP = true; // versi presentasi: semua data di bawah adalah ILUSTRASI, pembayaran dinonaktifkan
-// Testimoni ILUSTRASI untuk presentasi. Avatar diambil dari img/av1-4.jpg; kalau file itu
-// belum ada, kartu otomatis memakai foto hasilnya. Nama sengaja disamarkan.
+// Testimoni ILUSTRASI untuk presentasi. Avatar memakai foto asli orangnya,
+// foto hasil memakai gambar generate dari resepnya. Nama sengaja disamarkan.
 const TESTIMONIALS = [
-  {name:"Dind* ****", ig:"", avatar:"img/av1.jpg", photo:"img/555773730623622a.jpg", stars:5, title:"Keponakanku ngira aku beneran foto sama boneka", text:"Awalnya cuma iseng buat konten. Aku upload selfie biasa, tempel resepnya di Gemini, eh jadi kayak lagi pegangan sama karakter 3D beneran. Keponakan sampai nanya belinya di mana.", plan:"Premium", date:""},
-  {name:"Nab* ****", ig:"", avatar:"img/av2.jpg", photo:"img/720bf73c3613f0ba.jpg", stars:4, title:"Nggak perlu nunggu libur buat naik gunung", text:"Percobaan pertama wajahnya agak melenceng, jadi aku ulang pakai foto yang lebih terang. Yang kedua langsung pas. Sekarang jadi foto profil semua sosmedku.", plan:"Premium", date:""},
-  {name:"Baga* ****", ig:"", avatar:"img/av3.jpg", photo:"img/p59.jpg", stars:5, title:"Kayak ada yang motoin dari jauh", text:"Modalnya cuma selfie di kamar. Hasilnya malah kelihatan kayak difoto orang dari seberang jalan. Beberapa teman serius nanya aku sewa fotografer di mana.", plan:"Standard", date:""},
-  {name:"Anis* ****", ig:"", avatar:"img/av4.jpg", photo:"img/942a7d4c1c4d417e.jpg", stars:5, title:"Dipakai buat foto profil kantor", text:"Butuh foto formal tapi malas ke studio. Hasilnya rapi dan wajahnya masih aku banget, nggak jadi orang lain. Sekarang dipakai di profil kantor sama LinkedIn.", plan:"Premium", date:""},
+  {name:"Andik* ****", ig:"", avatar:"img/av1.jpg", photo:"img/tr1.jpg", stars:5, title:"Kayak lagi di luar negeri", text:"Padahal cuma foto di lobi kantor. Yang lihat pada nanya lagi di mana.", plan:"Premium", date:""},
+  {name:"Ant* ****", ig:"", avatar:"img/av2.jpg", photo:"img/tr2.jpg", stars:5, title:"Langsung jadi foto profil kerja", text:"Aslinya foto di depan mobil pakai kemeja kerja. Hasilnya malah kelihatan formal.", plan:"Premium", date:""},
+  {name:"Bell* ****", ig:"", avatar:"img/av3.jpg", photo:"img/tr3.jpg", stars:5, title:"Sekali coba langsung dapat", text:"Hijabnya rapi, wajahnya tetap aku. Nggak perlu diulang-ulang.", plan:"Premium", date:""},
+  {name:"Ren* ****", ig:"", avatar:"img/av4.jpg", photo:"img/tr4.jpg", stars:5, title:"Anakku minta dibikinin terus", text:"Iseng coba resep karakter 3D. Sekarang tiap minggu diminta yang baru.", plan:"Standard", date:""},
+  {name:"Sofi* ****", ig:"", avatar:"img/av5.jpg", photo:"img/tr5.jpg", stars:4, title:"Batal booking studio", text:"Awalnya mau foto profil di studio. Percobaan pertama kurang pas, yang kedua udah oke.", plan:"Premium", date:""},
 ];
 // Ringkasan rating dari ulasan asli, contoh: {avg: 4.8, count: 37}. Biarkan null kalau belum ada.
 const RATING = {avg: 4.9, count: 483}; // ILUSTRASI untuk presentasi
