@@ -1,14 +1,20 @@
 // Membuat app/promo/index.html dari landing/mockup.html.
 //
-// Mockup adalah sumber desain; skrip ini menerapkan setelan produksi:
-//   - pelacakan iklan diaktifkan (Admin -> Iklan)
-//   - notifikasi pesanan & penghitung pengunjung memakai data asli dari api.php
-//   - semua data ilustrasi (testimoni karangan, rating, label CONTOH) dibuang
+// Mockup adalah sumber desain. Dua mode:
 //
-// Jalankan: node landing/build-promo.mjs
+//   node landing/build-promo.mjs            PRATINJAU (default)
+//     Pembayaran Mayar aktif, pelacakan aktif, notifikasi pesanan & penghitung
+//     pengunjung memakai data asli. Testimoni, rating, dan label CONTOH tetap
+//     tampil — jadi halaman jujur menyatakan dirinya contoh. Untuk dites sendiri
+//     dan dibagikan ke tim, BUKAN untuk dipasang di iklan.
+//
+//   node landing/build-promo.mjs --live     PRODUKSI
+//     Sama, tapi semua data ilustrasi dibuang: testimoni karangan, rating, dan
+//     label CONTOH. Jalankan mode ini sebelum mengarahkan iklan ke halaman.
 import { readFileSync, writeFileSync, mkdirSync, rmSync, cpSync } from "node:fs";
 
 const SRC = "landing/mockup.html", OUT_DIR = "app/promo", OUT = `${OUT_DIR}/index.html`;
+const LIVE = process.argv.includes("--live");
 let s = readFileSync(SRC, "utf8");
 let n = 0;
 const rep = (old, neu, label) => {
@@ -32,18 +38,20 @@ rep('const MOCKUP = true; // versi presentasi: semua data di bawah adalah ILUSTR
     'const MOCKUP = false;\nconst TRACK_URL = "/api.php";   // pelacakan untuk Admin -> Iklan', "MOCKUP + TRACK_URL");
 rep('const ORDER_FEED_URL = "";      // contoh: "/api.php?a=recent_orders"',
     'const ORDER_FEED_URL = "/api.php?a=recent_orders";', "ORDER_FEED_URL");
-rep('const RATING = {avg: 4.9, count: 483}; // ILUSTRASI untuk presentasi',
-    'const RATING = null;            // isi {avg, count} hanya dari ulasan asli', "RATING");
 
-/* testimoni karangan tidak boleh tampil di halaman jualan */
-sub(/^\/\/ Testimoni ILUSTRASI[\s\S]*?^\];/m,
-    '// Testimoni hanya boleh diisi dari ulasan ASLI yang sudah diizinkan pembelinya.\n' +
-    '// Selama kosong, bagian testimoni disembunyikan seluruhnya.\nconst TESTIMONIALS = [];', "TESTIMONIALS");
+if (LIVE) {
+  /* testimoni karangan tidak boleh tampil di halaman yang menarik uang */
+  sub(/^\/\/ Testimoni ILUSTRASI[\s\S]*?^\];/m,
+      '// Testimoni hanya boleh diisi dari ulasan ASLI yang sudah diizinkan pembelinya.\n' +
+      '// Selama kosong, bagian testimoni disembunyikan seluruhnya.\nconst TESTIMONIALS = [];', "TESTIMONIALS");
+  sub(/const RATING = \{avg: 4\.9, count: 483\}; \/\/ ILUSTRASI untuk presentasi/,
+      'const RATING = null;            // isi {avg, count} hanya dari ulasan asli', "RATING");
 
-/* label CONTOH: markup, skrip, dan CSS-nya sekalian */
-sub(/\n *<div class="corner-tag"[\s\S]*?<\/div>/, "", "label CONTOH (markup)");
-sub(/\/\* label "CONTOH"[\s\S]*?\n@media \(min-width:560px\)\{\.corner-tag\{[^\n]*\}\n/, "", "label CONTOH (CSS)");
-sub(/\/\* ---- label CONTOH[\s\S]*?\n\}\)\(\);\n\n/, "", "label CONTOH (skrip)");
+  /* label CONTOH: markup, skrip, dan CSS-nya sekalian */
+  sub(/\n *<div class="corner-tag"[\s\S]*?<\/div>/, "", "label CONTOH (markup)");
+  sub(/\/\* label "CONTOH"[\s\S]*?\n@media \(min-width:560px\)\{\.corner-tag\{[^\n]*\}\n/, "", "label CONTOH (CSS)");
+  sub(/\/\* ---- label CONTOH[\s\S]*?\n\}\)\(\);\n\n/, "", "label CONTOH (skrip)");
+}
 
 /* penghitung pengunjung: pakai data asli dari api.php?a=live */
 sub(/\/\/ viewers\n\(\(\) => \{[\s\S]*?\n\}\)\(\);/,
@@ -108,4 +116,5 @@ mkdirSync(OUT_DIR, {recursive: true});
 rmSync(`${OUT_DIR}/img`, {recursive: true, force: true});
 cpSync("landing/img", `${OUT_DIR}/img`, {recursive: true});
 writeFileSync(OUT, s);
-console.log(`app/promo/index.html dibuat — ${n} perubahan, ${(s.length/1024).toFixed(0)} KB`);
+console.log(`app/promo/index.html dibuat — mode ${LIVE ? "PRODUKSI" : "PRATINJAU"}, ${n} perubahan, ${(s.length/1024).toFixed(0)} KB`);
+if (!LIVE) console.log('Testimoni, rating, dan label CONTOH masih tampil. Jalankan dengan --live sebelum dipasang di iklan.');

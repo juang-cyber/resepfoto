@@ -21,14 +21,24 @@ Jadi cukup push ke `main`, website ter-update dalam ±2 menit. Tidak ada passwor
 Karena skrip menyalin **seluruh isi** `app/`, folder `app/promo/` ikut tayang di `resepfoto.oziera.co.id/promo` tanpa perlu mengubah cron.
 
 ### Halaman iklan `/promo`
-Desainnya dirawat di `landing/mockup.html`. Setelah mengubahnya, bangun ulang halaman produksinya:
+Desainnya dirawat di `landing/mockup.html`. Setelah mengubahnya, bangun ulang halamannya:
 
 ```bash
-node landing/build-promo.mjs      # -> app/promo/index.html + app/promo/img/
+node landing/build-promo.mjs           # PRATINJAU  -> app/promo/index.html + app/promo/img/
+node landing/build-promo.mjs --live    # PRODUKSI, jalankan sebelum dipasang di iklan
 ```
 
-Skrip itu menyalakan pelacakan iklan (`TRACK_URL = "/api.php"`), menyambungkan notifikasi pesanan dan penghitung
-pengunjung ke data asli, lalu membuang semua data ilustrasi: testimoni karangan, rating, dan label CONTOH.
+Dua-duanya menyalakan pelacakan iklan (`TRACK_URL = "/api.php"`), pembayaran Mayar, notifikasi pesanan, dan
+penghitung pengunjung dari data asli. Bedanya cuma data ilustrasi:
+
+| | Pratinjau (default) | `--live` |
+|---|---|---|
+| Testimoni contoh | tampil | dibuang |
+| Rating 4.9 · 483 ulasan | tampil | dibuang |
+| Label **CONTOH** di foto | tampil | dibuang |
+
+Pratinjau untuk dites sendiri dan dibagikan ke tim — halaman jujur menyatakan dirinya contoh.
+**Sebelum iklan diarahkan ke halaman ini, bangun ulang dengan `--live`.**
 Bagian testimoni otomatis disembunyikan selama `TESTIMONIALS` kosong — isi hanya dengan ulasan asli yang sudah diizinkan pembelinya.
 
 Link iklan Meta:
