@@ -5,3 +5,6 @@ app/data/*.log
 app/uploads/*
 !app/uploads/.htaccess
 .DS_Store
+
+# catatan privat (hosting & lokasi kredensial) — jangan pernah masuk repo publik
+CLAUDE.local.md
