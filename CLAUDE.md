@@ -1,0 +1,218 @@
+# ResepFoto — panduan proyek untuk Claude Code
+
+> Baca file ini dulu sebelum mengubah apa pun. Detail privat (hosting, lokasi kredensial) ada di `CLAUDE.local.md`
+> (tidak di-commit). **Halaman iklan `/promo`: baca `landing/CLAUDE.md`.**
+> Terakhir diperbarui: 17 September 2026.
+
+## Apa ini
+**ResepFoto** (resepfoto.oziera.co.id) — web app berbayar berisi "resep" prompt foto AI yang disalin member ke
+Gemini/ChatGPT bersama foto mereka. Bisnis sampingan Juang Mahmud H (Glass Pro Indonesia) bersama Hendrick Kurnia.
+Tagline: *Imagine Your Photo*. Bilingual ID/EN. **Produk ini akan dijual** — jaga kualitas kode, keamanan, dan jangan
+pernah commit rahasia.
+
+## Struktur repo
+```
+app/            ← yang di-deploy ke document root website
+  index.html    UI member + panel admin (CSS & JS inline, i18n ID/EN, ~160 KB)
+  api.php       semua endpoint JSON (sesi, CSRF, routing switch)
+  lib.php       SQLite (db() + migrasi otomatis), member, pesanan, email
+  ai.php        integrasi Gemini (link referensi, analisis, OCR, tes generate)
+  admin-ext.js      tab Pesanan (Mayar)                   [super admin]
+  admin-ai.js       tab AI Gemini (API key, model, log)   [super admin]
+  admin-reports.js  tab Pengguna & Iklan (laporan)        [super admin]
+  admin-team.js     tab Admin (kelola akun admin)         [super admin]
+  admin-cover.js    tab Cover (foto/teks halaman login)   [admin & super]
+  webhook-mayar.php webhook pembayaran Mayar
+  terima-kasih.html halaman sesudah bayar
+  promo/        HALAMAN IKLAN — dibangkitkan, JANGAN diedit tangan (lihat landing/CLAUDE.md)
+  .htaccess     blokir file sensitif, paksa HTTPS, header keamanan, cache
+  .autodeploy   penanda warisan; skrip deploy sekarang tidak mengeceknya, tapi jangan dihapus
+  config.example.php  template config (config.php asli TIDAK di repo)
+  data/         seed-prompts.json, seed-en.json (database .sqlite TIDAK di repo)
+  uploads/      hanya .htaccess (file upload TIDAK di repo)
+brand/          logo, ikon, og-image
+landing/        SUMBER DESAIN halaman iklan (mockup.html) + build-promo.mjs + img/ → baca landing/CLAUDE.md
+deploy/         rf-deploy.sh — skrip yang benar-benar dipakai cron di server
+```
+`.gitignore` mengecualikan `app/config.php`, `app/data/*.sqlite*`, `app/data/*.log`, `app/uploads/*` (kecuali
+`.htaccess`), dan `.DS_Store`.
+
+## Alur deploy (sudah otomatis)
+1. Edit file di `app/` (atau `landing/mockup.html` lalu bangun ulang `app/promo/`).
+2. `git add -A && git commit -m "..." && git push` ke branch `main`.
+3. Cron cPanel menjalankan `deploy/rf-deploy.sh` tiap 2 menit: `git fetch origin main` memakai deploy key
+   `~/.ssh/rf_github`, dan **kalau commit berubah**, menyalin **seluruh isi** `app/.` ke `~/resepfoto.oziera.co.id/`.
+   Skrip pakai `flock` supaya tidak tumpang tindih. Riwayat: `~/rf-deploy/deploy.log`.
+4. Verifikasi: `curl -s https://resepfoto.oziera.co.id/api.php?a=me` → lihat field `"v"` (sekarang `admin-6`).
+
+Karena skrip menyalin seluruh isi `app/`, subfolder seperti `app/promo/` ikut tayang **tanpa perlu mengubah cron**.
+`config.php`, database, dan `uploads/` tidak pernah tersentuh karena tidak ada di repo.
+
+**Konvensi rilis:** tiap rilis naikkan penanda versi di route `me` (`'v' => 'admin-N'`) di `api.php`, dan naikkan `?v=`
+pada `<script src="admin-*.js?v=N">` di `index.html` untuk file JS yang berubah. HTML/JS sudah `Cache-Control:
+no-cache` lewat `.htaccess`, gambar di-cache 30 hari.
+
+## Halaman iklan `/promo`
+Tayang di `resepfoto.oziera.co.id/promo`. **Sumber desainnya `landing/mockup.html`**, bukan `app/promo/index.html`.
+Halaman produksi dibangkitkan:
+
+```bash
+node landing/build-promo.mjs           # PRATINJAU — testimoni contoh, rating, dan label CONTOH tetap tampil
+node landing/build-promo.mjs --live    # PRODUKSI — ketiganya dibuang; WAJIB sebelum dipasang di iklan
+```
+
+Yang ter-commit sekarang adalah **mode pratinjau**: pembayaran Mayar hidup sungguhan supaya bisa dites, tapi halaman
+tetap berlabel contoh dan belum dibagikan ke Meta. Detail lengkap, aturan bukti sosial, dan checklist go-live ada di
+**`landing/CLAUDE.md`** — baca itu sebelum menyentuh apa pun soal iklan.
+
+## Pembayaran Mayar
+Alur: pembeli klik paket di `/promo` → checkout Mayar → Mayar POST ke `app/webhook-mayar.php` → `fulfillOrder()`
+membuat member, mengirim email akses ke pembeli, dan email notifikasi ke admin.
+
+Paket ditentukan `planFromProduct()` di `app/lib.php`. **KOREKSI PENTING — jangan diulangi:** ambang `Rp 90.000`
+di fungsi itu **bukan masalah** untuk Premium seharga Rp 79.900, karena nama produk diperiksa lebih dulu:
+```php
+if (strpos($p, 'premium') !== false) return 'Premium';
+if (strpos($p, 'standard') !== false || strpos($p, 'standar') !== false) return 'Standard';
+return $amount >= 90000 ? 'Premium' : 'Standard';   // hanya cadangan
+```
+Sudah dibuktikan dengan uji lokal ujung ke ujung (`ResepFoto Premium` @ 79900 → Premium; `Akses Selamanya ResepFoto`
+@ 79900 → Standard). Yang perlu dipastikan hanya **nama produk di dashboard Mayar memuat kata "Standard"/"Premium"** —
+slug URL tidak dibaca. Tidak ada perubahan kode yang diperlukan.
+
+Webhook memverifikasi `mayar_webhook_token` dengan `hash_equals` terhadap header / `$_GET['token']` / `$j['token']`.
+Tanpa token cocok, pesanan tetap tercatat tapi hanya `notifyAdmin()` yang jalan — aktivasi manual lewat Admin → Pesanan.
+
+## Arsitektur
+- **Backend:** PHP — **tulis kompatibel PHP 7.4** (tanpa `match`, `str_starts_with`, enum, readonly, dsb.) meski
+  server sekarang PHP 8.x. SQLite lewat PDO (`lib.php::db()`), WAL, migrasi kolom otomatis di `db()`
+  (cek `PRAGMA table_info` lalu `ALTER TABLE`).
+- **Auth:** sesi PHP (`rf_sess`, httponly, SameSite=Lax, 30 hari). Login pakai username + kode akses (bcrypt).
+  Rate limit 10 percobaan/15 menit per IP. Semua POST wajib header `X-CSRF` (nilai dari `me`). Header `X-Lang: id|en`
+  menentukan bahasa pesan error (`tr()` di `api.php`).
+- **Peran:**
+  - `super_admin` — akun `admin` bawaan (hash di `config.php`, bisa di-override setting `admin_hash` lewat UI) +
+    member dengan `role='super_admin'`. Semua tab & endpoint.
+  - `admin` — member dengan `role='admin'`. Hanya tab **Resep, Member, Cover** (tab lain disembunyikan via
+    `superOnly`, dan endpoint-nya ditolak server dengan `requireSuperAdmin()`).
+  - `member` — lihat/salin resep, atur foto profil sendiri. Paket `Standard` hanya melihat resep yang ada saat akun
+    dibuat.
+  - `currentUser()` mengembalikan `role` (`admin`|`member`) + `adminRole` (`super_admin`|`admin`|``).
+- **Frontend:** SPA vanilla JS di `index.html`. Modul admin terpisah menempel lewat `window.RFAPP` (`api, toast, esc,
+  copyText, openSheet, closeSheet, isAdmin, fmtDate, state, renderAll, t, lang, setLang, addAdminTab, openPromptForm,
+  cats, armDelete, imgSrc, applyCover`). Tab admin baru: `APP.addAdminTab({id, label, onShow, superOnly})` →
+  mengembalikan panel; event `rf:admin-render` dipancarkan tiap render admin.
+- **i18n:** kamus ID & EN di `index.html` (`t(key, vars)`), markup pakai `data-i18n`, `data-i18n-ph`, `data-i18n-aria`.
+  Resep punya kolom `_en` (cat/title/descr/tips); kalau kosong tampil versi ID.
+- **Gambar:** semua upload divalidasi `getimagesize` lalu **di-encode ulang via GD** (resep 4:5 960×1200, avatar 1:1
+  400×400, tes maks 1600px). Path disimpan relatif `uploads/xxx.jpg`. Hapus lewat `delUpload()`.
+- **AI (Gemini):** `ai.php`. Model teks `gemini-3.8-flash` (default, bisa diganti di setting), model gambar
+  `gemini-3.1-flash-image`. Fungsi: `recipeFromLink()` (share link Gemini/ChatGPT + url_context),
+  `recipeFromUpload()`, `recipeFromImagePrompt()` (OCR prompt dari screenshot), `generateTestImage()`. Error
+  aman-ditampilkan dilempar sebagai `RfError` → HTTP 422. Log ke tabel `ai_log` (maks 300 baris).
+
+## Data
+Tabel: `prompts, members, attempts, settings, orders, webhook_log, ai_log, prompt_tests, events, lt_events, presence,
+ad_spend`.
+Kolom penting `members`: `username, name, code_hash, code_hint, plan, expires, active, email, phone, role, avatar`.
+Kunci `settings`: `admin_hash, admin_avatar, admin_email, mail_from, mayar_webhook_token, auto_without_token,
+gemini_api_key, gemini_model, gemini_image_model, cover_title, cover_sub, cover_title_en, cover_sub_en, cover_chip,
+cover_img1..3`.
+
+## Endpoint `api.php?a=…` (auth)
+| Level | Endpoint |
+|---|---|
+| publik | `me` (juga mengembalikan `cover` & `v`), `login`, `logout`, `recent_orders`, `lt` (tracking halaman iklan), `live` |
+| user | `prompts`, `track`, `avatar_save` (admin boleh isi `username` untuk member lain) |
+| admin | `prompt_save`, `prompt_delete`, `members`, `member_save` (FormData, boleh `avatar`/`clearAvatar`), `member_delete`, `cover_save`, `ai_link`, `ai_analyze`, `ai_ocr`, `prompt_tests`, `prompt_test_add/generate/update/delete` |
+| super | `admins`, `admin_save`, `admin_delete`, `admin_change_code`, `orders`, `order_action`, `settings_save`, `test_email`, `ai_settings`, `ai_settings_save`, `ai_test`, `report_users`, `report_ads`, `ad_spend_save` |
+
+## Fitur yang sudah ada (jangan dibuat ulang)
+Login & katalog resep (kategori, cari, favorit, populer), detail resep + salin prompt, tombol Buka Gemini/ChatGPT
+dengan deep-link app (Android `intent://` + fallback Play Store; iOS Universal Link + App Store), panduan & FAQ,
+profil (upload foto → editor crop 1:1 → simpan; klik foto → lightbox), bahasa & tema.
+Panel admin: Resep (toolbar cari + chip kategori + tag), studio resep 3 mode (link referensi / upload sendiri /
+prompt dari gambar—OCR) dan galeri tes internal; Member; Pesanan Mayar + email akses; AI Gemini; Pengguna & Iklan
+(laporan, UTM, biaya iklan, ROAS); Admin; Cover.
+Halaman iklan `/promo` dengan pelacakan corong lengkap.
+
+## Aturan kerja
+1. **Escape semua data dinamis** di HTML dengan `esc()`; teks pakai `textContent`. Jangan pernah `innerHTML` nilai
+   user tanpa `esc()`.
+2. **PHP 7.4-kompatibel.** Cek dengan `php -l`.
+3. **Tidak ada rahasia di repo** (API key, token, kode akses, hash). Semua rahasia hidup di `config.php` atau tabel
+   `settings` di server.
+4. Jangan ubah nama/lokasi `config.php`, `data/`, `uploads/`. Jangan hapus `app/.autodeploy`.
+5. Endpoint baru: pilih `requireUser / requireAdmin / requireSuperAdmin` secara sadar; tambahkan terjemahan EN untuk
+   pesan error baru di peta `tr()`.
+6. Tab admin baru: buat `admin-xxx.js` mengikuti pola yang ada, daftarkan `<script src="admin-xxx.js?v=1" defer>` di
+   akhir `index.html`, pakai `superOnly:true` bila khusus super admin.
+7. Setelah mengubah `index.html`, jalankan cek sintaks skrip inline — file ini besar dan mudah salah kurung.
+8. Perubahan UI: pertahankan gaya yang ada (radius besar, `var(--accent)`, pill, sheet bawah). Cek di lebar 390px dan
+   mode gelap.
+9. **Jangan pernah mengarang bukti sosial** — testimoni, rating, jumlah pembeli, notifikasi pesanan, jumlah pengunjung.
+   Aturan lengkapnya di `landing/CLAUDE.md`, dan berlaku juga di app.
+
+## Pengujian lokal
+```bash
+# 1) salinan terisolasi + DB bersih (jangan sentuh data asli)
+T=/tmp/rf-test && rm -rf $T && mkdir -p $T && cp -a app/. $T/ && cd $T
+rm -rf data && mkdir data && cp ~/resepfoto/app/data/seed-*.json data/
+cp config.example.php config.php   # lalu isi ADMIN_HASH (password_hash) & DB_FILE
+php -S 127.0.0.1:8090
+
+# 2) alur API pakai curl (cookie jar + CSRF)
+J=/tmp/cj; CSRF=$(curl -s -c $J 'http://127.0.0.1:8090/api.php?a=me' | php -r '$d=json_decode(stream_get_contents(STDIN),true);echo $d["csrf"];')
+curl -s -b $J -c $J -H "X-CSRF: $CSRF" -H 'Content-Type: application/json' -X POST 'http://127.0.0.1:8090/api.php?a=login' -d '{"username":"admin","code":"KODE"}'
+
+# 3) tes webhook + email TANPA mengirim email sungguhan
+#    tulis skrip penangkap lalu jalankan PHP dengan sendmail_path diarahkan ke situ:
+php -d sendmail_path="/path/ke/catch-mail.sh" -S 127.0.0.1:8090
+#    lalu POST payload payment.received ke webhook-mayar.php dan periksa mailbox tangkapan
+
+# 4) sintaks
+php -l app/api.php && php -l app/lib.php && php -l app/ai.php
+for f in app/admin-*.js; do node --check $f; done
+node -e "const h=require('fs').readFileSync('app/index.html','utf8');for(const b of h.match(/<script>([\s\S]*?)<\/script>/g)){const c=b.slice(8,-9);if(c.trim().length<50)continue;new Function(c)};console.log('inline OK')"
+```
+Tes Gemini butuh API key sungguhan; `RF_GEMINI_BASE` env bisa mengarahkan ke mock server.
+
+## Environment agent (Claude Code remote): yang diblokir
+`resepfoto.oziera.co.id`, `kitlab.myr.id`, `mayar.id`, `web.mayar.id`, dan `ik.imagekit.io` **tidak bisa dijangkau**
+(403 pada CONNECT / HTTP 000) — jadi agent tidak bisa membaca database live, tidak bisa menyetel Mayar, dan tidak bisa
+melihat aset ImageKit. Jangan mencoba merutekan lewat jalan lain; minta pemilik repo mengirim data sebagai lampiran
+file atau lewat Google Drive. `github.com`, `raw.githubusercontent.com`, `fonts.googleapis.com`, serta registry npm
+dan pypi bisa dijangkau.
+
+**Gambar yang ditempel langsung di chat tidak tersimpan sebagai file** — hanya lampiran file sungguhan yang mendarat
+di `/root/.claude/uploads/`.
+
+## Gotcha yang pernah terjadi
+- Browser sempat men-cache `index.html` lama → sekarang `.htaccess` memberi `no-cache` untuk `.html`/`.js`. Kalau
+  tampilan "tidak berubah", cek dulu `api.php?a=me` → `v`.
+- `raw.githubusercontent.com` bisa tertunda beberapa menit setelah push.
+- Sheet (`openSheet/closeSheet`) hanya melacak satu sheet; editor crop sengaja punya backdrop sendiri (`#crop-back`,
+  z-index 40/41) agar bisa tampil di atas sheet member.
+- `saveMember()` harus menerima semua kolom; kalau menambah kolom baru, perbarui `saveMember`, `publicMember`, migrasi
+  di `db()`, **dan** setiap pemanggil yang membangun array manual (mis. `admin_save`) — bug avatar terhapus pernah
+  terjadi karena ini.
+- Playwright di container agent: wajib `executablePath: '/opt/pw-browsers/chromium'` + `--no-sandbox`. Jangan
+  jalankan `playwright install`.
+
+## Backlog / ide
+- Notifikasi WhatsApp otomatis setelah pembayaran (saat ini salin pesan manual). Opsi: Fonnte/Wablas/Watzap
+  (nomor pribadi, murah) atau Meta Cloud API (resmi, perlu verifikasi bisnis).
+- Pindah pengiriman email dari `mail()` bawaan PHP ke SMTP (mis. Brevo) kalau ternyata masuk spam.
+- Cover login: dukung video/animasi ringan; pratinjau langsung di tab Cover.
+- Halaman panduan pembeli (PDF/HTML) yang bisa diunduh dari panel admin.
+- Ekspor/impor resep (JSON) untuk backup & migrasi.
+- Tes otomatis Playwright di CI (GitHub Actions) sebelum deploy. Repo ini **belum punya CI sama sekali**.
+
+## Checklist serah-terima ke pembeli
+1. Ganti kode akses admin utama (tab Admin → "Ganti kode akses admin utama").
+2. Hapus member contoh `demo` (tab Member).
+3. Isi API key Gemini (tab AI Gemini, key `AIza…` dari aistudio.google.com).
+4. Isi token webhook Mayar + email admin (tab Pesanan); daftarkan URL webhook di Mayar.
+5. Ganti foto & teks cover login (tab Cover).
+6. Halaman iklan: jalankan `node landing/build-promo.mjs --live` — lihat checklist di `landing/CLAUDE.md`.
+7. Pindahkan repo GitHub ke akun pembeli dan perbarui URL repo di cron hosting (lihat `CLAUDE.local.md`).
