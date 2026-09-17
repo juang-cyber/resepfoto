@@ -128,7 +128,7 @@ ad_spend`.
 Kolom penting `members`: `username, name, code_hash, code_hint, plan, expires, active, email, phone, role, avatar`.
 Kolom penting `prompts`: `id, ord, cat, title, descr, popular, tools, prompt, tips, image, created_at,
 updated_at, cat_en, title_en, descr_en, tips_en, created_by`.
-Kunci `settings`: `admin_hash, admin_avatar, admin_email, mail_from, mayar_webhook_token, auto_without_token, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass, fonnte_token, admin_wa, gemini_api_key, gemini_model, gemini_image_model, cover_title, cover_sub, cover_title_en, cover_sub_en, cover_chip, cover_img1..3`.
+Kunci `settings`: `admin_hash, admin_avatar, admin_email, mail_from, mayar_webhook_token, auto_without_token, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass, fonnte_token, admin_wa, meta_pixel_id, gemini_api_key, gemini_model, gemini_image_model, cover_title, cover_sub, cover_title_en, cover_sub_en, cover_chip, cover_img1..3`.
 
 **Email & WhatsApp.** `sendMail()` di `lib.php` memakai SMTP kalau `smtp_host` diisi, kalau tidak `mail()` dengan
 envelope sender (`-f`) supaya Return-Path sejajar dengan `From` — itu syarat SPF/DMARC lolos. Header wajib
@@ -160,7 +160,7 @@ paket **Standard** yang mendaftar sebelum itu tidak otomatis melihatnya.
 ## Endpoint `api.php?a=…` (auth)
 | Level | Endpoint |
 |---|---|
-| publik | `me` (juga mengembalikan `cover` & `v`), `login`, `logout`, `recent_orders` (pesanan asli + aktivitas keranjang asli, keduanya anonim), `lt` (tracking halaman iklan), `live` (`?page=` opsional) |
+| publik | `me` (juga mengembalikan `cover` & `v`), `login`, `logout`, `recent_orders` (pesanan asli + aktivitas keranjang asli, keduanya anonim), `lt` (tracking halaman iklan), `live` (`?page=` opsional), `pixel` (Meta Pixel ID untuk `/promo`) |
 | user | `prompts`, `track`, `avatar_save` (admin boleh isi `username` untuk member lain) |
 | admin | `prompt_save`, `prompt_delete`, `members`, `member_save` (FormData, boleh `avatar`/`clearAvatar`), `member_delete`, `cover_save`, `ai_link`, `ai_analyze`, `ai_ocr`, `prompt_tests`, `prompt_test_add/generate/update/delete` |
 | super | `admins`, `admin_save`, `admin_delete`, `admin_change_code`, `orders`, `order_action`, `settings_save`, `test_email`, `test_wa`, `ai_settings`, `ai_settings_save`, `ai_test`, `report_users`, `report_ads`, `ad_spend_save` |
@@ -170,6 +170,9 @@ Login & katalog resep (kategori, cari, favorit, populer), detail resep + salin p
 Panel admin: Resep (toolbar cari + chip kategori + tag), studio resep dengan 3 mode (link referensi / upload sendiri / **prompt dari gambar—OCR**) dan galeri tes internal; Member (foto, paket, masa aktif, kode akses); Pesanan Mayar + email akses + **WhatsApp otomatis via Fonnte** (pengaturan SMTP & Fonnte ada di tab Pesanan, lengkap dengan tombol kirim tes); AI Gemini; Pengguna & Iklan (laporan, UTM, biaya iklan, ROAS); Admin (akun admin/super admin, ganti kode akses admin utama); Cover (3 foto + teks halaman login).
 Halaman iklan `/promo` dengan pelacakan corong lengkap, penghitung pengunjung aktif, dan notifikasi aktivitas
 (pesanan + keranjang) — **semuanya dari data asli**, lihat `landing/CLAUDE.md` bagian bukti sosial.
+**Meta Pixel** opsional di `/promo`: ID-nya diisi di Admin → Iklan (kunci `meta_pixel_id`), halaman membacanya lewat
+`api.php?a=pixel`. Kolom kosong = tidak ada satu pun skrip Meta dimuat. `Purchase` sengaja tidak dikirim dari
+halaman — pembayaran terjadi di domain Mayar; itu perlu Conversions API dari `webhook-mayar.php`, belum dibuat.
 
 ## Aturan kerja
 1. **Escape semua data dinamis** di HTML dengan `esc()`; teks pakai `textContent`. Jangan pernah `innerHTML` nilai

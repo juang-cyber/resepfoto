@@ -68,6 +68,7 @@ function tr(string $msg): string {
     'Format email tidak valid.' => 'Invalid email format.',
     'Email pengirim tidak valid.' => 'Invalid sender email.',
     'Nomor WhatsApp admin tidak valid.' => 'Invalid admin WhatsApp number.',
+    'Pixel ID Meta tidak valid — isinya 15-16 angka.' => 'Invalid Meta Pixel ID — it is 15-16 digits.',
     'Isi nomor WhatsApp admin dulu.' => 'Set the admin WhatsApp number first.',
     'Isi dan simpan email admin dulu.' => 'Set and save the admin email first.',
   ];
@@ -244,7 +245,7 @@ if ($method === 'POST' && !in_array($a, ['lt'], true) && !hash_equals($_SESSION[
 try {
   switch ($a) {
     case 'me':
-      out(['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => currentUser(), 'cover' => coverConfig(), 'v' => 'admin-11']);
+      out(['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => currentUser(), 'cover' => coverConfig(), 'v' => 'admin-12']);
 
     case 'cover_save': {
       requireAdmin();
@@ -565,6 +566,12 @@ try {
       // WhatsApp (Fonnte)
       if (array_key_exists('fonnteToken', $in) && trim((string)$in['fonnteToken']) !== '') setSetting('fonnte_token', trim((string)$in['fonnteToken']));
       if (!empty($in['clearFonnte'])) setSetting('fonnte_token', '');
+      // Meta Pixel (halaman iklan)
+      if (array_key_exists('metaPixelId', $in)) {
+        $px = preg_replace('/[^0-9]/', '', str($in, 'metaPixelId', 32));
+        if ($px !== '' && (strlen($px) < 10 || strlen($px) > 20)) fail('Pixel ID Meta tidak valid — isinya 15-16 angka.');
+        setSetting('meta_pixel_id', $px);
+      }
       if (array_key_exists('adminWa', $in)) {
         $aw = str($in, 'adminWa', 20);
         if ($aw !== '' && waNumber($aw) === '') fail('Nomor WhatsApp admin tidak valid.');
@@ -820,6 +827,15 @@ try {
       out(['ok' => true]);
     }
 
+    case 'pixel': {
+      // publik: ID Meta Pixel untuk halaman iklan. Ini BUKAN rahasia — pixel ID memang
+      // terbaca di sumber halaman tiap situs yang memakainya. Disimpan di settings supaya
+      // bisa diganti dari Admin -> Iklan tanpa membangun ulang halaman. Token Conversions
+      // API (kalau nanti dipakai) TIDAK boleh ikut ke sini, itu rahasia server.
+      header('Cache-Control: public, max-age=300');
+      out(['ok' => true, 'id' => setting('meta_pixel_id')]);
+    }
+
     case 'live': {
       header('Cache-Control: public, max-age=15');
       $pdo = db();
@@ -966,7 +982,8 @@ try {
           'cpv' => $visitors > 0 && $spend > 0 ? (int)round($spend / $visitors) : null, 'conv' => $visitors > 0 ? round($orders['paid'] / $visitors * 100, 2) : null],
         'ordersByPlan' => $orders['byPlan'], 'planClicks' => $plansOut,
         'daily' => $dailyOut, 'campaigns' => $campList, 'sources' => $srcList, 'devices' => $devList, 'refs' => array_slice($refList, 0, 8),
-        'spendRows' => $spendRows, 'tracking' => (int)$pdo->query('SELECT COUNT(*) FROM lt_events')->fetchColumn() > 0]);
+        'spendRows' => $spendRows, 'metaPixelId' => setting('meta_pixel_id'),
+        'tracking' => (int)$pdo->query('SELECT COUNT(*) FROM lt_events')->fetchColumn() > 0]);
     }
 
     case 'ad_spend_save': {
