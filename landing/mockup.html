@@ -595,10 +595,10 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
         <div class="scene on" data-scene="0">
           <div class="app-h">Paling laris</div>
           <div class="rcard active" style="position:relative"><img src="img/ra3.jpg" alt=""><div>Potret Sinematik Motion Blur Kota<small><b>★</b> Jalan-jalan</small></div><span class="cp">Salin</span><span class="tap" style="right:6px;top:6px"></span></div>
+          <div class="rcard"><img src="img/ra6.jpg" alt=""><div>Potret Fisheye Sudut Atas<small><b>★</b> Profesional</small></div><span class="cp">Salin</span></div>
+          <div class="rcard"><img src="img/ra5.jpg" alt=""><div>Mini Chibi Gemas di Telapak Tangan<small><b>★</b> Entertainment</small></div><span class="cp">Salin</span></div>
+          <div class="rcard"><img src="img/ra4.jpg" alt=""><div>Potret Gaya 1985<small><b>★</b> Foto Jadul</small></div><span class="cp">Salin</span></div>
           <div class="rcard"><img src="img/ra1.jpg" alt=""><div>Foto Scrapbook Chibi 3D Gemas<small><b>★</b> Entertainment</small></div><span class="cp">Salin</span></div>
-          <div class="rcard"><img src="img/p15.jpg" alt=""><div>Foto Profil LinkedIn<small><b>★</b> Profesional</small></div><span class="cp">Salin</span></div>
-          <div class="rcard"><img src="img/p20.jpg" alt=""><div>Peluk Diri Versi Kecil<small><b>★</b> Tren Viral</small></div><span class="cp">Salin</span></div>
-          <div class="rcard"><img src="img/p01.jpg" alt=""><div>Studio Foto Era 90-an<small><b>★</b> Foto Jadul</small></div><span class="cp">Salin</span></div>
           <span class="copied"><svg class="ico" style="width:13px;height:13px"><use href="#i-check"/></svg>Resep tersalin</span>
         </div>
         <div class="scene" data-scene="1">
@@ -712,7 +712,7 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
         <div class="roadmap">
           <div class="rt"><span>Koleksi terus bertambah</span><span>Target 1000+ resep</span></div>
           <div class="track2"><i id="road"></i></div>
-          <div class="miles"><span>Sekarang 95</span><span>100</span><span>500</span><span>1000+</span></div>
+          <div class="miles"><span>Sekarang 100</span><span>100</span><span>500</span><span>1000+</span></div>
         </div>
         <button class="btn btn-main btn-block" data-buy="premium">Ambil Premium</button>
       </article>
@@ -868,33 +868,28 @@ function toast(msg){ const t = $("#toast"); t.textContent = msg; t.classList.add
 
 /* ---- data (ganti gambar before/after dengan hasil asli) ---- */
 const EXAMPLES = [
-  {label: "Headshot", title: "Headshot Profesional", sub: "Foto duduk biasa → potret latar gelap", before: "img/rb2.jpg", after: "img/ra2.jpg"},
-  {label: "Versi Mini", title: "Versi Mini Diri Sendiri", sub: "Selfie di kamar → figur mini di telapak tangan", before: "img/rb5.jpg", after: "img/ra5.jpg"},
-  {label: "Retro 80-an", title: "Kamar Retro 80-an", sub: "Selfie di meja kerja → potret film jadul", before: "img/rb4.jpg", after: "img/ra4.jpg"},
-  {label: "Streetwear", title: "Streetwear Latar Merah", sub: "Foto di gunung → potret studio fisheye", before: "img/rb6.jpg", after: "img/ra6.jpg"},
   {label: "Motion Blur", title: "Potret Sinematik Motion Blur Kota", sub: "Foto studio biasa → jalanan kota sinematik", before: "img/rb3.jpg", after: "img/ra3.jpg"},
+  {label: "Fisheye", title: "Potret Fisheye Sudut Atas", sub: "Foto di gunung → potret studio fisheye", before: "img/rb6.jpg", after: "img/ra6.jpg"},
+  {label: "Mini Chibi", title: "Mini Chibi Gemas di Telapak Tangan", sub: "Selfie di kamar → figur mini di telapak tangan", before: "img/rb5.jpg", after: "img/ra5.jpg"},
+  {label: "Gaya 1985", title: "Potret Gaya 1985", sub: "Selfie di meja kerja → potret film jadul", before: "img/rb4.jpg", after: "img/ra4.jpg"},
   {label: "Scrapbook", title: "Foto Scrapbook Chibi 3D Gemas", sub: "Foto berdiri → satu lembar scrapbook chibi", before: "img/rb1.jpg", after: "img/ra1.jpg"}
 ];
 const RECIPES = [
-  // dua teratas terbaca dari panel "Paling laris" di app, fotonya dari hasil asli
-  ["n01","Jalan-jalan","Potret Sinematik Motion Blur Kota","img/ra3.jpg"],
-  ["n02","Entertainment","Foto Scrapbook Chibi 3D Gemas","img/ra1.jpg"],
-  ["p01","Foto Jadul","Studio Foto Era 90-an"],["p02","Foto Jadul","Hitam-Putih Klasik 1950-an"],["p03","Foto Jadul","Polaroid Hangat 70-an"],["p04","Foto Jadul","Restorasi Foto Lama"],
-  ["p05","Jalan-jalan","Kimono di Jalanan Kyoto"],["p06","Jalan-jalan","Balon Udara Cappadocia"],["p07","Jalan-jalan","Petualang Tebing Pantai"],["p08","Jalan-jalan","Siap Terbang di Bandara"],
-  ["p09","Keluarga","Keluarga Besar Senja"],["p10","Keluarga","Liburan Keluarga di Pantai"],["p11","Keluarga","Seru Bareng Ayah"],
-  ["p12","Momen Spesial","Wisuda Lempar Toga"],["p13","Momen Spesial","Prewedding Tepi Pantai"],["p14","Momen Spesial","Anniversary Tangan Hati"],
-  ["p15","Profesional","Foto Profil LinkedIn"],["p16","Profesional","Potret Pebisnis Modern"],
-  ["p17","Tren Viral","Potret Neon Sinematik"],["p18","Tren Viral","Sampul Majalah Fashion"],["p19","Tren Viral","Hujan Sinematik"],["p20","Tren Viral","Peluk Diri Versi Kecil"]
-].map(([id, cat, title, img]) => ({id, cat, title, img: img || `img/${id}.jpg`}));
+  ["rtlhqfm5b68","Jalan-jalan","Potret Sinematik Motion Blur Kota","img/ra3.jpg"],
+  ["rtlhx4154b6","Profesional","Potret Fisheye Sudut Atas","img/ra6.jpg"],
+  ["rtlhwnq0386","Entertainment","Mini Chibi Gemas di Telapak Tangan","img/ra5.jpg"],
+  ["p21","Foto Jadul","Potret Gaya 1985","img/ra4.jpg"],
+  ["rtlhwlo6ac4","Entertainment","Foto Scrapbook Chibi 3D Gemas","img/ra1.jpg"],
+  ["p16","Profesional","Potret Pebisnis Modern","img/p16.jpg"],
+  ["p17","Tren Viral","Potret Neon Sinematik","img/p17.jpg"]
+].map(([id, cat, title, img]) => ({id, cat, title, img}));
 const AUDIENCE = [
-  {k: "Mahasiswa", rec: "p12", text: "Foto wisuda estetik tanpa antre studio."},
-  {k: "Pencari kerja", rec: "p15", text: "Headshot rapi untuk CV dan LinkedIn."},
-  {k: "Ibu rumah tangga", rec: "p09", text: "Foto keluarga hangat untuk dipajang."},
-  {k: "Pasangan", rec: "p13", text: "Prewedding impian, tanpa biaya jutaan."},
-  {k: "Pecinta nostalgia", rec: "p04", text: "Foto lama orang tua jernih & berwarna lagi."},
-  {k: "Content creator", rec: "p18", text: "Feed ala sampul majalah, tiap hari beda gaya."},
+  {k: "Content creator", rec: "rtlhwlo6ac4", text: "Feed penuh gaya, tiap hari beda."},
+  {k: "Suka jalan-jalan", rec: "rtlhqfm5b68", text: "Suasana kota sinematik tanpa ke mana-mana."},
+  {k: "Pecinta nostalgia", rec: "p21", text: "Balik ke nuansa foto era 80-an."},
   {k: "Pebisnis", rec: "p16", text: "Foto profil founder untuk website & proposal."},
-  {k: "Suka jalan-jalan", rec: "p05", text: "Liburan ke Kyoto dari ruang tamu."}
+  {k: "Anak muda", rec: "rtlhwnq0386", text: "Versi mini dirimu yang gemas buat dibagikan."},
+  {k: "Suka gaya bebas", rec: "rtlhx4154b6", text: "Potret sudut atas yang bikin nengok dua kali."}
 ];
 
 /* ---- topbar shadow + sticky buy bar ---- */
@@ -949,7 +944,7 @@ EXAMPLES.forEach(e => { new Image().src = e.before; new Image().src = e.after; }
 showExample(0); autoplay();
 
 /* ---- marquee ---- */
-const words = ["Motion blur kota","Scrapbook chibi 3D","Studio 90-an","Wisuda","Kyoto","Restorasi foto lama","LinkedIn","Prewedding","Sampul majalah","Polaroid 70-an","Cappadocia","Foto keluarga","Neon sinematik"];
+const words = ["Potret Pebisnis Modern", "Potret Neon Sinematik", "OOTD Bersama Mini Me", "Gaya Santai Jalanan Tokyo", "Potret Gaya 1985", "Potret Studio Ivory", "Doodle Sketsa Lucu", "Layar MacBook Berdua", "Depan Kulkas Minimarket", "Film Strip Estetik Berdua", "Foto Unik Mini Me Chibi", "Dunia Kartun Tiny Planet"];
 $("#marquee").innerHTML = [0,1].map(() => `<span>${words.map(w => `<span>${w}</span>`).join("")}</span>`).join("");
 
 /* ---- problems ---- */
@@ -982,7 +977,7 @@ new IntersectionObserver(([e]) => {
 
 /* ---- gallery ---- */
 // resep bertanda "paling laris" (popular) di app — urut sesuai yang paling sering dipakai
-const BEST = ["n01", "n02", "p15", "p20", "p01", "p04", "p05"];
+const BEST = ["rtlhqfm5b68", "rtlhx4154b6", "rtlhwnq0386", "p21", "rtlhwlo6ac4"];
 function renderShots(){
   const list = BEST.map(id => RECIPES.find(r => r.id === id)).filter(Boolean);
   $("#shots").innerHTML = list.map(r => `<a class="shot" href="#harga" data-rec="${r.id}"><div class="ph"><img loading="lazy" src="${r.img}" alt="Contoh hasil ${r.title}"><span class="badge">★ Paling laris</span></div><div class="meta"><strong>${r.title}</strong><span>${r.cat} · ada di paket →</span></div></a>`).join("");
@@ -1051,7 +1046,7 @@ function countPrice(el){
   const tick = now => { const t = Math.min(1, (now - start) / 600); n.textContent = Math.round(to * (1 - Math.pow(1 - t, 3)) / 1000 * 1000).toLocaleString("id-ID"); if (t < 1) requestAnimationFrame(tick); };
   requestAnimationFrame(tick);
 }
-function animateRoad(){ const r = $("#road"); r.style.width = "0"; requestAnimationFrame(() => requestAnimationFrame(() => r.style.width = "9.5%")); }
+function animateRoad(){ const r = $("#road"); r.style.width = "0"; requestAnimationFrame(() => requestAnimationFrame(() => r.style.width = "10%")); }
 $("#switch").addEventListener("click", e => { const b = e.target.closest("[data-plan]"); if (b) setPlan(b.dataset.plan, true); });
 document.addEventListener("click", e => { const g = e.target.closest("[data-goplan]"); if (g){ setPlan(g.dataset.goplan, true); $("#harga").scrollIntoView({behavior: reduce ? "auto" : "smooth"}); } });
 new IntersectionObserver(([e]) => { if (e.isIntersecting && plan === "premium") animateRoad(); }, {threshold: .4}).observe($("#plan-premium"));
