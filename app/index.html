@@ -225,7 +225,18 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 .fav-dot.on{background:#fff;color:#E5484D}
 .fav-dot.on .ico{fill:currentColor}
 .tag-new{position:absolute;top:14px;left:14px;z-index:2;background:var(--warm);color:var(--warm-ink);font-size:11px;font-weight:800;padding:4px 9px;border-radius:99px;letter-spacing:.02em}
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.grid{display:grid;grid-template-columns:repeat(var(--cols,2),minmax(0,1fr));gap:12px}
+.zoom{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+.zoom input{width:82px;accent-color:var(--accent)}
+.card.locked .ph img,.pop-card.locked img{filter:saturate(.35) brightness(.86)}
+.card .lock,.pop-card .lock{position:absolute;top:8px;right:8px;z-index:2;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:rgba(6,12,28,.62);color:#fff;backdrop-filter:blur(4px)}
+.card .lock svg,.pop-card .lock svg{width:14px;height:14px}
+.card .lockmsg{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:6px 8px;font-size:10.5px;font-weight:700;line-height:1.25;color:#fff;background:linear-gradient(180deg,rgba(6,12,28,0),rgba(6,12,28,.88))}
+.lockbox{border:1px solid var(--line);border-radius:var(--r-card);padding:18px;background:var(--surface-2);text-align:center}
+.lockbox .ic{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;margin:0 auto 10px;background:var(--accent-soft);color:var(--accent)}
+.lockbox .ic svg{width:21px;height:21px}
+.lockbox h3{font-size:17px;margin-bottom:6px}
+.lockbox p{color:var(--muted);font-size:13.5px;line-height:1.5}
 .card{position:relative;text-align:left;border-radius:var(--r-card);overflow:hidden;background:var(--surface-2);display:flex;flex-direction:column;color:var(--ink)}
 .card .ph{position:relative;aspect-ratio:4/5;max-width:100%;overflow:hidden}
 .card .ph img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s}
@@ -465,6 +476,7 @@ input[type=checkbox]:disabled + *{opacity:.6}
   <symbol id="i-ext" viewBox="0 0 24 24"><path d="M13.5 5H19v5.5M19 5l-8 8M17 14v4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h4"/></symbol>
   <symbol id="i-moon" viewBox="0 0 24 24"><path d="M19 14.5A7.5 7.5 0 0 1 9.5 5a7.5 7.5 0 1 0 9.5 9.5z"/></symbol>
   <symbol id="i-image" viewBox="0 0 24 24"><rect x="4" y="4.5" width="16" height="15" rx="3"/><circle cx="9.5" cy="10" r="1.8"/><path d="M5 17l4.5-4 3.5 3 2.5-2 3.5 3"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></symbol>
   <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="3.5"/><path d="M10.5 12.5L19 4M16 7l2.5 2.5M14 9l2 2"/></symbol>
   <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1.2 1.2M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2"/></symbol>
   <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/></symbol>
@@ -525,7 +537,19 @@ input[type=checkbox]:disabled + *{opacity:.6}
         <div class="section-head"><h2 class="h-md" data-i18n="home.popular">Paling laris</h2><button class="link" id="see-all" data-i18n="home.seeAll">Lihat semua</button></div>
         <div class="carousel" id="carousel"></div>
       </div>
-      <div class="section-head" style="margin-top:8px"><h2 class="h-md" id="grid-title"></h2><span class="muted" style="font-size:13px" id="grid-count"></span></div>
+      <div id="viral-wrap" hidden>
+        <div class="section-head"><h2 class="h-md" data-i18n="home.viral">Tren viral</h2><span class="muted" style="font-size:13px" id="viral-count"></span></div>
+        <div class="carousel" id="viral-carousel"></div>
+      </div>
+      <div class="section-head" style="margin-top:8px">
+        <h2 class="h-md" id="grid-title"></h2>
+        <div class="row" style="gap:12px;align-items:center">
+          <span class="muted" style="font-size:13px" id="grid-count"></span>
+          <label class="zoom"><span data-i18n="home.zoomBig">Besar</span>
+            <input type="range" id="grid-zoom" min="1" max="5" step="1" value="2" data-i18n-aria="home.zoom" aria-label="Ukuran thumbnail">
+            <span data-i18n="home.zoomSmall">Kecil</span></label>
+        </div>
+      </div>
       <div class="grid" id="grid"></div>
     </section>
 
@@ -544,7 +568,12 @@ input[type=checkbox]:disabled + *{opacity:.6}
           <p style="margin:0;color:var(--ink-2)" id="d-desc"></p>
           <div class="row" style="margin-top:12px;flex-wrap:wrap;gap:6px" id="d-tools"></div>
         </div>
-        <div>
+        <div class="lockbox" id="d-lock" hidden>
+          <span class="ic"><svg class="ico"><use href="#i-lock"/></svg></span>
+          <h3 data-i18n="detail.lockT">Resep ini terkunci</h3>
+          <p data-i18n="detail.lockP">Silakan berlangganan Premium untuk membuka semua resep.</p>
+        </div>
+        <div id="d-steps">
           <h3 class="h-md" style="margin-bottom:12px" data-i18n="detail.how">Cara pakai</h3>
           <ol class="steps">
             <li data-i18n="detail.s1">Buka Gemini atau ChatGPT, lalu upload foto kamu.</li>
@@ -552,7 +581,7 @@ input[type=checkbox]:disabled + *{opacity:.6}
             <li data-i18n="detail.s3">Kirim. Kalau belum pas, minta “buat ulang” atau ubah detail kecil di prompt.</li>
           </ol>
         </div>
-        <div>
+        <div id="d-promptwrap">
           <div class="prompt-box">
             <header><span class="eyebrow">Prompt</span><button class="copy-mini" id="d-copy-mini"><svg class="ico" style="width:15px;height:15px"><use href="#i-copy"/></svg><span data-i18n="detail.copy">Salin</span></button></header>
             <pre id="d-prompt"></pre>
@@ -560,7 +589,7 @@ input[type=checkbox]:disabled + *{opacity:.6}
           <p class="disclaimer" data-i18n="detail.note">Hasil dapat berbeda sesuai model, prompt, dan pengaturan.</p>
         </div>
         <div class="tip" id="d-tip-wrap"><svg class="ico"><use href="#i-bulb"/></svg><p id="d-tip"></p></div>
-        <div class="open-row">
+        <div class="open-row" id="d-openrow">
           <a href="https://gemini.google.com/app" data-app="gemini" target="_blank" rel="noopener"><span data-i18n="detail.openGemini">Buka Gemini</span> <svg class="ico" style="width:15px;height:15px"><use href="#i-ext"/></svg></a>
           <a href="https://chatgpt.com/" data-app="gpt" target="_blank" rel="noopener"><span data-i18n="detail.openGpt">Buka ChatGPT</span> <svg class="ico" style="width:15px;height:15px"><use href="#i-ext"/></svg></a>
         </div>
@@ -821,7 +850,7 @@ input[type=checkbox]:disabled + *{opacity:.6}
       <button type="button" class="btn btn-ghost btn-sm" id="mf-gen" style="justify-self:start"><svg class="ico" style="width:16px;height:16px"><use href="#i-key"/></svg><span id="mf-gen-label"></span></button>
       <small class="muted" id="mf-code-note" data-i18n="mf.codeNote">Kode hanya ditampilkan sekali setelah disimpan. Simpan atau kirim langsung ke pembeli.</small>
       <div class="two">
-        <div class="field"><label for="mf-plan" data-i18n="acc.plan">Paket</label><select class="input" id="mf-plan"><option value="Premium">Premium</option><option value="Standard">Standard</option><option value="Bulanan" data-i18n="plan.Bulanan">Bulanan</option><option value="Tahunan" data-i18n="plan.Tahunan">Tahunan</option><option value="Lifetime">Lifetime</option></select></div>
+        <div class="field"><label for="mf-plan" data-i18n="acc.plan">Paket</label><select class="input" id="mf-plan"><option value="Premium">Premium</option><option value="Standard">Standard</option><option value="Trial">Trial</option><option value="Bulanan" data-i18n="plan.Bulanan">Bulanan</option><option value="Tahunan" data-i18n="plan.Tahunan">Tahunan</option><option value="Lifetime">Lifetime</option></select></div>
         <div class="field"><label for="mf-exp" data-i18n="acc.until">Berlaku sampai</label><input class="input" id="mf-exp" type="date"></div>
       </div>
       <label class="check" style="justify-self:start"><input type="checkbox" id="mf-active" checked><span data-i18n="mf.active">Akses aktif</span></label>
@@ -900,6 +929,9 @@ const I18N = {
     "home.title":"Mau foto seperti apa hari ini?", "home.search":"Cari resep: jadul, wisuda, LinkedIn…",
     "home.filter":"Filter alat AI", "home.allTools":"Semua alat", "home.cats":"Kategori", "home.all":"Semua",
     "home.popular":"Paling laris", "home.seeAll":"Lihat semua", "home.best":"Terlaris",
+    "home.viral":"Tren viral", "home.zoom":"Ukuran thumbnail", "home.zoomBig":"Besar", "home.zoomSmall":"Kecil",
+    "card.locked":"Langganan Premium", "detail.lockT":"Resep ini terkunci",
+    "detail.lockP":"Silakan berlangganan Premium untuk membuka semua resep.",
     "home.allRecipes":"Semua resep", "home.results":"Hasil pencarian", "home.count":"{n} resep",
     "home.emptyT":"Resep belum ketemu", "home.emptyP":"Coba kata lain, misalnya “jadul”, “wisuda”, atau “LinkedIn”.",
     "card.alt":"Contoh hasil: {t}", "fav.add":"Simpan ke favorit", "fav.remove":"Hapus dari favorit",
@@ -923,7 +955,7 @@ const I18N = {
     "faq.4q":"Lupa kode akses?", "faq.4a":"Cek lagi email pembelian (termasuk folder Spam), atau hubungi admin lewat WhatsApp.",
     "acc.title":"Profil kamu", "acc.plan":"Paket", "acc.until":"Berlaku sampai", "acc.count":"Resep tersedia",
     "acc.theme":"Tampilan", "acc.light":"Terang", "acc.dark":"Gelap", "acc.admin":"Buka panel admin", "acc.logout":"Keluar",
-    "date.forever":"Selamanya", "plan.Bulanan":"Bulanan", "plan.Tahunan":"Tahunan",
+    "date.forever":"Selamanya", "plan.Bulanan":"Bulanan", "plan.Tahunan":"Tahunan", "plan.Trial":"Trial",
     "err.net":"Tidak bisa terhubung ke server. Periksa internet lalu coba lagi.", "err.generic":"Terjadi kesalahan.",
     "session.ended":"Sesi berakhir. Silakan masuk lagi.",
     "common.close":"Tutup", "common.cancel":"Batal", "common.done":"Selesai", "common.optional":"opsional", "common.edit":"Ubah {t}", "common.del":"Hapus {t}", "common.confirm":"Hapus?",
@@ -965,6 +997,9 @@ const I18N = {
     "home.title":"What kind of photo today?", "home.search":"Search recipes: retro, graduation, LinkedIn…",
     "home.filter":"Filter by AI tool", "home.allTools":"All tools", "home.cats":"Categories", "home.all":"All",
     "home.popular":"Best sellers", "home.seeAll":"See all", "home.best":"Top pick",
+    "home.viral":"Viral trends", "home.zoom":"Thumbnail size", "home.zoomBig":"Large", "home.zoomSmall":"Small",
+    "card.locked":"Go Premium", "detail.lockT":"This recipe is locked",
+    "detail.lockP":"Subscribe to Premium to unlock every recipe.",
     "home.allRecipes":"All recipes", "home.results":"Search results", "home.count":"{n} recipes",
     "home.emptyT":"No recipes found", "home.emptyP":"Try another word, like “retro”, “graduation” or “LinkedIn”.",
     "card.alt":"Sample result: {t}", "fav.add":"Save to favorites", "fav.remove":"Remove from favorites",
@@ -988,7 +1023,7 @@ const I18N = {
     "faq.4q":"Forgot your access code?", "faq.4a":"Check your purchase email again (including Spam), or contact the admin on WhatsApp.",
     "acc.title":"Your profile", "acc.plan":"Plan", "acc.until":"Valid until", "acc.count":"Recipes available",
     "acc.theme":"Appearance", "acc.light":"Light", "acc.dark":"Dark", "acc.admin":"Open admin panel", "acc.logout":"Sign out",
-    "date.forever":"Forever", "plan.Bulanan":"Monthly", "plan.Tahunan":"Yearly",
+    "date.forever":"Forever", "plan.Bulanan":"Monthly", "plan.Tahunan":"Yearly", "plan.Trial":"Trial",
     "err.net":"Can't reach the server. Check your connection and try again.", "err.generic":"Something went wrong.",
     "session.ended":"Your session has ended. Please sign in again.",
     "common.close":"Close", "common.cancel":"Cancel", "common.done":"Done", "common.optional":"optional", "common.edit":"Edit {t}", "common.del":"Delete {t}", "common.confirm":"Delete?",
@@ -1153,9 +1188,24 @@ function favBtn(p, cls){
   const on = state.favs.has(p.id);
   return `<span role="button" tabindex="0" class="${cls} ${on ? "on" : ""}" data-fav="${esc(p.id)}" aria-label="${t(on ? "fav.remove" : "fav.add")}" aria-pressed="${on}">${icon("heart")}</span>`;
 }
+const VIRAL_CAT = "Tren Viral";
+function popCardHTML(p, tag){
+  // di kartu besar tidak ada pita ajakan: bagian bawahnya sudah dipakai .meta
+  const lock = p.locked ? `<span class="lock">${icon("lock")}</span>` : favBtn(p, "fav-dot");
+  return `<button class="pop-card${p.locked ? " locked" : ""}" data-open="${esc(p.id)}">
+      <img src="${imgSrc(p)}" alt="${esc(t("card.alt", {t: loc(p, "title")}))}">
+      ${tag ? `<span class="tag-new">${esc(tag)}</span>` : ""}
+      ${lock}
+      <div class="meta"><strong>${esc(loc(p, "title"))}</strong><span>${esc(catName(p.cat))} · ${(p.tools||[]).map(esc).join(" & ")}</span></div>
+    </button>`;
+}
 function cardHTML(p){
-  return `<button class="card" data-open="${esc(p.id)}">
-    <div class="ph"><img loading="lazy" src="${imgSrc(p)}" alt="${esc(t("card.alt", {t: loc(p, "title")}))}">${favBtn(p, "fav-dot")}</div>
+  // Resep terkunci tetap memperlihatkan thumbnail dan judulnya — yang ditahan cuma isinya.
+  const lock = p.locked
+    ? `<span class="lock">${icon("lock")}</span><span class="lockmsg">${esc(t("card.locked"))}</span>`
+    : favBtn(p, "fav-dot");
+  return `<button class="card${p.locked ? " locked" : ""}" data-open="${esc(p.id)}">
+    <div class="ph"><img loading="lazy" src="${imgSrc(p)}" alt="${esc(t("card.alt", {t: loc(p, "title")}))}">${lock}</div>
     <div class="body"><strong>${esc(loc(p, "title"))}</strong><span>${esc(catName(p.cat))}</span></div></button>`;
 }
 function filtered(){
@@ -1171,15 +1221,16 @@ function renderHome(){
   $("#chips").innerHTML = `<button class="chip text-only" data-cat="" aria-pressed="${!state.cat}">${esc(t("home.all"))}</button>` +
     cats().map(c => { const first = all.find(p => p.cat === c);
       return `<button class="chip" data-cat="${esc(c)}" aria-pressed="${state.cat === c}"><img src="${imgSrc(first)}" alt="">${esc(catName(c))}</button>`; }).join("");
+  const bare = !state.q && !state.cat && !state.tool;
   const pops = all.filter(p => p.popular);
-  $("#pop-wrap").hidden = !(!state.q && !state.cat && !state.tool && pops.length);
-  $("#carousel").innerHTML = pops.map((p, i) => `
-    <button class="pop-card" data-open="${esc(p.id)}">
-      <img src="${imgSrc(p)}" alt="${esc(t("card.alt", {t: loc(p, "title")}))}">
-      ${i === 0 ? `<span class="tag-new">${esc(t("home.best"))}</span>` : ""}
-      ${favBtn(p, "fav-dot")}
-      <div class="meta"><strong>${esc(loc(p, "title"))}</strong><span>${esc(catName(p.cat))} · ${(p.tools||[]).map(esc).join(" & ")}</span></div>
-    </button>`).join("");
+  $("#pop-wrap").hidden = !(bare && pops.length);
+  $("#carousel").innerHTML = pops.map((p, i) => popCardHTML(p, i === 0 ? t("home.best") : "")).join("");
+  // Tren viral tepat di bawah best seller. Sengaja memuat yang popular juga —
+  // ini etalase kategori, bukan daftar sisa.
+  const viral = all.filter(p => p.cat === VIRAL_CAT);
+  $("#viral-wrap").hidden = !(bare && viral.length);
+  $("#viral-count").textContent = t("home.count", {n: viral.length});
+  $("#viral-carousel").innerHTML = viral.map(p => popCardHTML(p, "")).join("");
   const list = filtered();
   $("#grid-title").textContent = state.cat ? catName(state.cat) : t(state.q ? "home.results" : "home.allRecipes");
   $("#grid-count").textContent = t("home.count", {n: list.length});
@@ -1199,8 +1250,11 @@ function renderDetail(){
   $("#d-cat").textContent = catName(p.cat); $("#d-title").textContent = loc(p, "title");
   $("#d-desc").textContent = loc(p, "desc");
   $("#d-prompt").textContent = p.prompt;
+  const lk = !!p.locked;
+  $("#d-lock").hidden = !lk;
+  ["#d-steps", "#d-promptwrap", "#d-openrow"].forEach(sel => { $(sel).hidden = lk; });
   const tip = loc(p, "tips");
-  $("#d-tip-wrap").hidden = !tip; $("#d-tip").textContent = tip;
+  $("#d-tip-wrap").hidden = lk || !tip; $("#d-tip").textContent = tip;
   const on0 = state.favs.has(p.id); $("#d-fav").setAttribute("aria-label", t(on0 ? "fav.remove" : "fav.add"));
   $("#d-tools").innerHTML = `<span class="pill">${esc(catName(p.cat))}</span>` + (p.tools||[]).map(t => `<span class="pill accent">${icon("check","width:13px;height:13px")}${esc(t)}</span>`).join("");
   const on = state.favs.has(p.id);
@@ -1393,6 +1447,19 @@ $("#filter-btn").addEventListener("click", e => {
   if (!on){ state.tool = ""; $$("[data-tool]").forEach(b => b.setAttribute("aria-pressed", b.dataset.tool === "")); renderHome(); }
 });
 $("#see-all").addEventListener("click", () => $("#grid-title").scrollIntoView({behavior: reduce ? "auto" : "smooth", block:"start"}));
+
+/* ukuran thumbnail: 1 kolom = paling besar, 5 kolom = paling kecil. Pilihannya diingat per browser. */
+(() => {
+  const el = $("#grid-zoom"); if (!el) return;
+  const set = n => {
+    n = Math.min(5, Math.max(1, parseInt(n, 10) || 2));
+    el.value = n;
+    document.documentElement.style.setProperty("--cols", n);
+    store.set("rf_cols", n);
+  };
+  set(store.get("rf_cols", 2));
+  el.addEventListener("input", () => set(el.value));
+})();
 $("#d-back").addEventListener("click", () => go(state.backTo || "home", "lift", -1));
 $("#d-fav").addEventListener("click", () => toggleFav(state.detailId));
 

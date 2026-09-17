@@ -106,13 +106,23 @@ function coverConfig(): array {
     'img' => [setting('cover_img1'), setting('cover_img2'), setting('cover_img3')],
   ];
 }
-function rowToPrompt(array $r, bool $forAdmin = false): array {
-  return ['id' => $r['id'], 'order' => (int)$r['ord'], 'cat' => $r['cat'], 'title' => $r['title'], 'desc' => $r['descr'],
+function rowToPrompt(array $r, bool $forAdmin = false, bool $locked = false): array {
+  $p = ['id' => $r['id'], 'order' => (int)$r['ord'], 'cat' => $r['cat'], 'title' => $r['title'], 'desc' => $r['descr'],
     'popular' => (bool)$r['popular'], 'tools' => json_decode($r['tools'] ?: '[]', true), 'prompt' => $r['prompt'],
     'tips' => $r['tips'], 'image' => $r['image'], 'createdAt' => $r['created_at'] ?? '',
     'catEn' => (string)($r['cat_en'] ?? ''), 'titleEn' => (string)($r['title_en'] ?? ''),
-    'descEn' => (string)($r['descr_en'] ?? ''), 'tipsEn' => (string)($r['tips_en'] ?? '')]
-    + ($forAdmin ? ['createdBy' => (string)($r['created_by'] ?? '')] : []);
+    'descEn' => (string)($r['descr_en'] ?? ''), 'tipsEn' => (string)($r['tips_en'] ?? ''),
+    'enOnly' => (bool)($r['en_only'] ?? 0), 'locked' => $locked];
+  // Resep terkunci tetap tampil (judul + thumbnail), tapi isinya TIDAK pernah dikirim ke klien.
+  // Kalau hanya disembunyikan di CSS, siapa pun bisa membacanya lewat devtools.
+  if ($locked) { $p['prompt'] = ''; $p['tips'] = ''; $p['tipsEn'] = ''; }
+  if ($forAdmin) {
+    $p['createdBy'] = (string)($r['created_by'] ?? '');
+    $p['qc'] = (string)($r['qc_status'] ?? '');
+    $p['result'] = (string)($r['result_status'] ?? '');
+    $p['updatedAt'] = (string)($r['updated_at'] ?? '');
+  }
+  return $p;
 }
 function input(): array {
   if (!empty($_POST)) return $_POST;
@@ -245,7 +255,7 @@ if ($method === 'POST' && !in_array($a, ['lt'], true) && !hash_equals($_SESSION[
 try {
   switch ($a) {
     case 'me':
-      out(['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => currentUser(), 'cover' => coverConfig(), 'v' => 'admin-12']);
+      out(['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => currentUser(), 'cover' => coverConfig(), 'v' => 'admin-13']);
 
     case 'cover_save': {
       requireAdmin();
@@ -298,16 +308,15 @@ try {
 
     case 'prompts': {
       $u = requireUser();
-      if ($u['role'] === 'member' && $u['plan'] === 'Standard') {
-        // Standard: hanya resep yang sudah ada saat member dibuat
-        $st = db()->prepare('SELECT * FROM prompts WHERE COALESCE(created_at, updated_at) <= ? ORDER BY ord, id');
-        $st->execute([$u['createdAt']]);
-        $rows = $st->fetchAll();
-      } else {
-        $rows = db()->query('SELECT * FROM prompts ORDER BY ord, id')->fetchAll();
-      }
+      // Semua resep selalu dikirim supaya yang terkunci tetap tampil sebagai thumbnail bertanda gembok.
+      // Yang membedakan paket adalah isi resepnya, bukan ada/tidaknya kartu di katalog.
+      $rows = db()->query('SELECT * FROM prompts ORDER BY ord, id')->fetchAll();
       $isAdmin = $u['role'] === 'admin';
-      $res = ['ok' => true, 'prompts' => array_map(function (array $r) use ($isAdmin) { return rowToPrompt($r, $isAdmin); }, $rows)];
+      $allow = $isAdmin ? null : allowedPromptIds($rows, (string)$u['plan'], (string)$u['username']);
+      $res = ['ok' => true, 'prompts' => array_map(function (array $r) use ($isAdmin, $allow) {
+        return rowToPrompt($r, $isAdmin, $allow !== null && !isset($allow[$r['id']]));
+      }, $rows)];
+      $res['quota'] = $isAdmin ? null : planQuota((string)$u['plan']);
       if ($isAdmin) $res['authors'] = promptAuthors(db());
       out($res);
     }
@@ -340,26 +349,77 @@ try {
         $id = 'r' . base_convert((string)time(), 10, 36) . bin2hex(random_bytes(2));
         $ord = (int)$pdo->query('SELECT COALESCE(MAX(ord),0)+1 FROM prompts')->fetchColumn();
       } else $ord = (int)$old['ord'];
-      $pdo->prepare('INSERT OR REPLACE INTO prompts (id, ord, cat, title, descr, popular, tools, prompt, tips, image, updated_at, created_at, cat_en, title_en, descr_en, tips_en, created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')->execute([
-        $id, $ord, $cat, $title, str($in, 'desc', 160), !empty($in['popular']) && $in['popular'] !== '0' ? 1 : 0,
+      $flag = function ($k) use ($in) { return !empty($in[$k]) && $in[$k] !== '0' ? 1 : 0; };
+      $pick = function ($k, array $ok) use ($in) { $v = str($in, $k, 20); return in_array($v, $ok, true) ? $v : ''; };
+      $qc = $pick('qc', ['lolos', 'review', 'gagal']);
+      $result = $pick('result', ['cocok', 'kurang']);
+      $pdo->prepare('INSERT OR REPLACE INTO prompts (id, ord, cat, title, descr, popular, tools, prompt, tips, image, updated_at, created_at, cat_en, title_en, descr_en, tips_en, created_by, qc_status, result_status, en_only) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')->execute([
+        $id, $ord, $cat, $title, str($in, 'desc', 160), $flag('popular'),
         json_encode($tools), $prompt, str($in, 'tips', 400), $image, gmdate('c'), $old['created_at'] ?? gmdate('c'),
         str($in, 'cat_en', 40), str($in, 'title_en', 80), str($in, 'desc_en', 160), str($in, 'tips_en', 400),
-        $old ? (string)($old['created_by'] ?? '') : (string)$me['username']]);
+        $old ? (string)($old['created_by'] ?? '') : (string)$me['username'], $qc, $result, $flag('en_only')]);
       $st = $pdo->prepare('SELECT * FROM prompts WHERE id = ?'); $st->execute([$id]);
       out(['ok' => true, 'prompt' => rowToPrompt($st->fetch(), true)]);
     }
 
     case 'prompt_delete': {
+      $me = requireAdmin();
+      $id = str(input(), 'id', 40); $pdo = db();
+      $st = $pdo->prepare('SELECT * FROM prompts WHERE id = ?'); $st->execute([$id]);
+      $row = $st->fetch();
+      if (!$row) fail('Resep tidak ditemukan.', 404);
+      // Pindah ke tempat sampah, bukan dihapus. Gambar dan galeri tesnya sengaja
+      // dibiarkan utuh supaya pemulihan mengembalikan resep persis seperti semula.
+      $pdo->prepare('INSERT OR REPLACE INTO prompts_trash (id, data, deleted_at, deleted_by) VALUES (?,?,?,?)')
+        ->execute([$id, json_encode($row, JSON_UNESCAPED_UNICODE), gmdate('c'), (string)$me['username']]);
+      $pdo->prepare('DELETE FROM prompts WHERE id = ?')->execute([$id]);
+      out(['ok' => true, 'trashed' => true]);
+    }
+
+    case 'trash': {
+      requireAdmin();
+      $rows = db()->query('SELECT * FROM prompts_trash ORDER BY deleted_at DESC LIMIT 200')->fetchAll();
+      $list = [];
+      foreach ($rows as $r) {
+        $d = json_decode((string)$r['data'], true);
+        if (!is_array($d)) continue;
+        $list[] = ['id' => $r['id'], 'title' => (string)($d['title'] ?? $r['id']), 'cat' => (string)($d['cat'] ?? ''),
+          'image' => (string)($d['image'] ?? ''), 'deletedAt' => (string)$r['deleted_at'], 'deletedBy' => (string)$r['deleted_by']];
+      }
+      out(['ok' => true, 'trash' => $list]);
+    }
+
+    case 'trash_restore': {
       requireAdmin();
       $id = str(input(), 'id', 40); $pdo = db();
-      $st = $pdo->prepare('SELECT image FROM prompts WHERE id = ?'); $st->execute([$id]);
-      $img = (string)$st->fetchColumn();
-      $pdo->prepare('DELETE FROM prompts WHERE id = ?')->execute([$id]);
-      $ts = $pdo->prepare('SELECT image, input_image FROM prompt_tests WHERE prompt_id = ?'); $ts->execute([$id]);
-      foreach ($ts->fetchAll() as $t) foreach ([$t['image'], $t['input_image']] as $f) if ($f && strpos((string)$f, 'uploads/') === 0) @unlink(__DIR__ . '/' . $f);
-      $pdo->prepare('DELETE FROM prompt_tests WHERE prompt_id = ?')->execute([$id]);
-      if (strpos($img, 'uploads/') === 0) @unlink(__DIR__ . '/' . $img);
-      out(['ok' => true]);
+      $st = $pdo->prepare('SELECT data FROM prompts_trash WHERE id = ?'); $st->execute([$id]);
+      $d = json_decode((string)$st->fetchColumn(), true);
+      if (!is_array($d) || empty($d['id'])) fail('Isi tempat sampah tidak bisa dibaca.', 404);
+      $cols = array_keys($d);
+      $sql = 'INSERT OR REPLACE INTO prompts (' . implode(',', $cols) . ') VALUES (' . implode(',', array_fill(0, count($cols), '?')) . ')';
+      $pdo->prepare($sql)->execute(array_values($d));
+      $pdo->prepare('DELETE FROM prompts_trash WHERE id = ?')->execute([$id]);
+      $st = $pdo->prepare('SELECT * FROM prompts WHERE id = ?'); $st->execute([$id]);
+      out(['ok' => true, 'prompt' => rowToPrompt($st->fetch(), true)]);
+    }
+
+    case 'trash_purge': {
+      requireAdmin();
+      $in = input(); $pdo = db();
+      $id = str($in, 'id', 40);
+      $rows = $id !== '' ? [['id' => $id]] : $pdo->query('SELECT id FROM prompts_trash')->fetchAll();
+      foreach ($rows as $r) {
+        $rid = (string)$r['id'];
+        $st = $pdo->prepare('SELECT data FROM prompts_trash WHERE id = ?'); $st->execute([$rid]);
+        $d = json_decode((string)$st->fetchColumn(), true);
+        // baru di sinilah file benar-benar dibuang
+        if (is_array($d)) delUpload((string)($d['image'] ?? ''));
+        $ts = $pdo->prepare('SELECT image, input_image FROM prompt_tests WHERE prompt_id = ?'); $ts->execute([$rid]);
+        foreach ($ts->fetchAll() as $t) foreach ([$t['image'], $t['input_image']] as $f) delUpload((string)$f);
+        $pdo->prepare('DELETE FROM prompt_tests WHERE prompt_id = ?')->execute([$rid]);
+        $pdo->prepare('DELETE FROM prompts_trash WHERE id = ?')->execute([$rid]);
+      }
+      out(['ok' => true, 'purged' => count($rows)]);
     }
 
     case 'recent_orders': {
