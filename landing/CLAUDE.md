@@ -41,16 +41,18 @@ asli yang hanya boleh memakai data sungguhan:
 
 | | Pratinjau (default) | `--live` |
 |---|---|---|
-| Notifikasi pesanan | 10 nama CONTOH (`DEMO_NAMES`), tiap kartu berchip **CONTOH** | data asli `api.php?a=recent_orders` (pesanan + keranjang) |
-| Penghitung pengunjung | tetap **"45 orang sedang melihat halaman ini"**, berchip CONTOH | angka asli `api.php?a=live&page=promo`, ambang 2/2 |
-| `TESTIMONIALS` (5 kartu contoh) | tetap tampil, berchip CONTOH | dikosongkan, bagiannya disembunyikan |
-| `RATING` (4,9 · 483 ulasan) | tetap tampil, berchip CONTOH | jadi `null` |
+| Notifikasi pesanan | 10 nama CONTOH (`DEMO_NAMES`) | data asli `api.php?a=recent_orders` (pesanan + keranjang) |
+| Penghitung pengunjung | tetap **"45 orang sedang melihat halaman ini"** | angka asli `api.php?a=live&page=promo`, ambang 2/2 |
+| `TESTIMONIALS` (5 kartu contoh) | tetap tampil | dikosongkan, bagiannya disembunyikan |
+| `RATING` (4,9 · 483 ulasan) | tetap tampil | jadi `null` |
 | Label pojok **CONTOH** | tetap tampil | markup, CSS, dan skripnya dibuang |
 
 **Yang sekarang ter-commit di `landing/index.html` adalah mode pratinjau** (17 September 2026, atas permintaan
 pemilik repo — mereka ingin halaman terlihat ramai untuk demo). Jadi `/promo` saat ini adalah **halaman demo**:
-angkanya karangan, namanya karangan, dan halaman itu menyatakannya sendiri lewat chip CONTOH di tiap satuan data
-plus label pojok CONTOH. Pembayaran Mayar tetap hidup sungguhan supaya bisa dites.
+angkanya karangan, namanya karangan, dan yang menandainya adalah **label pojok CONTOH di kanan bawah** — satu label
+untuk seluruh halaman, bukan label per angka. Itu keputusan pemilik repo (17 Sep 2026): labelnya sudah cukup
+kelihatan, jadi jangan pasang chip lagi di ulasan, penghitung pengunjung, atau kartu keranjang/pembelian.
+Pembayaran Mayar tetap hidup sungguhan supaya bisa dites.
 
 > **Sebelum iklan Meta diarahkan ke halaman ini, WAJIB `node landing/build-promo.mjs --live` lalu push.**
 > Tanpa itu, halaman berbayar akan memasang nama pembeli dan jumlah penonton yang tidak pernah ada.
@@ -76,10 +78,11 @@ plus label pojok CONTOH. Pembayaran Mayar tetap hidup sungguhan supaya bisa dite
 ## Aturan bukti sosial (WAJIB — jangan dilanggar)
 - **Jangan pernah mengarang** testimoni, rating, jumlah pembeli, notifikasi pesanan, atau jumlah "sedang melihat".
   Semua itu hanya boleh diisi dari **data asli**.
-- Data ilustrasi hanya boleh hidup di `mockup.html` dan di build **pratinjau**, dan wajib tetap **berlabel jelas**:
-  label pojok CONTOH untuk halamannya, plus chip `demoTag` ("CONTOH") yang menempel di **tiap satuan data karangan**
-  — nama di notifikasi, angka pengunjung, kartu testimoni, dan rating. Itu sebabnya mode pratinjau ada: supaya
-  halaman contoh tidak pernah menyamar jadi halaman asli.
+- Data ilustrasi hanya boleh hidup di `mockup.html` dan di build **pratinjau**, dan wajib tetap **berlabel jelas**
+  lewat label pojok CONTOH di kanan bawah. Itu sebabnya mode pratinjau ada: supaya halaman contoh tidak pernah
+  menyamar jadi halaman asli. Konstanta `demoTag` sengaja dibiarkan string kosong — pernah dicoba merender chip
+  "CONTOH" di tiap satuan data, tapi pemilik repo memintanya dibuang karena label pojoknya sudah cukup kelihatan.
+  Kalau suatu saat perlu dihidupkan lagi, cukup isi `demoTag`; semua titik pemasangannya sudah ada.
 - Nama karangan hidup di satu tempat saja, konstanta `DEMO_NAMES` (10 nama bergaya `And** *****`), dan angka
   pengunjung karangan dipatok **45**. Keduanya hanya dirender di cabang `MOCKUP` atau `PREVIEW`, jadi tidak pernah
   ikut ke build `--live`.

@@ -65,8 +65,9 @@ node landing/build-promo.mjs --live    # PRODUKSI — semua data karangan dibuan
 ```
 
 Yang ter-commit sekarang adalah **mode pratinjau** (17 Sep 2026): `/promo` sengaja jadi **halaman demo** — 10 nama
-karangan di notifikasi, "45 orang sedang melihat", testimoni & rating contoh. Semuanya berlabel: chip CONTOH di tiap
-satuan data plus label pojok CONTOH. Pembayaran Mayar tetap hidup supaya bisa dites.
+karangan di notifikasi, "45 orang sedang melihat", testimoni & rating contoh. Penandanya **label pojok CONTOH di
+kanan bawah**, satu untuk seluruh halaman — jangan tambah chip per angka, itu sudah dicoba dan diminta dibuang.
+Pembayaran Mayar tetap hidup supaya bisa dites.
 **Sebelum iklan Meta diarahkan ke situ, wajib bangun ulang dengan `--live`** — itu yang membuang semua data karangan
 dan menggantinya dengan data asli. Detail lengkap, aturan bukti sosial, dan checklist go-live ada di
 **`landing/CLAUDE.md`** — baca itu sebelum menyentuh apa pun soal iklan.

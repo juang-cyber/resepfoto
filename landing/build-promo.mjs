@@ -5,9 +5,8 @@
 //   node landing/build-promo.mjs            PRATINJAU (default)
 //     Halaman DEMO. Pembayaran Mayar & pelacakan tetap aktif sungguhan, tapi semua
 //     bukti sosial adalah CONTOH: 10 nama karangan di notifikasi, "45 orang sedang
-//     melihat", testimoni & rating contoh. Tiap satuannya memakai chip CONTOH dan
-//     halamannya memakai label pojok CONTOH. Untuk presentasi dan tes sendiri,
-//     BUKAN untuk dipasang di iklan.
+//     melihat", testimoni & rating contoh. Penandanya label pojok CONTOH di kanan
+//     bawah. Untuk presentasi dan tes sendiri, BUKAN untuk dipasang di iklan.
 //
 //   node landing/build-promo.mjs --live     PRODUKSI
 //     Sama, tapi semua data ilustrasi dibuang: testimoni karangan, rating, dan
@@ -74,9 +73,9 @@ sub(/\/\/ viewers\n\(\(\) => \{[\s\S]*?\n\}\)\(\);/, LIVE ?
   }).catch(() => {});
   upd(); setInterval(upd, 30000);
 })();` :
-`// viewers — angka CONTOH untuk halaman demo. Bukan data asli, karena itu berlabel.
+`// viewers — angka CONTOH untuk halaman demo. Bukan data asli; penandanya label pojok CONTOH.
 (() => {
-  $("#live-text").innerHTML = \`\${demoTag} 45 orang sedang melihat halaman ini\`;
+  $("#live-text").textContent = "45 orang sedang melihat halaman ini";
   $("#live-pill").hidden = false;
 })();`, "viewers");
 

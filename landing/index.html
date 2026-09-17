@@ -414,7 +414,6 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
 .corner-tag{position:fixed;bottom:calc(14px + env(safe-area-inset-bottom,0px));right:12px;z-index:90;pointer-events:none;line-height:0}
 .corner-tag img{display:block;width:104px;height:auto;filter:drop-shadow(0 6px 14px rgba(0,0,0,.4))}
 .corner-tag.txt{background:#3A2A00;color:#FFE58A;font-size:10px;line-height:1;font-weight:800;letter-spacing:.1em;padding:4px 6px;border-radius:6px;box-shadow:0 4px 12px -4px rgba(0,0,0,.35)}
-.dtag{display:inline-block;background:#3A2A00;color:#FFE58A;font-size:9px;line-height:1;font-weight:800;letter-spacing:.09em;padding:3px 5px;border-radius:5px;vertical-align:middle;margin-right:4px}
 @media (min-width:560px){.corner-tag{bottom:24px;right:24px}}
 .confetti{position:fixed;inset:0;pointer-events:none;z-index:70}
 
@@ -1236,7 +1235,7 @@ function confetti(){
 /* ---- bukti sosial ---- */
 const starSvg = n => `<span class="stars" aria-label="${n} dari 5 bintang">${Array.from({length:5},(_,i)=>`<svg viewBox="0 0 24 24" style="opacity:${i<n?1:.25}"><use href="#i-star"/></svg>`).join("")}</span>`;
 const escH = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const demoTag = '<span class="dtag">CONTOH</span>';   // menempel di tiap data karangan (mockup & pratinjau)
+const demoTag = "";   // sengaja kosong: yang menandai halaman contoh cukup label pojok CONTOH
 // Nama CONTOH untuk notifikasi — BUKAN pembeli sungguhan, dan tidak pernah ikut ke build --live.
 const DEMO_NAMES = ["And** *****", "Rin** ****", "Bag** *****", "Sit** ****", "Fah** *****",
                     "Nov** ****", "Yud** *****", "Ind** ****", "Rez** *****", "Wul** ****"];
@@ -1254,8 +1253,8 @@ const tList = TESTIMONIALS.length ? TESTIMONIALS.map(t => MOCKUP ? {...t, demo:t
   const r = RATING && RATING.count > 0 ? RATING : null;
   const hr = $("#hero-rating"), sc = $("#t-score");
   if (r){
-    hr.innerHTML = `${MOCKUP || PREVIEW ? demoTag : ""}${starSvg(Math.round(r.avg))}<b>${r.avg.toFixed(1).replace(".", ",")}</b><span>dari ${r.count.toLocaleString("id-ID")} ulasan</span>`;
-    sc.innerHTML = `<span class="big">${r.avg.toFixed(1).replace(".", ",")}</span><span>${starSvg(Math.round(r.avg))} ${MOCKUP || PREVIEW ? demoTag : ""}</span><small>Rata-rata dari ${r.count.toLocaleString("id-ID")} ulasan pembeli</small>`;
+    hr.innerHTML = `${MOCKUP ? demoTag : ""}${starSvg(Math.round(r.avg))}<b>${r.avg.toFixed(1).replace(".", ",")}</b><span>dari ${r.count.toLocaleString("id-ID")} ulasan</span>`;
+    sc.innerHTML = `<span class="big">${r.avg.toFixed(1).replace(".", ",")}</span><span>${starSvg(Math.round(r.avg))} ${MOCKUP ? demoTag : ""}</span><small>Rata-rata dari ${r.count.toLocaleString("id-ID")} ulasan pembeli</small>`;
     hr.hidden = false; sc.hidden = false;
   } else if (PREVIEW){
     hr.innerHTML = `${demoTag}${starSvg(5)}<b>–</b><span>dari … ulasan</span>`;
@@ -1268,16 +1267,12 @@ const tList = TESTIMONIALS.length ? TESTIMONIALS.map(t => MOCKUP ? {...t, demo:t
 (() => {
   const el = $("#t-sub");
   if (MOCKUP){ el.textContent = "Ribuan pengguna sudah merasakan hasil luar biasa dengan ResepFoto."; el.hidden = false; }
-  else if (RATING && RATING.count > 0){
-    const txt = RATING.count.toLocaleString("id-ID") + " pembeli sudah memberi ulasan untuk ResepFoto.";
-    if (PREVIEW) el.innerHTML = demoTag + " " + escH(txt); else el.textContent = txt;
-    el.hidden = false;
-  }
+  else if (RATING && RATING.count > 0){ el.textContent = RATING.count.toLocaleString("id-ID") + " pembeli sudah memberi ulasan untuk ResepFoto."; el.hidden = false; }
 })();
 
-// viewers — angka CONTOH untuk halaman demo. Bukan data asli, karena itu berlabel.
+// viewers — angka CONTOH untuk halaman demo. Bukan data asli; penandanya label pojok CONTOH.
 (() => {
-  $("#live-text").innerHTML = `${demoTag} 45 orang sedang melihat halaman ini`;
+  $("#live-text").textContent = "45 orang sedang melihat halaman ini";
   $("#live-pill").hidden = false;
 })();
 
