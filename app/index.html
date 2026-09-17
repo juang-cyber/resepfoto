@@ -995,7 +995,7 @@ const I18N = {
     "mf.msgExp":" (valid until {d})"
   }
 };
-const CAT_EN = {"Foto Jadul":"Retro Photos","Jalan-jalan":"Travel","Keluarga":"Family","Momen Spesial":"Special Moments","Profesional":"Professional","Tren Viral":"Viral Trends"};
+const CAT_EN = {"Foto Jadul":"Retro Photos","Jalan-jalan":"Travel","Keluarga":"Family","Momen Spesial":"Special Moments","Profesional":"Professional","Tren Viral":"Viral Trends","Editorial":"Editorial","Gaya Jalanan":"Street Style","Kartun & Ilustrasi":"Cartoon & Art"};
 let lang = store.get("rf_lang", null);
 if (lang !== "id" && lang !== "en") lang = document.documentElement.lang === "en" ? "en" : "id";
 const t = (k, v) => String((I18N[lang] && I18N[lang][k]) ?? I18N.id[k] ?? k).replace(/\{(\w+)\}/g, (_, x) => v?.[x] ?? "");

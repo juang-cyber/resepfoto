@@ -8,6 +8,8 @@ require_once __DIR__ . '/config.php';
 
 const PLAN_LIFETIME = ['Standard', 'Premium', 'Lifetime'];
 const PLAN_ALL = ['Standard', 'Premium', 'Lifetime', 'Bulanan', 'Tahunan'];
+// Paket resep tambahan di data/ — diimpor sekali per versi (lihat importPromptPacks()).
+const PROMPT_PACKS = ['pack2-prompts.json'];
 
 function db(): PDO {
   static $pdo = null;
@@ -78,7 +80,51 @@ function db(): PDO {
     saveMember(['username' => $u, 'name' => $n, 'code_hash' => password_hash($c, PASSWORD_DEFAULT), 'code_hint' => substr($c, -4),
       'plan' => 'Premium', 'expires' => '', 'active' => 1, 'created_at' => gmdate('c'), 'last_login' => null, 'email' => '', 'phone' => ''], $pdo);
   }
+  importPromptPacks($pdo, $dir);
   return $pdo;
+}
+
+/**
+ * Impor paket resep tambahan (data/pack*-prompts.json) — sekali per versi paket.
+ * Dipakai karena seed awal hanya jalan saat tabel prompts masih kosong, sedangkan
+ * database yang sudah dipakai perlu tetap menerima resep baru saat deploy.
+ * INSERT OR IGNORE: resep yang id-nya sudah ada (mis. sudah diedit admin) tidak tertimpa.
+ */
+function importPromptPacks(PDO $pdo, string $dir): void {
+  foreach (PROMPT_PACKS as $file) {
+    $path = $dir . '/' . $file;
+    if (!is_file($path)) continue;
+    $pack = json_decode((string)file_get_contents($path), true);
+    if (!is_array($pack) || empty($pack['version']) || empty($pack['prompts']) || !is_array($pack['prompts'])) continue;
+    $key = 'pack_' . preg_replace('/[^A-Za-z0-9_-]/', '', (string)$pack['version']);
+    $chk = $pdo->prepare('SELECT 1 FROM settings WHERE k = ?');
+    $chk->execute([$key]);
+    if ($chk->fetchColumn() !== false) continue;            // paket ini sudah pernah diimpor
+    try {
+      $base = (int)$pdo->query('SELECT COALESCE(MAX(ord), 0) FROM prompts')->fetchColumn();
+      $ins = $pdo->prepare('INSERT OR IGNORE INTO prompts
+        (id, ord, cat, title, descr, popular, tools, prompt, tips, image, updated_at, created_at, cat_en, title_en, descr_en, tips_en)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+      $now = gmdate('c'); $i = 0; $added = 0;
+      $pdo->beginTransaction();
+      foreach ($pack['prompts'] as $p) {
+        if (!is_array($p) || empty($p['id']) || empty($p['title'])) continue;
+        $i++;
+        $tools = isset($p['tools']) && is_array($p['tools'])
+          ? array_values(array_intersect(['Gemini', 'ChatGPT'], $p['tools'])) : ['Gemini', 'ChatGPT'];
+        $ins->execute([
+          (string)$p['id'], $base + $i, (string)($p['cat'] ?? ''), (string)$p['title'], (string)($p['desc'] ?? ''),
+          !empty($p['popular']) ? 1 : 0, json_encode($tools), (string)($p['prompt'] ?? ''), (string)($p['tips'] ?? ''),
+          (string)($p['image'] ?? ''), $now, $now,
+          (string)($p['cat_en'] ?? ''), (string)($p['title_en'] ?? ''), (string)($p['desc_en'] ?? ''), (string)($p['tips_en'] ?? '')]);
+        $added += $ins->rowCount();
+      }
+      $pdo->prepare('INSERT OR REPLACE INTO settings (k, v) VALUES (?, ?)')->execute([$key, $now . ' +' . $added]);
+      $pdo->commit();
+    } catch (Throwable $e) {                                 // paket rusak tidak boleh mematikan aplikasi
+      if ($pdo->inTransaction()) $pdo->rollBack();
+    }
+  }
 }
 
 function setting(string $k, string $default = ''): string {
