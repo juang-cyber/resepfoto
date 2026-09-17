@@ -3,8 +3,8 @@
 // Mockup adalah sumber desain. Dua mode:
 //
 //   node landing/build-promo.mjs            PRATINJAU (default)
-//     Pembayaran Mayar aktif, pelacakan aktif, notifikasi pesanan & penghitung
-//     pengunjung memakai data asli. Testimoni, rating, dan label CONTOH tetap
+//     Pembayaran Mayar aktif, pelacakan aktif, notifikasi pesanan/keranjang &
+//     penghitung pengunjung memakai data asli. Testimoni, rating, dan label CONTOH tetap
 //     tampil — jadi halaman jujur menyatakan dirinya contoh. Untuk dites sendiri
 //     dan dibagikan ke tim, BUKAN untuk dipasang di iklan.
 //
@@ -61,10 +61,13 @@ sub(/\/\/ viewers\n\(\(\) => \{[\s\S]*?\n\}\)\(\);/,
 (() => {
   const el = $("#live-pill");
   if (!TRACK_URL) return;
-  const upd = () => fetch(TRACK_URL + "?a=live", {credentials: "omit"}).then(r => r.json()).then(d => {
+  const upd = () => fetch(TRACK_URL + "?a=live&page=promo", {credentials: "omit"}).then(r => r.json()).then(d => {
     if (!d || !d.ok) return;
-    if (d.now >= 5){ $("#live-text").textContent = d.now.toLocaleString("id-ID") + " orang sedang melihat halaman ini"; el.hidden = false; }
-    else if (d.day >= 50){ $("#live-text").textContent = d.day.toLocaleString("id-ID") + " orang mengunjungi halaman ini dalam 24 jam terakhir"; el.hidden = false; }
+    const now = Number(d.now) || 0, day = Number(d.day) || 0;
+    // Ambang 2, bukan 1: angka 1 itu pengunjung yang sedang membaca sendiri, jadi tidak ada artinya
+    // sebagai bukti sosial. Angkanya sendiri selalu apa adanya dari presence — tidak pernah dibulatkan naik.
+    if (now >= 2){ $("#live-text").textContent = now.toLocaleString("id-ID") + " orang sedang melihat halaman ini"; el.hidden = false; }
+    else if (day >= 2){ $("#live-text").textContent = day.toLocaleString("id-ID") + " orang mengunjungi halaman ini dalam 24 jam terakhir"; el.hidden = false; }
     else el.hidden = true;
   }).catch(() => {});
   upd(); setInterval(upd, 30000);

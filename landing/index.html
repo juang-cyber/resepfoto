@@ -410,11 +410,6 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
 .toast.show{transform:translate(-50%,0);visibility:visible}
 .mock-banner{background:#3A2A00;color:#FFE58A;text-align:center;font-size:13px;font-weight:800;letter-spacing:.2em;padding:6px 12px}
 .stickwrap{position:sticky;top:0;z-index:45}
-/* label "CONTOH" diambil dari CDN — ganti asset di URL itu, halaman tidak perlu diubah */
-.corner-tag{position:fixed;bottom:calc(14px + env(safe-area-inset-bottom,0px));right:12px;z-index:90;pointer-events:none;line-height:0}
-.corner-tag img{display:block;width:104px;height:auto;filter:drop-shadow(0 6px 14px rgba(0,0,0,.4))}
-.corner-tag.txt{background:#3A2A00;color:#FFE58A;font-size:10px;line-height:1;font-weight:800;letter-spacing:.1em;padding:4px 6px;border-radius:6px;box-shadow:0 4px 12px -4px rgba(0,0,0,.35)}
-@media (min-width:560px){.corner-tag{bottom:24px;right:24px}}
 .confetti{position:fixed;inset:0;pointer-events:none;z-index:70}
 
 /* ---- brand lockup ---- */
@@ -483,6 +478,7 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
 .opop .st{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;margin-top:3px}
 .opop .st.paid{color:var(--mint)}
 .opop .st.wait{color:#B7700A}
+.opop .st.cart{color:var(--blue)}
 .opop .ago{color:var(--muted);font-size:11.5px}
 .opop .cl{position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:var(--muted)}
 .opop .cl svg{width:13px;height:13px}
@@ -820,7 +816,6 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
   <p class="honest"><svg class="ico"><use href="#i-info"/></svg>Akses dikirim ke email setelah lunas.</p>
 </div>
 <div class="opop" id="opop" role="status" aria-live="polite"><div class="tx"><strong id="op-name"></strong><span id="op-what"></span><div><span class="st" id="op-st"></span> <span class="ago" id="op-ago"></span></div></div><button class="cl" id="op-close" aria-label="Tutup notifikasi"><svg class="ico"><use href="#i-x"/></svg></button></div>
-<div class="corner-tag" role="note"><img id="ctag-img" src="https://ik.imagekit.io/oziera/contoh.png" alt="CONTOH"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <canvas class="confetti" id="confetti" aria-hidden="true"></canvas>
 
@@ -838,17 +833,11 @@ const CHECKOUT = {              // link pembayaran Mayar
 const PREVIEW = false;
 const MOCKUP = false;
 const TRACK_URL = "/api.php";   // pelacakan untuk Admin -> Iklan
-// Testimoni ILUSTRASI untuk presentasi. Avatar memakai foto asli orangnya,
-// foto hasil memakai gambar generate dari resepnya. Nama sengaja disamarkan.
-const TESTIMONIALS = [
-  {name:"Andik* ****", ig:"", avatar:"img/av1.jpg", photo:"img/tr1.jpg", stars:5, title:"Kayak lagi di luar negeri", text:"Padahal cuma foto di lobi kantor. Yang lihat pada nanya lagi di mana.", plan:"Premium", date:""},
-  {name:"Ant* ****", ig:"", avatar:"img/av2.jpg", photo:"img/tr2.jpg", stars:5, title:"Langsung jadi foto profil kerja", text:"Aslinya foto di depan mobil pakai kemeja kerja. Hasilnya malah kelihatan formal.", plan:"Premium", date:""},
-  {name:"Bell* ****", ig:"", avatar:"img/av3.jpg", photo:"img/tr3.jpg", stars:5, title:"Sekali coba langsung dapat", text:"Hijabnya rapi, wajahnya tetap aku. Nggak perlu diulang-ulang.", plan:"Premium", date:""},
-  {name:"Ren* ****", ig:"", avatar:"img/av4.jpg", photo:"img/tr4.jpg", stars:5, title:"Anakku minta dibikinin terus", text:"Iseng coba resep karakter 3D. Sekarang tiap minggu diminta yang baru.", plan:"Standard", date:""},
-  {name:"Sofi* ****", ig:"", avatar:"img/av5.jpg", photo:"img/tr5.jpg", stars:4, title:"Batal booking studio", text:"Awalnya mau foto profil di studio. Percobaan pertama kurang pas, yang kedua udah oke.", plan:"Premium", date:""},
-];
+// Testimoni hanya boleh diisi dari ulasan ASLI yang sudah diizinkan pembelinya.
+// Selama kosong, bagian testimoni disembunyikan seluruhnya.
+const TESTIMONIALS = [];
 // Ringkasan rating dari ulasan asli, contoh: {avg: 4.8, count: 37}. Biarkan null kalau belum ada.
-const RATING = {avg: 4.9, count: 483}; // ILUSTRASI untuk presentasi
+const RATING = null;            // isi {avg, count} hanya dari ulasan asli
 // Notifikasi order asli dari server (aktif setelah landing page ada di domain resepfoto.oziera.co.id).
 const ORDER_FEED_URL = "/api.php?a=recent_orders";
 // Jumlah pengunjung aktif dari sistem analitik asli (angka), atau null untuk disembunyikan.
@@ -1270,10 +1259,13 @@ const tList = TESTIMONIALS.length ? TESTIMONIALS.map(t => MOCKUP ? {...t, demo:t
 (() => {
   const el = $("#live-pill");
   if (!TRACK_URL) return;
-  const upd = () => fetch(TRACK_URL + "?a=live", {credentials: "omit"}).then(r => r.json()).then(d => {
+  const upd = () => fetch(TRACK_URL + "?a=live&page=promo", {credentials: "omit"}).then(r => r.json()).then(d => {
     if (!d || !d.ok) return;
-    if (d.now >= 5){ $("#live-text").textContent = d.now.toLocaleString("id-ID") + " orang sedang melihat halaman ini"; el.hidden = false; }
-    else if (d.day >= 50){ $("#live-text").textContent = d.day.toLocaleString("id-ID") + " orang mengunjungi halaman ini dalam 24 jam terakhir"; el.hidden = false; }
+    const now = Number(d.now) || 0, day = Number(d.day) || 0;
+    // Ambang 2, bukan 1: angka 1 itu pengunjung yang sedang membaca sendiri, jadi tidak ada artinya
+    // sebagai bukti sosial. Angkanya sendiri selalu apa adanya dari presence — tidak pernah dibulatkan naik.
+    if (now >= 2){ $("#live-text").textContent = now.toLocaleString("id-ID") + " orang sedang melihat halaman ini"; el.hidden = false; }
+    else if (day >= 2){ $("#live-text").textContent = day.toLocaleString("id-ID") + " orang mengunjungi halaman ini dalam 24 jam terakhir"; el.hidden = false; }
     else el.hidden = true;
   }).catch(() => {});
   upd(); setInterval(upd, 30000);
@@ -1328,10 +1320,13 @@ const tList = TESTIMONIALS.length ? TESTIMONIALS.map(t => MOCKUP ? {...t, demo:t
   const box = $("#opop"); let queue = [], closedAt = 0;
   const ago = iso => { const m = Math.max(1, Math.round((Date.now() - new Date(iso)) / 60000)); return m < 60 ? m + " menit lalu" : m < 1440 ? Math.round(m/60) + " jam lalu" : Math.round(m/1440) + " hari lalu"; };
   const show = o => {
-    $("#op-name").innerHTML = escH(o.name) + (o.demo ? " " + demoTag : "");
-    $("#op-what").textContent = (o.paid ? " membeli " : " memesan ") + "Paket " + o.plan;
-    const st = $("#op-st"); st.className = "st " + (o.paid ? "paid" : "wait");
-    st.textContent = o.paid ? "✓ Sudah membayar" : "⏳ Menunggu pembayaran";
+    const paket = "Paket " + o.plan;
+    $("#op-name").innerHTML = escH(o.cart ? "Seseorang" : o.name) + (o.demo ? " " + demoTag : "");
+    $("#op-what").textContent = o.cart ? (o.pay ? " menuju pembayaran " + paket : " memasukkan " + paket + " ke keranjang")
+      : (o.paid ? " membeli " : " memesan ") + paket;
+    const st = $("#op-st"); st.className = "st " + (o.cart ? "cart" : o.paid ? "paid" : "wait");
+    st.textContent = o.cart ? (o.pay ? "💳 Menuju pembayaran" : "🛒 Sedang checkout")
+      : o.paid ? "✓ Sudah membayar" : "⏳ Menunggu pembayaran";
     $("#op-ago").textContent = o.demo ? (MOCKUP ? "· " + (2 + Math.floor(Math.random() * 12)) + " menit lalu" : "") : "· " + ago(o.at);
     box.classList.add("show");
     setTimeout(() => box.classList.remove("show"), 5000);
@@ -1343,7 +1338,8 @@ const tList = TESTIMONIALS.length ? TESTIMONIALS.map(t => MOCKUP ? {...t, demo:t
   };
   if (MOCKUP){
     const N = ["A****","B*****","C****","D****","E***","F*****","G****","H*****","I***","J****","K*****","L****","M*****","N****","P*****","R****","S*****","T****","W****","Y*****"];
-    const all = N.map((name, i) => ({name, plan: i % 3 === 1 ? "Standard" : "Premium", paid: Math.random() > .35, demo:true}));
+    const all = N.map((name, i) => ({name, plan: i % 3 === 1 ? "Standard" : "Premium", paid: Math.random() > .35, demo:true}))
+      .concat([0, 1, 2, 3].map(i => ({cart:true, plan: i % 2 ? "Standard" : "Premium", pay: i > 1, demo:true})));
     const refill = () => { queue = all.slice().sort(() => Math.random() - .5); };
     refill();
     const loop = () => {
@@ -1354,31 +1350,27 @@ const tList = TESTIMONIALS.length ? TESTIMONIALS.map(t => MOCKUP ? {...t, demo:t
     return;
   }
   if (ORDER_FEED_URL){
+    // Semuanya data ASLI: pesanan dari tabel orders, keranjang dari pengunjung yang benar-benar membuka checkout.
     const load = () => fetch(ORDER_FEED_URL, {credentials:"omit"}).then(r => r.json()).then(d => {
-      if (d && d.ok && Array.isArray(d.orders)) queue = d.orders.map(o => ({name:o.name, plan:o.plan, paid:o.paid, at:o.at}));
+      if (!d || !d.ok) return;
+      const buy = Array.isArray(d.orders) ? d.orders.map(o => ({name:o.name, plan:o.plan, paid:o.paid, at:o.at})) : [];
+      const cart = Array.isArray(d.cart) ? d.cart.map(c => ({cart:true, plan:c.plan, pay:c.pay, at:c.at})) : [];
+      queue = buy.concat(cart).sort((a, b) => new Date(b.at) - new Date(a.at));
     }).catch(() => {});
     load(); setInterval(load, 120000);
     setTimeout(tick, 8000);
   } else if (PREVIEW){
     const demo = () => [
       {name:"B***", plan:"Premium", paid:true, demo:true},
+      {cart:true, plan:"Premium", demo:true},
       {name:"S***", plan:"Standard", paid:false, demo:true},
+      {cart:true, plan:"Standard", pay:true, demo:true},
       {name:"R***", plan:"Premium", paid:false, demo:true}
     ];
     queue = demo();
     setInterval(() => { if (!queue.length) queue = demo(); }, 20000);
     setTimeout(tick, 6000);
   }
-})();
-
-/* ---- label CONTOH: kalau gambar CDN gagal dimuat, pakai label teks ---- */
-(() => {
-  const im = $("#ctag-img"); if (!im) return;
-  let done = false;
-  const fall = () => { const b = im.parentNode; if (done || !b) return; done = true; b.classList.add("txt"); b.textContent = "CONTOH"; };
-  im.addEventListener("error", fall);
-  if (im.complete && !im.naturalWidth) fall();
-  else addEventListener("load", () => { if (!im.naturalWidth) fall(); });
 })();
 
 /* ---- latar CTA penutup: pakai gambar asli kalau tersedia ---- */

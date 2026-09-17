@@ -45,6 +45,7 @@ function db(): PDO {
   $pdo->exec('CREATE INDEX IF NOT EXISTS ix_events_ts ON events(ts)');
   $pdo->exec('CREATE TABLE IF NOT EXISTS lt_events (id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT, day TEXT, vid TEXT, sid TEXT, type TEXT, plan TEXT, src TEXT, med TEXT, camp TEXT, content TEXT, ref TEXT, device TEXT, page TEXT)');
   $pdo->exec('CREATE INDEX IF NOT EXISTS ix_lt_day ON lt_events(day)');
+  $pdo->exec('CREATE INDEX IF NOT EXISTS ix_lt_ts ON lt_events(ts)');   // dipakai recent_orders (aktivitas keranjang) & live
   $pdo->exec('CREATE TABLE IF NOT EXISTS presence (vid TEXT PRIMARY KEY, ts INTEGER, page TEXT)');
   $pdo->exec('CREATE TABLE IF NOT EXISTS ad_spend (day TEXT, campaign TEXT, amount INTEGER, note TEXT, PRIMARY KEY (day, campaign))');
   // migrasi kolom baru
