@@ -9,7 +9,7 @@ const num = n => Number(n || 0).toLocaleString("id-ID");
 const when = iso => iso ? new Date(iso).toLocaleString("id-ID", {day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"}) : "-";
 const ACT = {test: "Tes koneksi", link: "Link referensi", analyze: "Isi otomatis", generate: "Tes generate"};
 
-const box = APP.addAdminTab({id: "ai", label: "AI Gemini", onShow: () => load()});
+const box = APP.addAdminTab({id: "ai", label: "AI Gemini", onShow: () => load(), superOnly: true});
 let data = null;
 
 async function load(){

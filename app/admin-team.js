@@ -31,7 +31,7 @@ css.textContent = `
 document.head.appendChild(css);
 
 let data = null, busy = false, editing = null, role = "admin", pendingCode = null;
-const box = APP.addAdminTab({ id: "team", label: "Admin", onShow: () => load() });
+const box = APP.addAdminTab({ id: "team", label: "Admin", onShow: () => load(), superOnly: true });
 
 function syncTabVisibility(){
   const btn = document.getElementById("seg-team");

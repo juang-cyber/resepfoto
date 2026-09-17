@@ -174,6 +174,11 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 .hello{display:flex;align-items:center;gap:12px}
 .avatar{width:44px;height:44px;border-radius:50%;background:var(--accent-soft);color:var(--accent-deep);display:grid;place-items:center;font-weight:800}
 :root[data-theme="dark"] .avatar{color:var(--accent)}
+.avatar img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block}
+.av-wrap{position:relative;flex:none}
+.av-cam{position:absolute;right:-3px;bottom:-3px;width:24px;height:24px;border-radius:50%;background:#fff;color:var(--accent-deep);border:2px solid var(--accent);display:grid;place-items:center;cursor:pointer;padding:0;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.av-cam .ico{width:12px;height:12px}
+.av-cam[aria-busy="true"]{opacity:.6;pointer-events:none}
 .hello small{display:flex;align-items:center;gap:4px;color:var(--muted);font-size:12px;font-weight:600}
 .hello strong{display:block;font-size:15px}
 .search{display:flex;gap:10px;margin-top:18px}
@@ -296,6 +301,7 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 @media (min-width:900px){.app{transition:max-width .25s ease}.app.wide{max-width:880px}}
 .seg button{flex:1 0 auto;height:40px;padding:0 14px;border-radius:11px;font-weight:700;font-size:13px;color:var(--muted);white-space:nowrap}
 .seg button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 4px 12px -6px rgba(18,36,84,.3)}
+.seg button[hidden]{display:none}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .stat{padding:14px 12px;border-radius:18px;background:var(--surface-2)}
 .stat b{display:block;font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
@@ -548,7 +554,7 @@ input[type=checkbox]:disabled + *{opacity:.6}
       <div class="eyebrow" data-i18n="nav.account">Akun</div>
       <h1 class="h-lg" style="margin:4px 0 18px" data-i18n="acc.title">Profil kamu</h1>
       <div class="profile-card">
-        <div class="row" style="position:relative"><div class="avatar" id="a-avatar">R</div><div><strong id="a-name" style="font-size:18px"></strong><div style="opacity:.8;font-size:13px" id="a-user"></div></div></div>
+        <div class="row" style="position:relative"><div class="av-wrap"><div class="avatar" id="a-avatar">R</div><button type="button" class="av-cam" id="a-avatar-btn" aria-label="Ubah foto profil"><svg class="ico"><use href="#i-image"/></svg></button><input id="a-avatar-file" type="file" accept="image/*" hidden></div><div><strong id="a-name" style="font-size:18px"></strong><div style="opacity:.8;font-size:13px" id="a-user"></div></div></div>
         <dl class="kv">
           <dt data-i18n="acc.plan">Paket</dt><dd id="a-plan"></dd>
           <dt data-i18n="acc.until">Berlaku sampai</dt><dd id="a-exp"></dd>
@@ -746,6 +752,14 @@ input[type=checkbox]:disabled + *{opacity:.6}
       <button class="btn btn-ghost btn-block" type="button" data-close data-i18n="common.done">Selesai</button>
     </div>
     <form class="form" id="member-form" novalidate>
+      <div class="row" style="gap:12px;align-items:center">
+        <div class="avatar" id="mf-av" style="width:56px;height:56px;flex:none;font-size:20px">?</div>
+        <div class="row" style="gap:6px;flex-wrap:wrap">
+          <label class="btn btn-ghost btn-sm" for="mf-av-file"><svg class="ico" style="width:16px;height:16px"><use href="#i-image"/></svg>Foto profil</label>
+          <button type="button" class="btn btn-ghost btn-sm" id="mf-av-clear" hidden>Hapus foto</button>
+        </div>
+        <input id="mf-av-file" type="file" accept="image/*" hidden>
+      </div>
       <div class="field"><label for="mf-name" data-i18n="mf.name">Nama pembeli</label><input class="input" id="mf-name" data-i18n-ph="mf.namePh" placeholder="contoh: Budi Santoso"></div>
       <div class="two">
         <div class="field"><label for="mf-user">Username</label><input class="input" id="mf-user" placeholder="budi" autocapitalize="off"></div>
@@ -790,6 +804,7 @@ const cats = () => [...new Set(sorted().map(p => p.cat).filter(Boolean))];
 const findPrompt = id => state.prompts.find(p => p.id === id);
 const fmtDate = d => d ? new Date(d + "T00:00:00").toLocaleDateString(lang === "en" ? "en-GB" : "id-ID", {day:"numeric", month:"short", year:"numeric"}) : t("date.forever");
 const isAdmin = () => state.user?.role === "admin";
+const isSuper = () => state.user?.adminRole === "super_admin";
 
 /* ------------ i18n ------------ */
 const I18N = {
@@ -1090,10 +1105,13 @@ function renderDetail(){
   const more = sim.length < 3 ? sorted().filter(x => x.cat !== p.cat).slice(0, 4 - sim.length) : [];
   $("#d-similar").innerHTML = [...sim, ...more].map(cardHTML).join("");
 }
+function paintAvatar(el, obj){
+  if (obj && obj.avatar) el.innerHTML = `<img src="${esc(obj.avatar)}" alt="">`;
+  else el.textContent = ((obj && obj.name) || "?").trim()[0].toUpperCase();
+}
 function renderAccount(){
   const u = state.user; if (!u) return;
-  const initial = (u.name || "?").trim()[0].toUpperCase();
-  $("#h-avatar").textContent = initial; $("#a-avatar").textContent = initial;
+  paintAvatar($("#h-avatar"), u); paintAvatar($("#a-avatar"), u);
   $("#h-name").textContent = t("home.hello", {n: (u.name || "").split(" ")[0]});
   $("#h-plan").textContent = isAdmin() ? "Admin" : t("home.plan", {p: planName(u.plan)}) + (u.expires ? t("home.until", {d: fmtDate(u.expires)}) : "");
   $("#a-name").textContent = u.name; $("#a-user").textContent = "@" + u.username;
@@ -1102,10 +1120,11 @@ function renderAccount(){
   $("#a-admin").hidden = !isAdmin(); $("#tab-admin").hidden = !isAdmin();
 }
 const extTabs = []; let shownSeg = null;
-function addAdminTab({id, label, onShow}){
+function addAdminTab({id, label, onShow, superOnly}){
   const b = document.createElement("button");
   b.setAttribute("role", "tab"); b.setAttribute("aria-selected", "false");
   b.dataset.seg = id; b.id = "seg-" + id; b.textContent = label;
+  if (superOnly) b.dataset.superOnly = "1";
   b.addEventListener("click", () => { state.seg = id; renderAdmin(); b.scrollIntoView({block: "nearest", inline: "nearest"}); });
   $(".seg").appendChild(b);
   const panel = document.createElement("div");
@@ -1117,6 +1136,9 @@ function addAdminTab({id, label, onShow}){
 function renderAdmin(){
   if (!isAdmin()) return;
   window.dispatchEvent(new CustomEvent("rf:admin-render"));
+  const sup = isSuper();
+  extTabs.forEach(tb => { const btn = document.getElementById("seg-" + tb.id); if (btn && btn.dataset.superOnly === "1") btn.hidden = !sup; });
+  if (!sup){ const cur = document.getElementById("seg-" + state.seg); if (cur && cur.dataset.superOnly === "1") state.seg = "prompts"; }
   const ms = state.members;
   $("#st-prompts").textContent = state.prompts.length;
   $("#st-active").textContent = ms.filter(m => m.status === "ok").length;
@@ -1133,7 +1155,7 @@ function renderAdmin(){
   const label = {ok:["ok",t("st.ok")], expired:["warn",t("st.expired")], off:["bad",t("st.off")]};
   $("#adm-members").innerHTML = ms.map(m => { const [c, lbl] = label[m.status] || label.off;
     return `<div class="li">
-      <div class="avatar" style="flex:none">${esc((m.name||"?")[0].toUpperCase())}</div>
+      <div class="avatar" style="flex:none">${m.avatar ? `<img src="${esc(m.avatar)}" alt="">` : esc((m.name||"?")[0].toUpperCase())}</div>
       <div class="grow"><strong>${esc(m.name)}</strong><small>@${esc(m.username)} · ${esc(t("adm.code"))} <span class="code">••••${esc(m.codeHint)}</span></small>
         <div class="row" style="gap:6px;margin-top:5px;flex-wrap:wrap"><span class="pill ${c}">${lbl}</span><span class="pill">${esc(planName(m.plan))} · ${esc(fmtDate(m.expires))}</span></div></div>
       <div class="actions" style="flex-direction:column">
@@ -1178,6 +1200,22 @@ $("#logout").addEventListener("click", async () => {
   try { await api("logout", {}); } catch {}
   state.user = null; state.prompts = []; state.members = [];
   go("login", "door", -1);
+});
+
+/* foto profil sendiri */
+$("#a-avatar-btn").addEventListener("click", () => $("#a-avatar-file").click());
+$("#a-avatar-file").addEventListener("change", async () => {
+  const f = $("#a-avatar-file").files[0]; $("#a-avatar-file").value = "";
+  if (!f || !/^image\/(jpeg|png|webp)$/.test(f.type)){ toast(t("pf.fileType"), true); return; }
+  if (f.size > 8 * 1024 * 1024){ toast("Foto terlalu besar. Maksimal 8 MB.", true); return; }
+  const btn = $("#a-avatar-btn"); btn.setAttribute("aria-busy", "true");
+  const fd = new FormData(); fd.append("avatar", f);
+  try {
+    const r = await api("avatar_save", fd, true);
+    if (state.user){ state.user.avatar = r.avatar; paintAvatar($("#a-avatar"), state.user); paintAvatar($("#h-avatar"), state.user); }
+    toast("Foto profil diperbarui");
+  } catch (ex) { toast(ex.message, true); }
+  finally { btn.removeAttribute("aria-busy"); }
 });
 
 /* ------------ navigation & interactions ------------ */
@@ -1630,9 +1668,26 @@ function genCode(){
   return "RF-" + pick(a, 4) + "-" + pick(n, 4);
 }
 let resetCode = false;
+const memAv = {file: null, clear: false};
+$("#mf-av-file").addEventListener("change", () => {
+  const f = $("#mf-av-file").files[0]; $("#mf-av-file").value = "";
+  if (!f || !/^image\/(jpeg|png|webp)$/.test(f.type)){ toast(t("pf.fileType"), true); return; }
+  if (f.size > 8 * 1024 * 1024){ toast("Foto terlalu besar. Maksimal 8 MB.", true); return; }
+  memAv.file = f; memAv.clear = false;
+  $("#mf-av").innerHTML = `<img src="${URL.createObjectURL(f)}" alt="">`;
+  $("#mf-av-clear").hidden = false;
+});
+$("#mf-av-clear").addEventListener("click", () => {
+  memAv.file = null; memAv.clear = true;
+  $("#mf-av").textContent = (($("#mf-name").value || "?").trim()[0] || "?").toUpperCase();
+  $("#mf-av-clear").hidden = true;
+});
 function openMemberForm(username){
   const m = username ? state.members.find(x => x.username === username) : null;
   state.editMember = username; resetCode = false;
+  memAv.file = null; memAv.clear = false;
+  paintAvatar($("#mf-av"), m || {name: ""});
+  $("#mf-av-clear").hidden = !(m && m.avatar);
   $("#mf-result").hidden = true; $("#member-form").hidden = false;
   $("#mf-title").textContent = t(m ? "mf.edit" : "mf.add");
   $("#mf-name").value = m?.name || ""; $("#mf-user").value = m?.username || "";
@@ -1661,14 +1716,20 @@ $("#mf-plan").addEventListener("change", e => {
 $("#member-form").addEventListener("submit", async e => {
   e.preventDefault();
   const errEl = $("#mf-error"); errEl.hidden = true;
-  const body = {
-    editing: !!state.editMember, resetCode,
-    username: $("#mf-user").value.trim().toLowerCase(), name: $("#mf-name").value.trim(),
-    code: $("#mf-code").value.trim(), plan: $("#mf-plan").value, expires: $("#mf-exp").value,
-    active: $("#mf-active").checked
-  };
+  const editing = !!state.editMember;
+  const fd = new FormData();
+  fd.append("editing", editing ? "1" : "");
+  fd.append("resetCode", resetCode ? "1" : "");
+  fd.append("username", $("#mf-user").value.trim().toLowerCase());
+  fd.append("name", $("#mf-name").value.trim());
+  fd.append("code", $("#mf-code").value.trim());
+  fd.append("plan", $("#mf-plan").value);
+  fd.append("expires", $("#mf-exp").value);
+  fd.append("active", $("#mf-active").checked ? "1" : "");
+  if (memAv.file) fd.append("avatar", memAv.file);
+  else if (memAv.clear) fd.append("clearAvatar", "1");
   try {
-    const r = await api("member_save", body);
+    const r = await api("member_save", fd, true);
     const i = state.members.findIndex(m => m.username === r.member.username);
     i >= 0 ? state.members.splice(i, 1, r.member) : state.members.push(r.member);
     state.members.sort((a,b) => a.name.localeCompare(b.name));
@@ -1679,7 +1740,7 @@ $("#member-form").addEventListener("submit", async e => {
       $("#mf-msg").textContent = state.lastMsg;
       $("#member-form").hidden = true; $("#mf-result").hidden = false;
       $("#sheet-member").scrollTop = 0;
-      toast(t(body.editing ? "mf.newCode" : "mf.added"));
+      toast(t(editing ? "mf.newCode" : "mf.added"));
     } else { closeSheet(); toast(t("mf.updated")); }
   } catch (ex) { errEl.textContent = ex.message; errEl.hidden = false; }
 });
@@ -1725,9 +1786,9 @@ $("#s-admin").addEventListener("click", e => {
 window.RFAPP = {api, toast, esc, copyText, openSheet, closeSheet, isAdmin, fmtDate, state, renderAll, t, get lang(){ return lang; }, setLang, addAdminTab, openPromptForm, cats, armDelete, imgSrc};
 })();
 </script>
-<script src="admin-ext.js?v=3" defer></script>
-<script src="admin-ai.js?v=1" defer></script>
-<script src="admin-reports.js?v=1" defer></script>
-<script src="admin-team.js?v=1" defer></script>
+<script src="admin-ext.js?v=4" defer></script>
+<script src="admin-ai.js?v=2" defer></script>
+<script src="admin-reports.js?v=2" defer></script>
+<script src="admin-team.js?v=2" defer></script>
 </body>
 </html>

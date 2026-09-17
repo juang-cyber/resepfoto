@@ -34,7 +34,7 @@ document.head.appendChild(css);
 
 // tab + container (lewat registry tab admin di index.html)
 let data = null, busy = false;
-const box = APP.addAdminTab({id: "orders", label: "Pesanan", onShow: () => load()});
+const box = APP.addAdminTab({id: "orders", label: "Pesanan", onShow: () => load(), superOnly: true});
 
 async function load(){
   if (busy) return; busy = true;

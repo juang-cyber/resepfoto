@@ -107,7 +107,7 @@ const card = (title, body, sub = "") => `<div class="card-r"><h3>${esc(title)}</
 const empty = t => `<div class="muted" style="font-size:13px">${t}</div>`;
 
 /* ================= PENGGUNA ================= */
-const uBox = APP.addAdminTab({id: "rep-users", label: "Pengguna", onShow: () => loadUsers()});
+const uBox = APP.addAdminTab({id: "rep-users", label: "Pengguna", onShow: () => loadUsers(), superOnly: true});
 const TYPE = {login: "masuk", open: "membuka", copy: "menyalin", fav: "menyimpan"};
 async function loadUsers(){
   uBox.innerHTML = `<div class="empty">Memuat laporan pengguna…</div>`;
@@ -156,7 +156,7 @@ function renderUsers(d){
 }
 
 /* ================= IKLAN ================= */
-const aBox = APP.addAdminTab({id: "rep-ads", label: "Iklan", onShow: () => loadAds()});
+const aBox = APP.addAdminTab({id: "rep-ads", label: "Iklan", onShow: () => loadAds(), superOnly: true});
 let range = 30, adsData = null;
 const store = { get(k, d){ try { return localStorage.getItem(k) || d; } catch { return d; } }, set(k, v){ try { localStorage.setItem(k, v); } catch {} } };
 async function loadAds(){

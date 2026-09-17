@@ -47,6 +47,8 @@ function tr(string $msg): string {
     'Tidak menemukan teks prompt di gambar. Pastikan tulisannya jelas terbaca.' => 'No prompt text found in the image. Make sure the text is clearly legible.',
     'Peran tidak valid.' => 'Invalid role.',
     'Akun ini dikelola di tab Admin.' => 'This account is managed in the Admin tab.',
+    'Pilih atau tempel foto dulu.' => 'Choose or paste a photo first.',
+    'Gambar tidak bisa dibaca.' => 'The image could not be read.',
     'Metode salah.' => 'Wrong method.',
     'Endpoint tidak dikenal.' => 'Unknown endpoint.',
     'Aksi tidak dikenal.' => 'Unknown action.',
@@ -75,7 +77,7 @@ function fail(string $msg, int $code = 400): void { out(['ok' => false, 'error' 
 function currentUser(): ?array {
   $s = $_SESSION['user'] ?? null;
   if (!$s) return null;
-  if ($s['role'] === 'admin') return ['role' => 'admin', 'adminRole' => 'super_admin', 'username' => ADMIN_USER, 'name' => 'Admin ResepFoto', 'plan' => 'Admin', 'expires' => ''];
+  if ($s['role'] === 'admin') return ['role' => 'admin', 'adminRole' => 'super_admin', 'username' => ADMIN_USER, 'name' => 'Admin ResepFoto', 'plan' => 'Admin', 'expires' => '', 'avatar' => setting('admin_avatar')];
   $st = db()->prepare('SELECT * FROM members WHERE username = ?');
   $st->execute([$s['username']]);
   $m = $st->fetch();
@@ -132,6 +134,25 @@ function saveImage(array $f): string {
   return "uploads/$name.$ext";
 }
 
+function delUpload(?string $p): void { if ($p && strpos($p, 'uploads/') === 0) @unlink(__DIR__ . '/' . $p); }
+/** Simpan foto profil: potong 1:1 jadi 400x400 JPG. */
+function saveAvatar(array $f): string {
+  if (($f['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) fail('Upload gambar gagal. Coba file lain.');
+  if ($f['size'] > 8 * 1024 * 1024) fail('Gambar terlalu besar. Maksimal 8 MB.');
+  $info = @getimagesize($f['tmp_name']);
+  if (!$info || !in_array($info[2], [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_WEBP], true)) fail('File harus gambar JPG, PNG, atau WEBP.');
+  $dir = __DIR__ . '/uploads';
+  if (!is_dir($dir)) mkdir($dir, 0755, true);
+  $name = 'uploads/av_' . bin2hex(random_bytes(8)) . '.jpg';
+  $im = @imagecreatefromstring((string)file_get_contents($f['tmp_name']));
+  if (!$im) fail('Gambar tidak bisa dibaca.');
+  $w = imagesx($im); $h = imagesy($im); $S = 400; $side = min($w, $h);
+  $out = imagecreatetruecolor($S, $S);
+  imagecopyresampled($out, $im, 0, 0, (int)(($w - $side) / 2), (int)(($h - $side) / 2), $S, $S, $side, $side);
+  imagejpeg($out, __DIR__ . '/' . $name, 85);
+  imagedestroy($im); imagedestroy($out);
+  return $name;
+}
 function cropTo45(string $src, string $dst): bool {
   $info = @getimagesize($src);
   if (!$info || !function_exists('imagecreatetruecolor')) return false;
@@ -207,7 +228,7 @@ if ($method === 'POST' && !in_array($a, ['lt'], true) && !hash_equals($_SESSION[
 try {
   switch ($a) {
     case 'me':
-      out(['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => currentUser(), 'v' => 'admin-2']);
+      out(['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => currentUser(), 'v' => 'admin-3']);
 
     case 'login': {
       if ($method !== 'POST') fail('Metode salah.', 405);
@@ -396,16 +417,19 @@ try {
       $hint = $newCode ? substr($newCode, -4) : $old['code_hint'];
       $email = str($in, 'email', 120);
       if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) fail('Format email tidak valid.');
+      $avatar = $old['avatar'] ?? '';
+      if (isset($_FILES['avatar']) && ($_FILES['avatar']['error'] ?? 4) === UPLOAD_ERR_OK) { $new = saveAvatar($_FILES['avatar']); delUpload($avatar); $avatar = $new; }
+      elseif (!empty($in['clearAvatar'])) { delUpload($avatar); $avatar = ''; }
       saveMember(['username' => $username, 'name' => $name, 'code_hash' => $hash, 'code_hint' => $hint, 'plan' => $plan,
         'expires' => $expires, 'active' => !empty($in['active']) ? 1 : 0, 'created_at' => $old['created_at'] ?? gmdate('c'),
         'last_login' => $old['last_login'] ?? null, 'email' => $email !== '' ? $email : ($old['email'] ?? ''),
-        'phone' => str($in, 'phone', 30) ?: ($old['phone'] ?? ''), 'role' => 'member'], $pdo);
+        'phone' => str($in, 'phone', 30) ?: ($old['phone'] ?? ''), 'role' => 'member', 'avatar' => $avatar], $pdo);
       $st->execute([$username]);
       out(['ok' => true, 'member' => publicMember($st->fetch()), 'code' => $newCode]);
     }
 
     case 'orders': {
-      requireAdmin();
+      requireSuperAdmin();
       $rows = db()->query('SELECT * FROM orders ORDER BY created_at DESC LIMIT 200')->fetchAll();
       $log = db()->query('SELECT ts, ip, event, verified, headers, note FROM webhook_log ORDER BY id DESC LIMIT 15')->fetchAll();
       out(['ok' => true, 'orders' => array_map('publicOrder', $rows), 'log' => $log, 'settings' => [
@@ -417,7 +441,7 @@ try {
     }
 
     case 'order_action': {
-      requireAdmin();
+      requireSuperAdmin();
       $in = input(); $id = str($in, 'id', 80); $act = str($in, 'action', 20);
       $o = findOrder($id);
       if (!$o) fail('Pesanan tidak ditemukan.', 404);
@@ -444,7 +468,7 @@ try {
     }
 
     case 'settings_save': {
-      requireAdmin();
+      requireSuperAdmin();
       $in = input();
       if (array_key_exists('token', $in) && trim((string)$in['token']) !== '') setSetting('mayar_webhook_token', trim((string)$in['token']));
       if (!empty($in['clearToken'])) setSetting('mayar_webhook_token', '');
@@ -459,7 +483,7 @@ try {
     }
 
     case 'test_email': {
-      requireAdmin();
+      requireSuperAdmin();
       $to = setting('admin_email');
       if (!filter_var($to, FILTER_VALIDATE_EMAIL)) fail('Isi dan simpan email admin dulu.');
       $ok = @mail($to, 'Tes email ResepFoto', "Email dari server ResepFoto berhasil terkirim.
@@ -478,9 +502,35 @@ try {
       out(['ok' => true]);
     }
 
+    case 'avatar_save': {
+      $me = requireUser();
+      @set_time_limit(60);
+      $in = input();
+      $target = strtolower(str($in, 'username', 30));
+      $isSelf = ($target === '' || $target === strtolower((string)$me['username']));
+      if (!$isSelf) requireAdmin();
+      $clear = !empty($in['clearAvatar']);
+      $path = '';
+      if (!$clear) {
+        if (!isset($_FILES['avatar']) || ($_FILES['avatar']['error'] ?? 4) !== UPLOAD_ERR_OK) fail('Pilih atau tempel foto dulu.');
+        $path = saveAvatar($_FILES['avatar']);
+      }
+      // super admin bawaan (akun config) tidak punya baris member: simpan di settings
+      if ($isSelf && ($_SESSION['user']['role'] ?? '') === 'admin') {
+        delUpload(setting('admin_avatar')); setSetting('admin_avatar', $path);
+        out(['ok' => true, 'avatar' => $path]);
+      }
+      $username = $isSelf ? (string)$me['username'] : $target;
+      $m = findMember($username);
+      if (!$m) fail('Member tidak ditemukan.', 404);
+      delUpload($m['avatar'] ?? ''); $m['avatar'] = $path;
+      saveMember($m);
+      out(['ok' => true, 'avatar' => $path, 'username' => $username]);
+    }
+
     /* ---------- AI (Gemini) ---------- */
     case 'ai_settings': {
-      requireAdmin();
+      requireSuperAdmin();
       $key = aiKey();
       $since = gmdate('c', time() - 30 * 86400);
       $st = db()->prepare('SELECT COUNT(*) AS calls, SUM(ok) AS ok, SUM(tokens_in) AS tin, SUM(tokens_out) AS tout, AVG(ms) AS ms FROM ai_log WHERE ts >= ?');
@@ -498,7 +548,7 @@ try {
     }
 
     case 'ai_settings_save': {
-      requireAdmin();
+      requireSuperAdmin();
       $in = input();
       $k = trim((string)($in['apiKey'] ?? ''));
       if ($k !== '') {
@@ -514,7 +564,7 @@ try {
     }
 
     case 'ai_test': {
-      requireAdmin();
+      requireSuperAdmin();
       $r = geminiCall('test', [['text' => 'Balas persis dengan satu kata: SIAP']]);
       out(['ok' => true, 'reply' => mb_substr(trim($r['text']), 0, 60), 'ms' => $r['ms'], 'model' => $r['model']]);
     }
@@ -676,7 +726,7 @@ try {
 
     /* ---------- laporan ---------- */
     case 'report_users': {
-      requireAdmin();
+      requireSuperAdmin();
       $pdo = db();
       $days = dayRange(30); $from = $days[0];
       $members = $pdo->query('SELECT * FROM members')->fetchAll();
@@ -737,7 +787,7 @@ try {
     }
 
     case 'report_ads': {
-      requireAdmin();
+      requireSuperAdmin();
       $pdo = db();
       $n = (int)($_GET['days'] ?? 30); if (!in_array($n, [1, 7, 30, 90], true)) $n = 30;
       $days = dayRange($n); $from = $days[0]; $to = end($days);
@@ -811,7 +861,7 @@ try {
     }
 
     case 'ad_spend_save': {
-      requireAdmin();
+      requireSuperAdmin();
       $in = input();
       $day = str($in, 'day', 10);
       if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $day)) fail('Format tanggal tidak valid.');
