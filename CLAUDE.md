@@ -126,7 +126,13 @@ Kunci `settings`: `admin_hash, admin_avatar, admin_email, mail_from, mayar_webho
 **Email & WhatsApp.** `sendMail()` di `lib.php` memakai SMTP kalau `smtp_host` diisi, kalau tidak `mail()` dengan
 envelope sender (`-f`) supaya Return-Path sejajar dengan `From` — itu syarat SPF/DMARC lolos. Header wajib
 (`Date`, `Message-ID`, `MIME-Version`, body base64) dibuat di `mailHeaders()`; tanpa itu email dinilai spam
-walau SPF & DKIM sudah benar. `waSend()` mengirim lewat Fonnte (`fonnte_token`); `sendAccessWa()` dipanggil
+walau SPF & DKIM sudah benar.
+
+> **Hosting sekarang (Jagoan Hosting) memblokir fungsi `mail()` PHP** — `mail()` selalu mengembalikan `false`
+> tanpa menulis error. Setelan yang bekerja dan sedang dipakai: `smtp_host=localhost`, `smtp_port=25`,
+> `smtp_secure=none`, `smtp_user`/`smtp_pass` kosong (Exim lokal menerima submission tanpa autentikasi lalu
+> merelai keluar). SPF sudah memuat IP server dan cPanel menandatangani DKIM `default._domainkey`, jadi
+> autentikasi tetap lolos. Kalau pindah hosting, cek ulang lewat tab Pesanan → **Kirim email tes**. `waSend()` mengirim lewat Fonnte (`fonnte_token`); `sendAccessWa()` dipanggil
 dari `fulfillOrder()` sesudah email, dan hasilnya disimpan di kolom `orders.wa_sent`.
 
 **Menambah resep massal — paket resep.** `seed-prompts.json` hanya jalan saat tabel `prompts` masih kosong, jadi

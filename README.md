@@ -90,10 +90,12 @@ ingin paket yang sama diimpor ulang. Resep baru memakai `created_at` saat impor,
 - **Iklan**: laporan landing page (pengunjung, corong, kampanye UTM, perangkat), input biaya iklan harian, ROAS/CPA, pembuat link UTM. Aktif setelah landing page di-deploy dan `TRACK_URL = "/api.php"`.
 
 ## Admin: email & WhatsApp (tab Pesanan)
-- **Email**: standarnya lewat pengiriman bawaan server dengan envelope sender (`-f`) agar `Return-Path` sejajar
-  dengan `From`, plus header `Date`/`Message-ID`/`MIME-Version` — syarat SPF & DMARC lolos. Isi host SMTP hanya
-  kalau ingin lewat penyedia lain; kosongkan untuk kembali ke pengiriman server. Tombol **Kirim email tes**
-  bisa diarahkan ke alamat mana saja.
+- **Email**: host SMTP kosong = fungsi `mail()` PHP dengan envelope sender (`-f`) agar `Return-Path` sejajar
+  dengan `From`, plus header `Date`/`Message-ID`/`MIME-Version` — syarat SPF & DMARC lolos. Tombol
+  **Kirim email tes** bisa diarahkan ke alamat mana saja.
+  **Catatan hosting sekarang:** Jagoan Hosting memblokir `mail()` (selalu `false`, tanpa error). Setelan yang
+  dipakai: host `localhost`, port `25`, tanpa enkripsi, pengguna & sandi kosong — Exim lokal menerima lalu
+  merelai keluar, dan SPF/DKIM tetap lolos karena email berangkat dari IP server yang sama.
 - **WhatsApp (Fonnte)**: isi token perangkat dari Fonnte → Device. Kalau terisi, detail akses otomatis dikirim
   ke WhatsApp pembeli sesudah pembayaran lunas (hasilnya tersimpan di kolom `orders.wa_sent` dan tampil
   sebagai pil "WA terkirim"). Nomor admin dipakai untuk notifikasi penjualan baru.

@@ -71,7 +71,7 @@ function render(){
 
     <details class="set-card" style="margin-top:12px"${s.smtpHost ? " open" : ""}>
       <summary style="cursor:pointer;font-weight:700">Pengiriman email ${s.smtpHost ? `<span class="pill ok">via SMTP</span>` : `<span class="pill">via server</span>`}</summary>
-      <p class="muted" style="font-size:12px;margin:8px 0">Biarkan host SMTP kosong untuk memakai pengiriman bawaan server — sudah pakai envelope sender agar SPF &amp; DKIM cocok dan tidak masuk spam. Isi SMTP hanya kalau ingin lewat penyedia lain.</p>
+      <p class="muted" style="font-size:12px;margin:8px 0">Host SMTP kosong = pakai fungsi <code>mail()</code> PHP (sudah dengan envelope sender agar SPF &amp; DKIM cocok). Kalau hosting memblokirnya — tes akan menjawab <i>"mail() gagal"</i> — pakai SMTP server sendiri: host <b>localhost</b>, port <b>25</b>, <b>tanpa enkripsi</b>, pengguna &amp; sandi dikosongkan. Itu setelan yang dipakai sekarang.</p>
       <div class="two">
         <div class="field"><label for="smtp-host">Host SMTP</label><input class="input" id="smtp-host" autocomplete="off" value="${esc(s.smtpHost || "")}" placeholder="kosongkan = pakai server"></div>
         <div class="field"><label for="smtp-port">Port</label><input class="input" id="smtp-port" type="number" value="${esc(String(s.smtpPort || 587))}"></div>
