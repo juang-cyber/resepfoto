@@ -429,8 +429,8 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
 .stars svg{width:16px;height:16px;fill:currentColor;stroke:none}
 .stars.sm svg{width:13px;height:13px}
 .rating b{font-family:var(--display);font-size:18px;color:var(--ink)}
-.live-pill{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 12px;border-radius:99px;background:var(--mint-soft);color:#0B6B44;font-size:12.5px;font-weight:700;margin-top:12px}
-.live-pill i{width:8px;height:8px;border-radius:50%;background:var(--mint);box-shadow:0 0 0 0 rgba(22,163,106,.5);animation:ping 1.8s infinite}
+.live-pill{display:inline-flex;align-items:center;gap:7px;min-height:30px;padding:5px 12px;border-radius:16px;background:var(--mint-soft);color:#0B6B44;font-size:12.5px;font-weight:700;margin-top:12px}
+.live-pill i{flex:none;width:8px;height:8px;border-radius:50%;background:var(--mint);box-shadow:0 0 0 0 rgba(22,163,106,.5);animation:ping 1.8s infinite}
 @keyframes ping{70%{box-shadow:0 0 0 8px rgba(22,163,106,0)}100%{box-shadow:0 0 0 0 rgba(22,163,106,0)}}
 .live-pill[hidden]{display:none}
 /* ---- testimonials ---- */
