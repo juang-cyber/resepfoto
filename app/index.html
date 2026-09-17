@@ -98,7 +98,7 @@ button{cursor:pointer;border:0;background:none;padding:0}
 }
 .stage{position:absolute;inset:0;perspective:1300px;perspective-origin:50% 40%}
 .screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;background:var(--surface);
-  padding:22px 20px 110px;backface-visibility:hidden;transform-origin:50% 50%;scrollbar-width:none}
+  padding:22px 20px 98px;backface-visibility:hidden;transform-origin:50% 50%;scrollbar-width:none}
 .screen::-webkit-scrollbar{display:none}
 .screen.no-tab{padding-bottom:40px}
 
@@ -252,19 +252,20 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 .open-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .open-row a{display:flex;align-items:center;justify-content:center;gap:8px;height:46px;border-radius:14px;border:1.5px solid var(--line);font-weight:700;font-size:13px;color:var(--ink);text-decoration:none}
 .open-row a:hover{border-color:var(--accent);color:var(--accent)}
-.dock{position:absolute;left:0;right:0;bottom:0;padding:14px 20px calc(18px + env(safe-area-inset-bottom,0px));background:linear-gradient(180deg,transparent,var(--surface) 30%);z-index:5}
+.dock{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:center;padding:10px 20px calc(16px + env(safe-area-inset-bottom,0px));background:linear-gradient(180deg,transparent,var(--surface) 34%);z-index:5}
+.dock .btn{width:auto;min-width:170px;height:46px;padding:0 26px;border-radius:999px;font-size:14px;box-shadow:0 10px 24px -10px var(--accent)}
 .mini-row{display:flex;gap:12px;overflow-x:auto;margin:0 -20px;padding:0 20px 4px;scrollbar-width:none}
 .mini-row .card{width:130px;flex:none}
 
 /* ---------- TABBAR ---------- */
-.tabbar{position:absolute;left:14px;right:14px;bottom:14px;height:70px;border-radius:26px;background:var(--surface);border:1px solid var(--line);
+.tabbar{position:absolute;left:14px;right:14px;bottom:14px;height:58px;border-radius:20px;background:var(--surface);border:1px solid var(--line);
   box-shadow:0 18px 40px -18px rgba(18,36,84,.35);display:flex;justify-content:space-around;align-items:center;z-index:10;padding:0 8px calc(env(safe-area-inset-bottom,0px));transition:transform .45s cubic-bezier(.2,.8,.2,1), opacity .3s}
 .tabbar.away{transform:translateY(120%);opacity:0;pointer-events:none}
-.tab{display:grid;justify-items:center;gap:3px;font-size:10.5px;font-weight:700;color:var(--muted);min-width:56px;padding:6px 4px;border-radius:14px}
-.tab .ico{width:22px;height:22px}
+.tab{display:grid;justify-items:center;gap:2px;font-size:10px;font-weight:700;color:var(--muted);min-width:52px;padding:5px 4px;border-radius:14px;transition:color .2s,transform .2s}
+.tab .ico{width:22px;height:22px;transition:transform .25s cubic-bezier(.2,.8,.2,1)}
 .tab[aria-current="page"]{color:var(--accent)}
-.tab[aria-current="page"] .dotline{background:var(--accent)}
-.tab .dotline{width:5px;height:5px;border-radius:50%;background:transparent}
+.tab[aria-current="page"] .ico{transform:translateY(-1px) scale(1.08)}
+.tab .dotline{display:none}
 
 /* ---------- LIST SCREENS ---------- */
 .list{display:grid;gap:10px;grid-template-columns:minmax(0,1fr)}
@@ -939,6 +940,20 @@ const en = () => lang === "en";
 const loc = (p, f) => (en() && p?.[f + "En"]) ? p[f + "En"] : (p?.[f] ?? "");
 const catName = c => { if (!en()) return c; const p = state.prompts.find(x => x.cat === c && x.catEn); return p ? p.catEn : (CAT_EN[c] || c); };
 const planName = p => I18N[lang]["plan." + p] || p;
+function applyCoverText(){
+  const c = state.cover || {};
+  const th = $("#s-login [data-i18n='login.title']"); if (th) th.textContent = (en() ? (c.titleEn || c.title) : c.title) || t("login.title");
+  const sh = $("#s-login [data-i18n='login.sub']"); if (sh) sh.textContent = (en() ? (c.subEn || c.sub) : c.sub) || t("login.sub");
+  const ch = $("#s-login [data-i18n='login.chip']"); if (ch) ch.textContent = c.chip || t("login.chip");
+}
+function applyCover(c){
+  if (!c) return;
+  state.cover = c;
+  const tiles = $$("#s-login .login-hero .tile img");
+  if (!state._coverDefaults) state._coverDefaults = tiles.map(im => im.getAttribute("src"));
+  tiles.forEach((im, i) => { const src = (c.img || [])[i]; im.src = src || state._coverDefaults[i] || ""; });
+  applyCoverText();
+}
 function applyLang(){
   const d = document.documentElement;
   d.lang = lang;
@@ -948,6 +963,7 @@ function applyLang(){
   $$("[data-lang]").forEach(b => b.setAttribute("aria-pressed", b.dataset.lang === lang));
   document.title = en() ? "ResepFoto · Imagine Your Photo" : "ResepFoto · Imagine Your Photo";
   const btn = $("#d-copy-big"); if (btn) btn.innerHTML = icon("copy") + esc(t("detail.copyBig"));
+  applyCoverText();
 }
 function setLang(l){
   if (l !== "id" && l !== "en") return;
@@ -1774,6 +1790,7 @@ $("#s-admin").addEventListener("click", e => {
   try {
     const me = await api("me");
     state.csrf = me.csrf;
+    applyCover(me.cover);
     if (me.user){
       state.user = me.user;
       await loadData();
@@ -1783,12 +1800,13 @@ $("#s-admin").addEventListener("click", e => {
     const err = $("#l-error"); err.textContent = ex.message; err.hidden = false;
   }
 })();
-window.RFAPP = {api, toast, esc, copyText, openSheet, closeSheet, isAdmin, fmtDate, state, renderAll, t, get lang(){ return lang; }, setLang, addAdminTab, openPromptForm, cats, armDelete, imgSrc};
+window.RFAPP = {api, toast, esc, copyText, openSheet, closeSheet, isAdmin, fmtDate, state, renderAll, t, get lang(){ return lang; }, setLang, addAdminTab, openPromptForm, cats, armDelete, imgSrc, applyCover};
 })();
 </script>
 <script src="admin-ext.js?v=4" defer></script>
 <script src="admin-ai.js?v=2" defer></script>
 <script src="admin-reports.js?v=2" defer></script>
 <script src="admin-team.js?v=2" defer></script>
+<script src="admin-cover.js?v=1" defer></script>
 </body>
 </html>

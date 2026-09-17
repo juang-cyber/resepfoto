@@ -90,6 +90,14 @@ function currentUser(): ?array {
 function requireUser(): array { $u = currentUser(); if (!$u) fail('Sesi berakhir. Silakan masuk lagi.', 401); return $u; }
 function requireAdmin(): void { $u = requireUser(); if ($u['role'] !== 'admin') fail('Khusus admin.', 403); }
 function requireSuperAdmin(): array { $u = requireUser(); if (($u['adminRole'] ?? '') !== 'super_admin') fail('Khusus super admin.', 403); return $u; }
+function coverConfig(): array {
+  return [
+    'title' => setting('cover_title'), 'sub' => setting('cover_sub'),
+    'titleEn' => setting('cover_title_en'), 'subEn' => setting('cover_sub_en'),
+    'chip' => setting('cover_chip'),
+    'img' => [setting('cover_img1'), setting('cover_img2'), setting('cover_img3')],
+  ];
+}
 function rowToPrompt(array $r): array {
   return ['id' => $r['id'], 'order' => (int)$r['ord'], 'cat' => $r['cat'], 'title' => $r['title'], 'desc' => $r['descr'],
     'popular' => (bool)$r['popular'], 'tools' => json_decode($r['tools'] ?: '[]', true), 'prompt' => $r['prompt'],
@@ -228,7 +236,22 @@ if ($method === 'POST' && !in_array($a, ['lt'], true) && !hash_equals($_SESSION[
 try {
   switch ($a) {
     case 'me':
-      out(['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => currentUser(), 'v' => 'admin-3']);
+      out(['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => currentUser(), 'cover' => coverConfig(), 'v' => 'admin-4']);
+
+    case 'cover_save': {
+      requireAdmin();
+      @set_time_limit(60);
+      $in = input();
+      foreach (['title' => 'cover_title', 'sub' => 'cover_sub', 'titleEn' => 'cover_title_en', 'subEn' => 'cover_sub_en', 'chip' => 'cover_chip'] as $field => $key) {
+        if (array_key_exists($field, $in)) setSetting($key, mb_substr(trim((string)$in[$field]), 0, 300));
+      }
+      for ($i = 1; $i <= 3; $i++) {
+        $fk = 'img' . $i; $sk = 'cover_img' . $i;
+        if (isset($_FILES[$fk]) && ($_FILES[$fk]['error'] ?? 4) === UPLOAD_ERR_OK) { $new = saveImage($_FILES[$fk]); delUpload(setting($sk)); setSetting($sk, $new); }
+        elseif (!empty($in['clear' . $i])) { delUpload(setting($sk)); setSetting($sk, ''); }
+      }
+      out(['ok' => true, 'cover' => coverConfig()]);
+    }
 
     case 'login': {
       if ($method !== 'POST') fail('Metode salah.', 405);
