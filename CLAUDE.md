@@ -221,9 +221,6 @@ di `/root/.claude/uploads/`.
   jalankan `playwright install`.
 
 ## Backlog / ide
-- Notifikasi WhatsApp otomatis setelah pembayaran (saat ini salin pesan manual). Opsi: Fonnte/Wablas/Watzap
-  (nomor pribadi, murah) atau Meta Cloud API (resmi, perlu verifikasi bisnis).
-- Pindah pengiriman email dari `mail()` bawaan PHP ke SMTP (mis. Brevo) kalau ternyata masuk spam.
 - Cover login: dukung video/animasi ringan; pratinjau langsung di tab Cover.
 - Halaman panduan pembeli (PDF/HTML) yang bisa diunduh dari panel admin.
 - **Ganti foto contoh resep p21–p66.** Foto itu berasal dari slide Instagram akun lain (watermark sudah dipotong,

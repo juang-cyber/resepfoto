@@ -179,8 +179,11 @@ Alur pembayaran + email pernah diuji ujung ke ujung secara lokal: salinan `app/`
 webhook `payment.received` dengan `productName: "ResepFoto Premium"` dan `amount: 79900` → pesanan `state=aktif`,
 `verified=1`, member dibuat sebagai **Premium**, `emailed=1`, email pembeli dan email admin keduanya benar.
 Uji negatif `productName: "Akses Selamanya ResepFoto"` pada nominal sama → terbaca **Standard**, membuktikan
-nama produk yang menentukan. Tes ini membuktikan kodenya benar, **bukan** bahwa email lolos filter spam Gmail —
-`mail()` bawaan PHP sering nyangkut, baru ketahuan setelah transaksi asli pertama.
+nama produk yang menentukan.
+
+Tes itu memakai `mail()` lokal, jadi ia membuktikan logika paket dan isi pesannya benar — **bukan** pengiriman di
+server sungguhan. Di hosting sekarang (Jagoan Hosting) `mail()` justru **selalu gagal**; setelan yang bekerja adalah
+SMTP `localhost:25` tanpa autentikasi. Rinciannya di `CLAUDE.md` root, bagian Email & WhatsApp.
 
 Render: cek di lebar 390px dan 520px, tidak boleh ada luber horizontal. Hormati `prefers-reduced-motion`.
 
@@ -232,6 +235,6 @@ dilampirkan sebagai file atau lewat Drive.
 3. File gambar latar biru untuk CTA penutup; slot `img/bg-final.*` sudah siap.
 4. Label "Satisfaction Guarantee" masih bahasa Inggris — belum diputuskan mau diindonesiakan atau tidak.
 5. FAQ "Ini aplikasi atau apa?" masih memakai frasa "resep prompt siap tempel" — belum diseragamkan jadi "siap pake".
-6. `landing/index.html` versi lama menunggu keputusan untuk dihapus.
-7. Auto-WhatsApp setelah pembayaran (Fonnte/Wablas/Watzap atau Meta Cloud API) — sudah ditawarkan, belum diputuskan.
-8. Pindah dari `mail()` ke SMTP (mis. Brevo, gratis 300/hari) kalau email ternyata masuk spam.
+6. ~~Auto-WhatsApp setelah pembayaran~~ — sudah beres di `main` lewat Fonnte (`sendAccessWa()`, kolom `orders.wa_sent`).
+7. ~~Pindah dari `mail()` ke SMTP~~ — sudah beres di `main`: SMTP `localhost:25`, plus WhatsApp otomatis via Fonnte.
+8. ~~Hapus `landing/index.html`~~ — **jangan**. Itu halaman yang tayang di `/promo`; yang dibangkitkan, bukan yang usang.
