@@ -17,7 +17,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 // jadi keluarannya HARUS landing/index.html — bukan app/promo/.
 const SRC = "landing/mockup.html", OUT = "landing/index.html";
 const LIVE = process.argv.includes("--live");
-let s = readFileSync(SRC, "utf8");
+let s = readFileSync(SRC, "utf8").replace(/\r\n?/g, "\n");   // checkout Windows bisa CRLF; semua pola di bawah memakai \n
 let n = 0;
 const rep = (old, neu, label) => {
   const c = s.split(old).length - 1;
