@@ -22,6 +22,22 @@ Yang **tidak** pernah disentuh: `config.php`, database `data/*.sqlite`, folder `
 ## Setup server baru
 Salin `app/config.example.php` → `config.php` di server lalu isi hash admin & nama database acak.
 
+## Menambah resep secara massal (paket resep)
+`app/data/seed-prompts.json` hanya dipakai saat tabel `prompts` masih kosong, jadi database yang sudah jalan
+tidak bisa diisi lewat situ. Untuk itu ada **paket resep**: file `app/data/pack*-prompts.json` yang diimpor
+otomatis satu kali oleh `importPromptPacks()` di `app/lib.php`.
+
+1. Buat file JSON baru di `app/data/`, formatnya `{"version": "...", "prompts": [...]}`. Tiap resep memakai
+   field `id, order, cat, title, desc, popular, tools, prompt, tips, image, cat_en, title_en, desc_en, tips_en`.
+2. Simpan gambar contohnya di `app/img/` (ikut ter-deploy) dan isi `image` dengan `img/namafile.jpg`.
+3. Daftarkan nama filenya di konstanta `PROMPT_PACKS` (`app/lib.php`).
+4. Push ke `main`. Saat request pertama sesudah deploy, isinya masuk database.
+
+Impornya aman diulang: pakai `INSERT OR IGNORE` (resep yang id-nya sudah ada — misalnya sudah diedit admin —
+tidak tertimpa) dan ditandai selesai lewat kunci `pack_<version>` di tabel `settings`. Ganti `version` kalau
+ingin paket yang sama diimpor ulang. Resep baru memakai `created_at` saat impor, jadi member paket
+**Standard** yang mendaftar sebelum itu tidak otomatis melihatnya.
+
 ## Admin: AI Gemini, laporan
 - **AI Gemini**: isi API key dari Google AI Studio di Admin → AI Gemini. Model default `gemini-3.8-flash` (analisa & link referensi) dan `gemini-3.1-flash-image` (tes generate). Key disimpan di database server, tidak di kode.
 - **Tambah resep**: mode *Link referensi* (link share Gemini/ChatGPT) atau *Upload sendiri* (klik area gambar lalu Ctrl+V / pilih file + tempel prompt → "Isi otomatis dengan Gemini"). Di bawah form ada *Hasil tes internal* (upload/tempel hasil atau generate dengan Gemini).
