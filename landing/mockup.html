@@ -404,8 +404,6 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
 .sum .tot{font-weight:800;font-size:16px;padding-top:6px;border-top:1px dashed var(--line)}
 .pays{display:flex;gap:6px;margin-top:14px;flex-wrap:wrap}
 .pays span{font-size:12px;font-weight:700;padding:6px 10px;border-radius:99px;background:var(--tint);color:var(--blue-d)}
-.wa-help{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:10px;padding:10px;border-radius:12px;font-size:13px;font-weight:700;color:#17964A}
-.wa-help .ico{width:17px;height:17px}
 
 /* toast + confetti */
 .toast{position:fixed;left:50%;top:calc(16px + env(safe-area-inset-top,0px));transform:translate(-50%,-220%);visibility:hidden;z-index:80;background:var(--ink);color:#fff;padding:11px 16px;border-radius:14px;font-weight:700;font-size:13px;transition:transform .4s cubic-bezier(.2,.9,.3,1.2);max-width:calc(100% - 32px)}
@@ -533,7 +531,7 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
 
   <!-- HERO -->
   <section class="hero wrap" id="top">
-    <span class="pill"><b>BARU</b>Resep foto AI siap tempel</span>
+    <span class="pill"><b>BARU</b>Resep foto AI siap pake</span>
     <h1>Sulap foto apa pun jadi <span class="hl">foto impian.</span></h1>
     <p class="sub">Cukup <strong>1 resep</strong>, fotomu auto jadi di <strong>Gemini</strong> atau <strong>ChatGPT</strong>.</p>
 
@@ -666,11 +664,11 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
       <div class="qty"><span id="qty-out">10</span> <small>foto</small></div>
       <input type="range" id="qty" min="1" max="1000" value="10">
       <div class="cmp">
-        <div class="cmp-row"><span>Foto di studio</span><div class="cmp-bar studio" id="bar-studio">Rp 461.000</div></div>
+        <div class="cmp-row"><span>Foto di studio</span><div class="cmp-bar studio" id="bar-studio">Rp 195.700</div></div>
         <div class="cmp-row"><span>ResepFoto</span><div class="cmp-bar rf" id="bar-rf">Rp 79.900</div></div>
       </div>
-      <div class="save"><span>Kamu hemat sekitar</span><b id="save">Rp 381.100</b></div>
-      <p class="assume">*Estimasi mulai Rp 50.000 per foto hasil edit studio dan makin murah per foto untuk jumlah banyak, maksimal sekitar Rp 3.000.000 untuk satu paket studio penuh. Harga studio berbeda di tiap kota.</p>
+      <div class="save"><span>Kamu hemat sekitar</span><b id="save">Rp 115.800</b></div>
+      <p class="assume">*Estimasi Rp 50.000 untuk satu foto hasil edit studio, makin murah per foto untuk jumlah banyak, sampai Rp 3.000.000 untuk satu paket studio penuh di 1000 foto. Harga studio berbeda di tiap kota.</p>
     </div>
   </section>
 
@@ -721,7 +719,7 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
         <button class="btn btn-main btn-block" data-buy="premium">Ambil Premium</button>
       </article>
     </div>
-    <p class="honest"><svg class="ico"><use href="#i-info"/></svg>Berisi resep prompt siap tempel untuk Gemini/ChatGPT (versi gratis bisa). Bayar aman via Mayar (QRIS, transfer bank, e-wallet). Akses dikirim ke email setelah pembayaran.</p>
+    <p class="honest"><svg class="ico"><use href="#i-info"/></svg>Bayar aman via Mayar (QRIS, transfer bank, e-wallet). Akses dikirim ke email setelah pembayaran.</p>
 
     <details class="vs">
       <summary>Bandingkan paket <svg class="ico"><use href="#i-down"/></svg></summary>
@@ -803,7 +801,7 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
     <h2>Fotomu berikutnya bisa jadi foto terbaikmu.</h2>
     <div class="collage"><img src="img/1743d9195b3e3bad.jpg" alt="Hasil resep Potret Sinematik Noir Korek Api"><img src="img/50ab0fd2a6efb6dd.jpg" alt="Hasil resep Foto Anggun di Akuarium Bawah Laut"><img src="img/p58.jpg" alt="Hasil resep Prajurit Steampunk Selfie"></div>
     <button class="btn btn-main btn-block" data-buy="premium">Ambil Premium Sekarang</button>
-    <p class="honest"><svg class="ico"><use href="#i-info"/></svg>Resep prompt siap tempel untuk Gemini/ChatGPT</p>
+    <p class="honest"><svg class="ico"><use href="#i-info"/></svg>Resep Photo siap pake untuk Gemini/ChatGPT</p>
   </section>
   <footer>© 2026 ResepFoto<br>ResepFoto dirancang untuk melengkapi workflow kreatif bersama berbagai platform AI populer, termasuk Gemini™ dan ChatGPT™. Seluruh merek dagang merupakan milik pemiliknya masing-masing.</footer>
 </div>
@@ -819,8 +817,7 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
  <div class="pays"><span>QRIS</span><span>Transfer bank</span><span>E-wallet</span></div>
   <div class="sum"><div><span>Paket</span><span id="sum-plan">Premium</span></div><div><span>Akses</span><span>Selamanya</span></div><div class="tot"><span>Total</span><span id="sum-total">Rp 79.900</span></div></div>
   <button class="btn btn-main btn-block" id="co-send" style="margin-top:14px">Lanjut ke pembayaran</button>
-  <p class="honest"><svg class="ico"><use href="#i-info"/></svg>Produk berupa resep prompt siap tempel untuk Gemini/ChatGPT. Akses dikirim ke email setelah lunas.</p>
-  <button class="wa-help" id="co-help" type="button"><svg class="ico"><use href="#i-wa"/></svg>Ada pertanyaan? Chat admin</button>
+  <p class="honest"><svg class="ico"><use href="#i-info"/></svg>Akses dikirim ke email setelah lunas.</p>
 </div>
 <div class="opop" id="opop" role="status" aria-live="polite"><div class="tx"><strong id="op-name"></strong><span id="op-what"></span><div><span class="st" id="op-st"></span> <span class="ago" id="op-ago"></span></div></div><button class="cl" id="op-close" aria-label="Tutup notifikasi"><svg class="ico"><use href="#i-x"/></svg></button></div>
 <div class="corner-tag" role="note"><img id="ctag-img" src="https://ik.imagekit.io/oziera/contoh.png" alt="CONTOH"></div>
@@ -831,7 +828,6 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
 (() => {
 "use strict";
 /* ---- ubah di sini ---- */
-const WA_NUMBER = "";          // nomor WA admin untuk tombol bantuan, contoh: "6281234567890" (tanpa +)
 const CHECKOUT = {              // link pembayaran Mayar
   standard: "https://kitlab.myr.id/pl/resepfoto-standard",
   premium: "https://kitlab.myr.id/pl/resepfoto-premium"
@@ -1089,7 +1085,10 @@ function renderShots(){
     "Editorial":     ["#E7E2F8","#F4F1FD","#6B4FD0"],
     "Tren Viral":    ["#D6F2E5","#EDFAF3","#0B6B44"]
   };
-  $("#shots").innerHTML = BESTSELLERS.map(r => {
+  // urutan diacak tiap halaman dibuka supaya tiap pengunjung melihat kombinasi berbeda
+  const urut = BESTSELLERS.slice();
+  for (let i = urut.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [urut[i], urut[j]] = [urut[j], urut[i]]; }
+  $("#shots").innerHTML = urut.map(r => {
     const t = TINT[r.cat] || ["#E9EEF8","#F5F8FD","#7481A0"];
     const ph = r.img
       ? `<img loading="lazy" src="${r.img}" alt="Contoh hasil ${r.title}">`
@@ -1113,9 +1112,12 @@ renderAud();
 
 /* ---- calculator ---- */
 const PER_PHOTO = 50000;        // biaya foto pertama di studio
-const STUDIO_MAX = 3000000;     // paket studio penuh: biaya studio melandai ke angka ini
-// makin banyak foto, makin murah per fotonya (seperti paket studio), berhenti di STUDIO_MAX
-const studioCost = q => Math.round(STUDIO_MAX * (1 - Math.exp(-q * PER_PHOTO / STUDIO_MAX)) / 1000) * 1000;
+const STUDIO_MAX = 3000000;     // biaya satu paket studio penuh, tercapai tepat di ujung slider
+const QTY_MAX = 1000;
+// kurva pangkat: foto pertama tepat PER_PHOTO, foto ke-1000 tepat STUDIO_MAX,
+// dan angkanya terus naik di sepanjang slider (tidak mendatar di tengah)
+const STUDIO_K = Math.log(PER_PHOTO / STUDIO_MAX) / Math.log(1 / QTY_MAX);
+const studioCost = q => Math.round(STUDIO_MAX * Math.pow(q / QTY_MAX, STUDIO_K) / 100) * 100;
 function countTo(el, to){
   const from = el._v || 0; el._v = to;
   if (reduce){ el.textContent = rp(to); return; }
@@ -1127,8 +1129,8 @@ function calc(){
   const q = +$("#qty").value;
   const price = PLANS[plan].price;
   const studio = studioCost(q);
-  $("#qty-out").textContent = q >= 1000 ? "1000+" : q;
-  $("#qty").style.setProperty("--fill", ((q - 1) / 999 * 100) + "%");
+  $("#qty-out").textContent = q >= QTY_MAX ? QTY_MAX + "+" : q;
+  $("#qty").style.setProperty("--fill", ((q - 1) / (QTY_MAX - 1) * 100) + "%");
   const max = Math.max(studio, price);
   $("#bar-studio").style.width = Math.max(28, studio / max * 100) + "%";
   $("#bar-rf").style.width = Math.max(28, price / max * 100) + "%";
@@ -1209,10 +1211,6 @@ $("#co-send").addEventListener("click", () => {
   confetti();
   toast("Membuka halaman pembayaran " + PLANS[plan].name + "…");
   setTimeout(() => { const w = window.open(url, "_blank", "noopener"); if (!w) location.href = url; }, reduce ? 0 : 450);
-});
-$("#co-help").addEventListener("click", () => {
-  const msg = `Halo admin ResepFoto, saya mau tanya tentang paket ${PLANS[plan].name}.`;
-  window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
 });
 
 /* ---- confetti ---- */
