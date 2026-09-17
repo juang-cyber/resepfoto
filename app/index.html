@@ -340,6 +340,14 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 .adm-meta{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);padding:0 2px}
 .adm-meta .link{font-size:12px}
 .li .tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.li .by{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:11.5px;color:var(--muted);min-width:0}
+.li .by b{min-width:0}
+.li .by img,.li .by .ph{width:18px;height:18px;border-radius:50%;flex:none}
+.li .by img{object-fit:cover}
+.li .by .ph{display:inline-flex;align-items:center;justify-content:center;background:var(--accent-soft);color:var(--accent-deep);font-size:9px;font-weight:800}
+:root[data-theme="dark"] .li .by .ph{color:var(--accent)}
+.li .by b{font-weight:700;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .li .tags .pill{font-size:10.5px;padding:2px 7px}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .stat{padding:14px 12px;border-radius:18px;background:var(--surface-2)}
@@ -841,7 +849,7 @@ const state = {
   prompts: [], members: [], user: null, csrf: "",
   cat: "", q: "", tool: "",
   current: "login", detailId: null, backTo: "home",
-  favs: new Set(), seg: "prompts",
+  favs: new Set(), authors: {}, seg: "prompts",
   editPrompt: null, editMember: null, pendingImage: null, lastMsg: "", admQ: "", admCat: "", admPop: false
 };
 const $ = (s, r=document) => r.querySelector(s);
@@ -854,6 +862,22 @@ const store = {
 state.favs = new Set(store.get("rf_favs", []));
 const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const imgSrc = p => /^(img|uploads)\/[\w.-]+$/.test(String(p?.image || "")) ? p.image : "img/p01.jpg";
+// Penulis resep (khusus tampilan admin): dari peta authors, atau diri sendiri untuk resep yang baru disimpan.
+const authorOf = p => {
+  const u = String(p?.createdBy || ""); if (!u) return null;
+  const a = (state.authors || {})[u];
+  if (a) return {name: a.name || u, avatar: a.avatar || ""};
+  if (state.user && state.user.username === u) return {name: state.user.name || u, avatar: state.user.avatar || ""};
+  return {name: u, avatar: ""};
+};
+const authorLine = p => {
+  const a = authorOf(p); if (!a) return "";
+  const pic = /^uploads\/[\w.-]+$/.test(a.avatar)
+    ? `<img src="${esc(a.avatar)}" alt="" loading="lazy">`
+    : `<span class="ph" aria-hidden="true">${esc((a.name || "?").trim().charAt(0).toUpperCase() || "?")}</span>`;
+  const label = t("adm.by") + " " + a.name;
+  return `<div class="by" title="${esc(label)}"><span class="sr-only">${esc(t("adm.by"))}</span>${pic}<b>${esc(a.name)}</b></div>`;
+};
 const icon = (id, s="") => `<svg class="ico" ${s ? `style="${s}"` : ""}><use href="#i-${id}"/></svg>`;
 const sorted = () => state.prompts.slice().sort((a,b) => (a.order ?? 999) - (b.order ?? 999));
 const cats = () => [...new Set(sorted().map(p => p.cat).filter(Boolean))];
@@ -907,7 +931,7 @@ const I18N = {
     "adm.stRecipes":"Resep", "adm.stActive":"Member aktif", "adm.stExpired":"Kedaluwarsa",
     "adm.emptyPT":"Belum ada resep", "adm.emptyPP":"Ketuk + untuk menambah resep pertama.",
     "adm.searchPh":"Cari judul, kategori, atau isi prompt…", "adm.resetFilter":"Reset filter", "adm.countOf":"{n} dari {m} resep", "adm.countAll":"{n} resep · {c} kategori",
-    "adm.noEn":"Belum ada EN", "adm.noMatchT":"Tidak ada yang cocok", "adm.noMatchP":"Coba kata lain atau reset filter.",
+    "adm.noEn":"Belum ada EN", "adm.by":"Ditambahkan oleh", "adm.noMatchT":"Tidak ada yang cocok", "adm.noMatchP":"Coba kata lain atau reset filter.",
     "detail.noApp":"Belum punya aplikasinya?", "detail.onStore":"di App Store", "crop.title":"Sesuaikan foto", "crop.apply":"Pakai foto", "crop.hint":"Geser untuk atur posisi, tarik slider untuk zoom. Foto dipotong 1:1.",
     "avatar.updated":"Foto profil diperbarui", "avatar.tooBig":"Foto terlalu besar. Maksimal 8 MB.", "avatar.change":"Ubah foto profil", "lb.close":"Tutup",
     "adm.emptyMT":"Belum ada member", "adm.emptyMP":"Ketuk + untuk menambah pembeli pertama.",
@@ -972,7 +996,7 @@ const I18N = {
     "adm.stRecipes":"Recipes", "adm.stActive":"Active members", "adm.stExpired":"Expired",
     "adm.emptyPT":"No recipes yet", "adm.emptyPP":"Tap + to add the first recipe.",
     "adm.searchPh":"Search title, category, or prompt text…", "adm.resetFilter":"Reset filters", "adm.countOf":"{n} of {m} recipes", "adm.countAll":"{n} recipes · {c} categories",
-    "adm.noEn":"No EN yet", "adm.noMatchT":"Nothing matches", "adm.noMatchP":"Try another word or reset the filters.",
+    "adm.noEn":"No EN yet", "adm.by":"Added by", "adm.noMatchT":"Nothing matches", "adm.noMatchP":"Try another word or reset the filters.",
     "detail.noApp":"Don't have the app?", "detail.onStore":"on the App Store", "crop.title":"Adjust photo", "crop.apply":"Use photo", "crop.hint":"Drag to reposition, use the slider to zoom. The photo is cropped 1:1.",
     "avatar.updated":"Profile photo updated", "avatar.tooBig":"Photo is too large. Max 8 MB.", "avatar.change":"Change profile photo", "lb.close":"Close",
     "adm.emptyMT":"No members yet", "adm.emptyMP":"Tap + to add the first buyer.",
@@ -1062,6 +1086,7 @@ function sessionEnded(){
 async function loadData(){
   const r = await api("prompts");
   state.prompts = r.prompts;
+  state.authors = r.authors || {};
   if (isAdmin()){ const m = await api("members"); state.members = m.members; }
   renderAll();
 }
@@ -1243,7 +1268,8 @@ function renderAdmin(){
     <div class="li">
       <img src="${imgSrc(p)}" alt="">
       <div class="grow"><strong>${esc(loc(p, "title"))}</strong><small>${esc(catName(p.cat))}</small>
-        <div class="tags">${p.popular ? `<span class="pill accent">★ ${esc(t("home.popular"))}</span>` : ""}${(p.tools || []).map(x => `<span class="pill">${esc(x)}</span>`).join("")}${p.titleEn ? `<span class="pill ok">EN ✓</span>` : `<span class="pill warn">${esc(t("adm.noEn"))}</span>`}</div></div>
+        <div class="tags">${p.popular ? `<span class="pill accent">★ ${esc(t("home.popular"))}</span>` : ""}${(p.tools || []).map(x => `<span class="pill">${esc(x)}</span>`).join("")}${p.titleEn ? `<span class="pill ok">EN ✓</span>` : `<span class="pill warn">${esc(t("adm.noEn"))}</span>`}</div>
+        ${authorLine(p)}</div>
       <div class="actions">
         <button class="sq" data-edit-prompt="${esc(p.id)}" aria-label="${esc(t("common.edit", {t: p.title}))}">${icon("edit")}</button>
         <button class="sq danger" data-del-prompt="${esc(p.id)}" aria-label="${esc(t("common.del", {t: p.title}))}">${icon("trash")}</button>
@@ -1298,7 +1324,7 @@ $("#login-form").addEventListener("submit", async e => {
 });
 $("#logout").addEventListener("click", async () => {
   try { await api("logout", {}); } catch {}
-  state.user = null; state.prompts = []; state.members = [];
+  state.user = null; state.prompts = []; state.members = []; state.authors = {};
   go("login", "door", -1);
 });
 

@@ -55,7 +55,10 @@ deploy/         rf-deploy.sh lama (versi SSH) — referensi saja, yang aktif ada
 ## Data
 Tabel: `prompts, members, attempts, settings, orders, webhook_log, ai_log, prompt_tests, events, lt_events, presence, ad_spend`.
 Kolom penting `members`: `username, name, code_hash, code_hint, plan, expires, active, email, phone, role, avatar`.
+Kolom penting `prompts`: `id, ord, cat, title, descr, popular, tools, prompt, tips, image, created_at, updated_at, cat_en, title_en, descr_en, tips_en, created_by`.
 Kunci `settings`: `admin_hash, admin_avatar, admin_email, mail_from, mayar_webhook_token, auto_without_token, gemini_api_key, gemini_model, gemini_image_model, cover_title, cover_sub, cover_title_en, cover_sub_en, cover_chip, cover_img1..3`.
+
+**Penulis resep (`created_by`).** Diisi otomatis dengan username admin yang menyimpan lewat `prompt_save`, dan dipertahankan saat resep diedit admin lain. Resep lama diisi sekali lewat `backfillPromptAuthors()` (ditandai kunci `backfill_created_by` di `settings`): resep dari paket resep atas nama super admin bawaan, sisanya atas nama `LEGACY_PROMPT_AUTHOR`, yang dicocokkan ke akun admin yang ada lewat `resolveAuthorUsername()` supaya foto profilnya ikut terpakai. Endpoint `prompts` hanya menyertakan `createdBy` dan peta `authors` (nama + foto) untuk admin — member biasa tidak melihatnya.
 
 **Menambah resep massal — paket resep.** `seed-prompts.json` hanya jalan saat tabel `prompts` masih kosong, jadi
 database yang sudah dipakai tidak bisa diisi lewat situ. Gunakan **paket resep**: file `data/pack*-prompts.json`

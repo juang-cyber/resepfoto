@@ -10,6 +10,9 @@ const PLAN_LIFETIME = ['Standard', 'Premium', 'Lifetime'];
 const PLAN_ALL = ['Standard', 'Premium', 'Lifetime', 'Bulanan', 'Tahunan'];
 // Paket resep tambahan di data/ — diimpor sekali per versi (lihat importPromptPacks()).
 const PROMPT_PACKS = ['pack2-prompts.json'];
+// Penulis yang dicatatkan untuk resep yang sudah ada sebelum kolom created_by dibuat.
+const LEGACY_PROMPT_AUTHOR = 'daffa';
+const ADMIN_DISPLAY_NAME = 'Admin ResepFoto';
 
 function db(): PDO {
   static $pdo = null;
@@ -50,6 +53,7 @@ function db(): PDO {
     $pdo->exec('ALTER TABLE prompts ADD COLUMN created_at TEXT');
     $pdo->exec("UPDATE prompts SET created_at = COALESCE(updated_at, '2026-09-01T00:00:00+00:00')");
   }
+  if (!in_array('created_by', $cols, true)) $pdo->exec('ALTER TABLE prompts ADD COLUMN created_by TEXT');
   $mcols = array_column($pdo->query('PRAGMA table_info(members)')->fetchAll(), 'name');
   if (!in_array('email', $mcols, true)) $pdo->exec('ALTER TABLE members ADD COLUMN email TEXT');
   if (!in_array('phone', $mcols, true)) $pdo->exec('ALTER TABLE members ADD COLUMN phone TEXT');
@@ -81,7 +85,74 @@ function db(): PDO {
       'plan' => 'Premium', 'expires' => '', 'active' => 1, 'created_at' => gmdate('c'), 'last_login' => null, 'email' => '', 'phone' => ''], $pdo);
   }
   importPromptPacks($pdo, $dir);
+  backfillPromptAuthors($pdo, $dir);
   return $pdo;
+}
+
+/**
+ * Isi kolom created_by untuk resep lama — sekali saja.
+ * Resep dari paket resep dicatat atas nama super admin bawaan, sisanya atas nama
+ * LEGACY_PROMPT_AUTHOR. Resep baru mengisi created_by sendiri lewat `prompt_save`.
+ */
+function backfillPromptAuthors(PDO $pdo, string $dir): void {
+  $chk = $pdo->prepare('SELECT 1 FROM settings WHERE k = ?');
+  $chk->execute(['backfill_created_by']);
+  if ($chk->fetchColumn() !== false) return;
+  try {
+    $pdo->beginTransaction();
+    $pdo->prepare('UPDATE prompts SET created_by = ? WHERE COALESCE(created_by, \'\') = \'\'')
+        ->execute([resolveAuthorUsername($pdo, LEGACY_PROMPT_AUTHOR)]);
+    $admin = defined('ADMIN_USER') ? ADMIN_USER : 'admin';
+    foreach (PROMPT_PACKS as $file) {
+      $path = $dir . '/' . $file;
+      if (!is_file($path)) continue;
+      $pack = json_decode((string)file_get_contents($path), true);
+      if (!is_array($pack) || empty($pack['prompts']) || !is_array($pack['prompts'])) continue;
+      $ids = [];
+      foreach ($pack['prompts'] as $p) if (!empty($p['id'])) $ids[] = (string)$p['id'];
+      if (!$ids) continue;
+      $in = implode(',', array_fill(0, count($ids), '?'));
+      $pdo->prepare("UPDATE prompts SET created_by = ? WHERE id IN ($in)")->execute(array_merge([$admin], $ids));
+    }
+    $pdo->prepare('INSERT OR REPLACE INTO settings (k, v) VALUES (?, ?)')->execute(['backfill_created_by', gmdate('c')]);
+    $pdo->commit();
+  } catch (Throwable $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+  }
+}
+
+/**
+ * Cocokkan nama penulis dengan akun admin yang ada supaya foto profilnya ikut terpakai.
+ * Hanya akun beperan admin/super admin yang dicocokkan — resep memang hanya bisa dibuat admin,
+ * jadi member biasa yang kebetulan senama tidak ikut terpilih. Kalau tidak ada yang cocok,
+ * namanya disimpan apa adanya dan tampil sebagai label tanpa foto.
+ */
+function resolveAuthorUsername(PDO $pdo, string $want): string {
+  $st = $pdo->prepare("SELECT username FROM members WHERE role IN ('admin', 'super_admin') AND lower(username) = lower(?) LIMIT 1");
+  $st->execute([$want]);
+  $u = $st->fetchColumn();
+  if ($u !== false) return (string)$u;
+  $st = $pdo->prepare("SELECT username FROM members WHERE role IN ('admin', 'super_admin') AND lower(name) LIKE lower(?) ORDER BY username LIMIT 1");
+  $st->execute([$want . '%']);
+  $u = $st->fetchColumn();
+  return $u !== false ? (string)$u : $want;
+}
+
+/** Peta penulis resep: username → nama & foto, untuk ditampilkan di panel admin. */
+function promptAuthors(PDO $pdo): array {
+  $admin = defined('ADMIN_USER') ? ADMIN_USER : 'admin';
+  $out = [];
+  $rows = $pdo->query('SELECT DISTINCT created_by FROM prompts WHERE COALESCE(created_by, \'\') <> \'\'')->fetchAll();
+  $st = $pdo->prepare('SELECT name, avatar, role FROM members WHERE username = ?');
+  foreach ($rows as $r) {
+    $u = (string)$r['created_by'];
+    if ($u === $admin) { $out[$u] = ['name' => ADMIN_DISPLAY_NAME, 'avatar' => setting('admin_avatar'), 'role' => 'super_admin']; continue; }
+    $st->execute([$u]);
+    $m = $st->fetch();
+    $out[$u] = ['name' => $m ? (string)$m['name'] : $u, 'avatar' => $m ? (string)($m['avatar'] ?? '') : '',
+      'role' => $m ? (string)($m['role'] ?? 'member') : ''];
+  }
+  return $out;
 }
 
 /**
