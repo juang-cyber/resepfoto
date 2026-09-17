@@ -1,0 +1,1411 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+</head>
+<body>
+<title>ResepFoto — Resep foto AI siap pake</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&family=Caveat:wght@500;600&display=swap">
+<style>
+/* Single light look by design (brand request), all colors painted explicitly */
+:root{
+  --bg:#F3F6FC; --paper:#FFFFFF; --tint:#EEF3FF; --line:#E2E8F3;
+  --ink:#0E1730; --ink2:#3C4763; --muted:#7481A0;
+  --blue:#2B66F6; --blue-d:#1C4BD0; --blue-soft:#E4ECFF;
+  --sun:#FFD23F; --sun-soft:#FFF4C7; --coral:#FF5C7A; --coral-soft:#FFE6EB;
+  --mint:#16A36A; --mint-soft:#DDF5E9;
+  --display:"Bricolage Grotesque", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font:"Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  --hand:"Caveat", "Segoe Script", cursive;
+  --shadow:0 18px 40px -22px rgba(20,40,100,.35);
+  --shadow-lg:0 30px 70px -30px rgba(20,40,100,.45);
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none;padding:0}
+a{color:inherit}
+:focus-visible{outline:2.5px solid var(--blue);outline-offset:3px;border-radius:10px}
+img{display:block}
+.ico{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+/* column: native-mobile width, centered on desktop */
+.page{max-width:480px;margin:0 auto;background:var(--paper);min-height:100%;position:relative;overflow-x:clip;box-shadow:0 0 0 1px var(--line), var(--shadow-lg)}
+@media (min-width:560px){ body{padding-block:24px} .page{border-radius:32px;overflow:hidden} }
+.wrap{padding-inline:20px}
+section{padding-block:44px}
+.eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--blue)}
+h1,h2,h3{margin:0;font-family:var(--display);letter-spacing:-.025em;text-wrap:balance}
+h2{font-size:30px;line-height:1.08;font-weight:800;margin-top:8px}
+.lead{color:var(--ink2);margin:10px 0 0;font-size:15.5px}
+.hl{position:relative;white-space:nowrap;z-index:0}
+.hl::after{content:"";position:absolute;left:-4px;right:-4px;bottom:.08em;height:.38em;background:var(--sun);border-radius:6px;z-index:-1;transform-origin:left;animation:mark 1s .4s cubic-bezier(.2,.8,.2,1) both}
+@keyframes mark{from{transform:scaleX(0)}}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:54px;padding:0 22px;border-radius:18px;font-weight:800;font-size:15.5px;transition:transform .15s, box-shadow .2s, background .2s;text-decoration:none;white-space:nowrap}
+.btn:active{transform:scale(.96)}
+.btn-main{background:var(--blue);color:#fff;box-shadow:0 14px 28px -14px var(--blue)}
+.btn-main:hover{background:var(--blue-d)}
+.btn-ghost{background:var(--tint);color:var(--blue-d)}
+.btn-wa{background:#1FAF55;color:#fff;box-shadow:0 14px 28px -14px #1FAF55}
+.btn-wa:hover{background:#17964A}
+.btn-block{width:100%}
+.honest{font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:flex-start;margin-top:10px}
+.honest .ico{width:15px;height:15px;margin-top:2px;color:var(--blue)}
+
+/* top bar */
+.topbar{position:relative;top:auto;z-index:40;display:flex;align-items:center;justify-content:space-between;padding:10px 20px;background:rgba(255,255,255,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid transparent;transition:border-color .2s}
+.topbar.scrolled{border-bottom-color:var(--line)}
+.brand{display:flex;align-items:center;gap:9px;font-family:var(--display);font-weight:800;font-size:19px;letter-spacing:-.02em;text-decoration:none}
+.logo{width:34px;height:34px;border-radius:11px;background:var(--blue);display:grid;place-items:center;color:#fff}
+.logo .ico{width:19px;height:19px}
+.topbar .btn{height:40px;padding:0 16px;border-radius:13px;font-size:13.5px}
+
+/* hero */
+.hero{padding-top:18px;padding-bottom:28px;position:relative;overflow:hidden}
+.hero::before{content:"";position:absolute;width:420px;height:420px;border-radius:50%;right:-180px;top:-120px;background:radial-gradient(circle,var(--sun-soft),transparent 65%);z-index:0}
+.hero::after{content:"";position:absolute;width:360px;height:360px;border-radius:50%;left:-200px;top:260px;background:radial-gradient(circle,var(--blue-soft),transparent 65%);z-index:0}
+.hero > *{position:relative;z-index:1}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:7px 12px 7px 7px;border-radius:99px;background:var(--paper);border:1px solid var(--line);font-size:12.5px;font-weight:700;box-shadow:var(--shadow)}
+.pill b{display:inline-grid;place-items:center;height:22px;padding:0 8px;border-radius:99px;background:var(--coral);color:#fff;font-size:11px}
+.hero h1{font-size:44px;line-height:1.02;font-weight:800;margin-top:16px}
+.hero .sub{font-size:17px;color:var(--ink2);margin:14px 0 0;font-weight:500}
+.hero .sub strong{color:var(--ink)}
+
+/* compare slider */
+.compare{position:relative;margin-top:22px;aspect-ratio:4/5;max-width:100%;border-radius:28px;overflow:hidden;box-shadow:var(--shadow-lg);touch-action:pan-y;user-select:none;-webkit-user-select:none;background:var(--tint)}
+.compare img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
+.compare .before{clip-path:inset(0 calc(100% - var(--pos,50%)) 0 0)}
+.compare .handle{position:absolute;top:0;bottom:0;left:var(--pos,50%);width:3px;margin-left:-1.5px;background:#fff;box-shadow:0 0 12px rgba(0,0,0,.25)}
+.compare .knob{position:absolute;top:50%;left:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;background:#fff;display:grid;place-items:center;color:var(--blue);box-shadow:0 8px 20px rgba(0,0,0,.25);cursor:ew-resize}
+.compare .tag{position:absolute;top:14px;padding:6px 11px;border-radius:99px;font-size:11.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+.compare .tag.l{left:14px;background:rgba(14,23,48,.72);color:#fff}
+.compare .tag.r{right:14px;background:var(--sun);color:var(--ink)}
+.compare .cap{position:absolute;left:14px;right:14px;bottom:14px;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:18px;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.compare .cap .n{flex:none;width:34px;height:34px;border-radius:11px;background:var(--blue);color:#fff;display:grid;place-items:center}
+.compare .cap strong{display:block;font-size:14px;line-height:1.2}
+.compare .cap span{font-size:12px;color:var(--muted)}
+.compare .hint{position:absolute;left:50%;top:calc(50% + 34px);transform:translateX(-50%);font-size:11px;font-weight:700;color:#fff;background:rgba(14,23,48,.6);padding:4px 9px;border-radius:99px;white-space:nowrap;transition:opacity .3s}
+.ex-tabs{display:flex;gap:8px;margin-top:12px;overflow-x:auto;scrollbar-width:none;margin-inline:-20px;padding-inline:20px}
+.ex-tabs::-webkit-scrollbar{display:none}
+.ex-tab{flex:none;height:36px;padding:0 14px;border-radius:99px;border:1.5px solid var(--line);font-size:13px;font-weight:700;color:var(--ink2);background:var(--paper);position:relative;overflow:hidden}
+.ex-tab[aria-pressed="true"]{border-color:var(--blue);color:var(--blue-d);background:var(--blue-soft)}
+.ex-tab[aria-pressed="true"]::after{content:"";position:absolute;left:0;bottom:0;height:3px;background:var(--blue);width:0;animation:prog var(--dur,4.5s) linear forwards}
+.ex-tab.paused::after{animation-play-state:paused}
+@keyframes prog{to{width:100%}}
+.hero-cta{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:20px}
+.trust{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:16px;font-size:12.5px;font-weight:700;color:var(--ink2)}
+.trust span{display:inline-flex;align-items:center;gap:5px}
+.trust .ico{width:16px;height:16px;color:var(--mint)}
+
+/* marquee */
+.marquee{background:var(--ink);color:#fff;overflow:hidden;padding:13px 0;transform:rotate(-2deg);margin:6px -10px 0;box-shadow:var(--shadow)}
+.marquee .track{display:flex;gap:28px;width:max-content;animation:scroll 26s linear infinite;font-family:var(--display);font-weight:700;font-size:17px;white-space:nowrap}
+.marquee .track span{display:inline-flex;align-items:center;gap:28px}
+.marquee .track span::after{content:"✦";color:var(--sun)}
+@keyframes scroll{to{transform:translateX(-50%)}}
+
+/* problems */
+.probs{display:grid;gap:10px;margin-top:20px}
+.prob{display:flex;gap:12px;align-items:center;padding:14px 16px;border-radius:18px;background:var(--bg);font-weight:600;color:var(--ink2);transition:transform .2s}
+.prob .x{flex:none;width:32px;height:32px;border-radius:10px;background:var(--coral-soft);color:var(--coral);display:grid;place-items:center}
+.prob.solved{background:var(--mint-soft);color:var(--ink)}
+.prob.solved .x{background:var(--mint);color:#fff}
+.relief{position:relative;overflow:hidden;margin-top:16px;padding:20px 18px;border-radius:26px;display:flex;align-items:center;gap:13px;color:#fff;background:linear-gradient(135deg,#3170F9 0%,#2B66F6 46%,#1E51DE 100%);box-shadow:0 18px 34px -18px rgba(43,102,246,.8)}
+.relief::before{content:"";position:absolute;left:-46px;bottom:-84px;width:210px;height:168px;border-radius:50%;background:rgba(255,255,255,.09)}
+.relief::after{content:"";position:absolute;right:-52px;top:-72px;width:196px;height:172px;border-radius:47%;background:rgba(255,255,255,.10)}
+.relief>*{position:relative;z-index:1}
+.relief .rs{flex:none;color:var(--sun);line-height:0}
+.relief .rs svg{width:36px;height:36px;fill:currentColor;stroke:none}
+.relief .rt{flex:1;min-width:0;font-family:var(--display);font-size:21px;font-weight:800;line-height:1.14;letter-spacing:-.02em}
+.relief .rb{flex:none}
+.relief button{background:#fff;color:var(--blue-d);height:44px;padding:0 20px;border-radius:99px;font-family:var(--font);font-size:14px;font-weight:800;box-shadow:0 10px 20px -10px rgba(0,0,0,.45)}
+.relief .rays{position:absolute;top:-10px;right:-8px;width:26px;height:26px;color:rgba(255,255,255,.7);pointer-events:none}
+.relief .rays svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
+
+/* demo phone */
+.demo{background:linear-gradient(180deg,var(--bg),var(--paper))}
+.steps-nav{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:18px}
+.step-btn{text-align:left;padding:10px 10px 12px;border-radius:16px;border:1.5px solid var(--line);background:var(--paper);font-size:12.5px;font-weight:700;color:var(--muted);position:relative;overflow:hidden}
+.step-btn b{display:block;font-family:var(--display);font-size:20px;color:var(--ink2);line-height:1}
+.step-btn[aria-pressed="true"]{border-color:var(--blue);color:var(--ink);background:var(--blue-soft)}
+.step-btn[aria-pressed="true"] b{color:var(--blue)}
+.step-btn .bar{position:absolute;left:0;bottom:0;height:3px;background:var(--blue);width:0}
+.step-btn[aria-pressed="true"] .bar{animation:prog 3.2s linear forwards}
+.step-btn.paused .bar{animation-play-state:paused}
+/* iPhone 17 (Lavender) — digambar dengan CSS, proporsi bodi 71,5 x 149,6 mm & layar 1206 x 2622 */
+.phone{margin:18px auto 0;width:min(300px,100%);aspect-ratio:715/1496;position:relative;padding:1.9%;border-radius:13.8%/6.6%;background:linear-gradient(103deg,#7C73B6 0%,#E8E4F8 8%,#BCB3E4 21%,#A79ED6 44%,#9B92CE 61%,#E1DCF4 81%,#8880C0 100%);box-shadow:var(--shadow-lg),0 0 0 .5px rgba(58,48,108,.4)}
+.phone>.sb{position:absolute;width:1.15%;border-radius:1.5px;background:linear-gradient(90deg,#7A71B2,#D2CCEE 50%,#8C83C1);z-index:0}
+.phone>.sb.l{left:-.85%}
+.phone>.sb.r{right:-.85%}
+.bezel{width:100%;height:100%;border-radius:12.4%/5.8%;background:#08080F;padding:1.66%;box-shadow:inset 0 0 0 1px rgba(255,255,255,.13)}
+.screen{position:relative;width:100%;height:100%;border-radius:11.1%/5.1%;background:#F7F8FC;overflow:hidden}
+.island{position:absolute;top:1.4%;left:50%;transform:translateX(-50%);width:31%;aspect-ratio:125/36.7;border-radius:99px;background:#06060B;z-index:3;display:flex;align-items:center;justify-content:flex-end;padding-right:6.5%}
+.island .cam{width:21%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 34% 30%,#31456F 0%,#141F3A 46%,#04050A 78%)}
+.scene{position:absolute;inset:0;padding:42px 14px 14px;display:flex;flex-direction:column;gap:9px;opacity:0;transform:translateX(24px) scale(.98);transition:opacity .45s, transform .45s cubic-bezier(.2,.8,.2,1);pointer-events:none}
+.scene.on{opacity:1;transform:none}
+.app-h{font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.rcard{display:flex;gap:9px;align-items:center;background:#fff;border-radius:14px;padding:7px;box-shadow:0 4px 12px -8px rgba(20,40,100,.3)}
+.rcard img{width:38px;height:46px;border-radius:9px;object-fit:cover}
+.rcard div{flex:1;min-width:0;font-size:11.5px;font-weight:700;line-height:1.25}
+.rcard small{display:block;color:var(--muted);font-weight:600;font-size:10px}
+.rcard small b{color:#B07D00}
+.rcard .cp{flex:none;font-size:10.5px;font-weight:800;color:#fff;background:var(--blue);padding:6px 9px;border-radius:9px}
+.rcard.active{outline:2px solid var(--blue)}
+.tap{position:absolute;width:34px;height:34px;border-radius:50%;background:rgba(43,102,246,.25);border:2px solid var(--blue);pointer-events:none;opacity:0}
+.scene.on .tap{animation:tap 1.4s .7s ease-out both}
+@keyframes tap{0%{opacity:0;transform:scale(1.6)}30%{opacity:1;transform:scale(.8)}60%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1)}}
+.copied{align-self:center;margin-top:auto;background:var(--ink);color:#fff;font-size:11px;font-weight:800;padding:7px 12px;border-radius:99px;display:flex;gap:6px;align-items:center;opacity:0}
+.scene.on .copied{animation:pop .4s 1.5s both}
+@keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.chat-top{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800}
+.chat-top i{width:24px;height:24px;border-radius:8px;background:linear-gradient(135deg,var(--blue),var(--coral));display:block}
+.bub{max-width:88%;border-radius:16px;padding:8px 10px;font-size:10.5px;line-height:1.45}
+.bub.me{align-self:flex-end;background:var(--blue);color:#fff;border-bottom-right-radius:5px}
+.bub.me img{width:88px;height:108px;object-fit:cover;border-radius:10px}
+.bub.ai{align-self:flex-start;background:#fff;box-shadow:0 4px 12px -8px rgba(20,40,100,.3);border-bottom-left-radius:5px}
+.scene.on .bub{animation:pop .4s both}
+.scene.on .bub:nth-of-type(2){animation-delay:.3s}
+.scene.on .bub:nth-of-type(3){animation-delay:.9s}
+.bub.mono{font-family:var(--mono);font-size:9.5px}
+.typing{display:inline-flex;gap:3px}
+.typing i{width:5px;height:5px;border-radius:50%;background:var(--muted);animation:blink 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes blink{50%{opacity:.25}}
+.result{position:relative;border-radius:16px;overflow:hidden;flex:1;min-height:0}
+.result img{width:100%;height:100%;object-fit:cover}
+.scene.on .result img{animation:develop 1.6s .3s both}
+@keyframes develop{from{filter:blur(14px) brightness(1.6) saturate(0);transform:scale(1.08)}to{filter:none;transform:none}}
+.result .spark{position:absolute;inset:0;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.75) 50%,transparent 70%);transform:translateX(-100%)}
+.scene.on .result .spark{animation:shine 1.2s 1.6s both}
+@keyframes shine{to{transform:translateX(100%)}}
+.saved{display:flex;gap:6px}
+.saved span{flex:1;text-align:center;font-size:10.5px;font-weight:800;padding:8px;border-radius:10px;background:#fff}
+.saved span:first-child{background:var(--blue);color:#fff}
+.demo-note{text-align:center;font-size:12px;color:var(--muted);margin-top:10px}
+
+/* gallery */
+.shots{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;margin:20px -20px 0;padding:4px 20px 14px;scrollbar-width:none}
+.shots::-webkit-scrollbar{display:none}
+.shot{flex:none;width:200px;text-decoration:none;color:var(--ink);scroll-snap-align:start;text-align:left;border-radius:22px;overflow:hidden;background:var(--paper);box-shadow:var(--shadow);transition:transform .25s}
+.shot:active{transform:scale(.97)}
+.shot .ph{position:relative;aspect-ratio:4/5;max-width:100%;overflow:hidden}
+.shot .ph img{width:100%;height:100%;object-fit:cover;transition:transform .5s}
+.shot .noimg{width:100%;height:100%;display:grid;align-content:center;justify-items:center;gap:10px;padding:18px 14px;text-align:center;background:linear-gradient(155deg,var(--c1),var(--c2))}
+.shot .noimg svg{width:40px;height:40px;fill:none;stroke:var(--c3);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;opacity:.9}
+.shot .noimg b{font-family:var(--display);font-size:16px;line-height:1.2;color:var(--ink);letter-spacing:-.01em}
+.shot .noimg i{font-style:normal;font-size:11px;font-weight:700;color:var(--muted)}
+.shot:hover .ph img{transform:scale(1.05)}
+.shot .ph .badge{position:absolute;left:10px;top:10px;background:var(--sun);color:#3A2A00;font-size:11px;font-weight:800;padding:4px 9px;border-radius:99px;box-shadow:0 4px 10px -4px rgba(0,0,0,.35)}
+.shot .meta{padding:11px 13px 13px}
+.shot strong{display:block;font-size:14px;line-height:1.25}
+.shot span{font-size:12px;color:var(--blue);font-weight:700}
+.swipe-hint{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);font-weight:600}
+
+/* features */
+.feat-head{display:grid;grid-template-columns:minmax(0,1fr) 106px;column-gap:8px;align-items:start}
+.feat-head .eyebrow{grid-column:1}
+.feat-head h2{grid-column:1;font-size:27px}
+.feat-head .note{grid-column:2;grid-row:1/3;position:relative;margin-top:2px;font-family:var(--hand);font-size:17px;line-height:1.12;color:var(--muted);text-align:center;transform:rotate(-5deg);pointer-events:none}
+.feat-head .note .arw{display:block;width:60px;height:28px;margin:4px auto 0;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round}
+.feat-head .note .nsp{position:absolute;right:-2px;bottom:-14px;width:17px;height:17px;color:var(--blue);fill:currentColor;stroke:none}
+.sq{position:relative;white-space:nowrap}
+.sq::after{content:"";position:absolute;left:-3px;right:-3px;bottom:-8px;height:10px;background:no-repeat center/100% 100% url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 12'%3E%3Cpath d='M3 5.2c24-3.4 64-4.2 114-1.2' fill='none' stroke='%232B66F6' stroke-width='3.2' stroke-linecap='round'/%3E%3Cpath d='M11 10c19-2 53-2.8 98-1.4' fill='none' stroke='%232B66F6' stroke-width='2.1' stroke-linecap='round' opacity='.7'/%3E%3C/svg%3E")}
+.feats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:26px}
+.feat{padding:16px 14px 18px;border-radius:22px;background:var(--bg);display:grid;gap:6px;align-content:start}
+.feat .fi{width:58px;height:58px;display:block;line-height:0;margin-bottom:2px}
+.feat .fi svg{width:100%;height:100%}
+.feat strong{font-size:15px;line-height:1.25}
+.feat p{margin:0;font-size:12.5px;color:var(--ink2);line-height:1.45}
+.feat.c1{background:#EAF2FE}.feat.c2{background:#FDECF0}.feat.c3{background:#E9F7EF}.feat.c4{background:#FEF5E1}
+.feat.wide{grid-column:1/-1;grid-template-columns:auto 1fr;align-items:center;gap:14px;background:#F1ECFD}
+.feat.wide .fi{width:52px;height:52px;margin:0}
+
+/* audience */
+.aud{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.aud button{display:inline-flex;align-items:center;gap:6px;height:42px;padding:0 15px;border-radius:14px;border:1.5px solid var(--line);font-weight:700;font-size:13.5px;background:var(--paper);transition:all .2s}
+.aud button[aria-pressed="true"]{border-color:var(--coral);background:var(--coral-soft);color:#B8213E}
+.aud-out{margin-top:12px;display:flex;gap:12px;align-items:center;padding:12px;border-radius:20px;background:var(--bg);min-height:92px}
+.aud-out img{width:56px;height:70px;border-radius:12px;object-fit:cover;flex:none}
+.aud-out p{margin:2px 0 0;font-size:13px;color:var(--ink2)}
+
+/* calculator */
+.calc{background:var(--ink);color:#fff;border-radius:30px;padding:24px 20px;margin-top:20px;position:relative;overflow:hidden}
+.calc::after{content:"";position:absolute;right:-60px;top:-60px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(255,210,63,.35),transparent 70%)}
+.calc label{font-weight:700;font-size:14px}
+.calc .qty{font-family:var(--display);font-size:48px;font-weight:800;line-height:1;margin:8px 0 12px;font-variant-numeric:tabular-nums}
+.calc .qty small{font-size:16px;font-weight:600;color:#A9B4CF;font-family:var(--font)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:10px;border-radius:99px;background:linear-gradient(90deg,var(--sun) var(--fill,30%),#2A3657 var(--fill,30%));outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;border-radius:50%;background:#fff;border:6px solid var(--sun);box-shadow:0 4px 12px rgba(0,0,0,.35);cursor:pointer}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#fff;border:6px solid var(--sun);cursor:pointer}
+.cmp{display:grid;gap:10px;margin-top:20px;position:relative;z-index:1}
+.cmp-row{display:grid;grid-template-columns:96px 1fr;gap:10px;align-items:center;font-size:12.5px;color:#C6CFE3}
+.cmp-bar{height:34px;border-radius:10px;display:flex;align-items:center;justify-content:flex-end;padding:0 10px;font-weight:800;font-size:13px;color:var(--ink);transition:width .5s cubic-bezier(.2,.8,.2,1);font-variant-numeric:tabular-nums;white-space:nowrap;min-width:max-content}
+.cmp-bar.studio{background:#FF8FA3}
+.cmp-bar.rf{background:var(--sun)}
+.save{margin-top:18px;padding:14px;border-radius:18px;background:rgba(255,255,255,.08);display:flex;justify-content:space-between;align-items:center;gap:10px;position:relative;z-index:1}
+.save b{white-space:nowrap;font-family:var(--display);font-size:26px;color:var(--sun);font-variant-numeric:tabular-nums}
+.assume{font-size:11px;color:#8D99B8;margin-top:10px;position:relative;z-index:1}
+
+/* pricing */
+.pricing{background:linear-gradient(180deg,var(--paper),var(--tint) 40%,var(--paper))}
+.switch{display:grid;grid-template-columns:1fr 1fr;background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:5px;margin-top:20px;position:relative}
+.switch .thumb{position:absolute;top:5px;bottom:5px;left:5px;width:calc(50% - 5px);border-radius:14px;background:var(--ink);transition:transform .35s cubic-bezier(.3,1.4,.5,1)}
+.switch[data-plan="premium"] .thumb{transform:translateX(100%)}
+.switch button{position:relative;z-index:1;height:44px;border-radius:14px;font-weight:800;font-size:14px;color:var(--ink2);transition:color .25s;display:flex;align-items:center;justify-content:center;gap:6px}
+.switch button[aria-pressed="true"]{color:#fff}
+.switch .hot{font-size:10px;background:var(--coral);color:#fff;padding:2px 6px;border-radius:99px}
+.plans{position:relative;margin-top:16px;perspective:1200px}
+.plan{border-radius:30px;padding:24px 20px;background:var(--paper);border:1.5px solid var(--line);box-shadow:var(--shadow);transition:transform .6s cubic-bezier(.3,1.2,.4,1), opacity .4s;transform-style:preserve-3d}
+.plan[hidden]{display:none!important}
+.plan.flip-in{animation:flipin .55s cubic-bezier(.2,.9,.3,1.1)}
+@keyframes flipin{from{transform:rotateY(-70deg) scale(.92);opacity:0}}
+.plan.premium{border:0;background:linear-gradient(160deg,#fff 0%,#fff 55%,var(--sun-soft) 100%);position:relative;isolation:isolate}
+.plan.premium::before{content:"";position:absolute;inset:-2px;border-radius:32px;background:conic-gradient(from var(--ang,0deg),var(--blue),var(--coral),var(--sun),var(--blue));z-index:-2;animation:spin 5s linear infinite}
+.plan.premium::after{content:"";position:absolute;inset:1px;border-radius:29px;background:linear-gradient(160deg,#fff 0%,#fff 55%,var(--sun-soft) 100%);z-index:-1}
+@property --ang{syntax:"<angle>";inherits:false;initial-value:0deg}
+@keyframes spin{to{--ang:360deg}}
+.plan-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.plan-name{font-family:var(--display);font-size:26px;font-weight:800}
+.ribbon{font-size:11px;font-weight:800;padding:6px 10px;border-radius:99px;background:var(--coral);color:#fff;white-space:nowrap;animation:wiggle 3s ease-in-out infinite}
+@keyframes wiggle{0%,90%,100%{transform:rotate(0)}93%{transform:rotate(-6deg)}96%{transform:rotate(6deg)}}
+.ribbon.calm{background:var(--mint-soft);color:var(--mint);animation:none}
+.price{display:flex;align-items:baseline;gap:6px;margin-top:10px}
+.price .rp{font-weight:800;font-size:18px}
+.price .num{font-family:var(--display);font-size:54px;font-weight:800;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+.price .per{color:var(--muted);font-weight:600;font-size:13px}
+.plan-desc{margin:6px 0 0;color:var(--ink2);font-size:14px}
+.was{display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap}
+.was s{color:var(--muted);font-weight:700;font-size:15.5px;font-variant-numeric:tabular-nums;text-decoration-thickness:2px;text-decoration-color:var(--coral)}
+.was .off{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:99px;background:var(--coral);color:#fff;font-size:11.5px;font-weight:800}
+.checks{list-style:none;padding:0;margin:18px 0 0;display:grid;gap:10px}
+.checks li{display:flex;gap:10px;align-items:flex-start;font-size:14px;font-weight:600}
+.checks li .ck{flex:none;width:22px;height:22px;border-radius:7px;display:grid;place-items:center;background:var(--mint-soft);color:var(--mint)}
+.checks li .ck .ico{width:14px;height:14px;stroke-width:3}
+.checks li.no{color:var(--muted);font-weight:500;text-decoration:line-through;text-decoration-color:rgba(116,129,160,.5)}
+.checks li.no .ck{background:var(--bg);color:var(--muted)}
+.roadmap{margin-top:18px;padding:14px;border-radius:18px;background:var(--paper);border:1px dashed #C9D4EA}
+.roadmap .rt{display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:var(--ink2)}
+.track2{position:relative;height:12px;border-radius:99px;background:var(--bg);margin:10px 0 6px;overflow:hidden}
+.track2 i{position:absolute;inset:0 auto 0 0;width:0;border-radius:99px;background:linear-gradient(90deg,var(--blue),var(--coral));transition:width 1.4s cubic-bezier(.2,.8,.2,1)}
+.miles{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);font-weight:700}
+.plan .btn{margin-top:20px}
+.upsell{margin-top:12px;padding:12px 14px;border-radius:16px;background:var(--sun-soft);font-size:13px;font-weight:600;display:flex;gap:10px;align-items:center}
+.upsell button{margin-left:auto;flex:none;font-weight:800;color:var(--blue-d);text-decoration:underline}
+.vs{margin-top:16px;border-radius:20px;background:var(--paper);border:1px solid var(--line);overflow:hidden}
+.vs summary{list-style:none;cursor:pointer;padding:14px 16px;font-weight:800;display:flex;justify-content:space-between;align-items:center}
+.vs summary::-webkit-details-marker{display:none}
+.vs summary .ico{transition:transform .25s}
+.vs[open] summary .ico{transform:rotate(180deg)}
+.vs-table{overflow-x:auto}
+.vs table{width:100%;border-collapse:collapse;font-size:13px}
+.vs th,.vs td{padding:10px 12px;border-top:1px solid var(--line);text-align:center}
+.vs th:first-child,.vs td:first-child{text-align:left;color:var(--ink2);font-weight:600}
+.vs thead th{font-family:var(--display);font-size:15px}
+.vs .yes{color:var(--mint);font-weight:800}
+.vs .nope{color:var(--muted)}
+.vs s{display:block;color:var(--muted);font-weight:600;font-size:12px;text-decoration-color:var(--coral)}
+
+/* label garansi */
+.guarlabel{position:relative;overflow:hidden;display:flex;align-items:center;gap:12px;margin-top:4px;padding:18px 16px;border-radius:26px;background:linear-gradient(120deg,#E7F6EF 0%,#F2FBF6 44%,#E2F4EB 100%);box-shadow:inset 0 0 0 1px rgba(22,163,106,.14)}
+.guarlabel::before{content:"";position:absolute;right:-56px;top:-52px;width:186px;height:178px;border-radius:46%;background:rgba(22,163,106,.07)}
+.guarlabel::after{content:"";position:absolute;left:-48px;bottom:-68px;width:168px;height:150px;border-radius:50%;background:rgba(22,163,106,.06)}
+.guarlabel>*{position:relative;z-index:1}
+.guarlabel .seal{flex:none;width:76px;height:76px;font-family:var(--display)}
+.guarlabel .tick{flex:none;display:grid;gap:7px;color:rgba(22,163,106,.5)}
+.guarlabel .tick i{display:block;width:11px;height:2.6px;border-radius:2px;background:currentColor}
+.guarlabel .tick i:first-child{transform:rotate(-38deg)}
+.guarlabel .tick i:last-child{transform:rotate(38deg)}
+.guarlabel .gt{flex:1;min-width:0;padding-right:18px}
+.guarlabel h3{font-size:19px;line-height:1.1;color:var(--ink)}
+.guarlabel p{margin:5px 0 0;font-size:13px;color:var(--ink2);line-height:1.4}
+.guarlabel .sp{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:rgba(22,163,106,.4);fill:currentColor;stroke:none}
+
+/* results wall (placeholder for real buyers) */
+.wall{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:18px}
+.wall img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px}
+.wall .send{grid-column:1/-1;display:flex;gap:10px;align-items:center;padding:12px 14px;border-radius:16px;background:var(--bg);font-size:13px;font-weight:600;color:var(--ink2)}
+
+/* faq */
+.faq{margin-top:18px;display:grid;gap:8px}
+.faq details{border-radius:18px;background:var(--bg);padding:0 16px;transition:background .2s}
+.faq details[open]{background:var(--blue-soft)}
+.faq summary{list-style:none;cursor:pointer;padding:16px 0;font-weight:800;display:flex;justify-content:space-between;gap:12px;align-items:center}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary .pm{flex:none;width:26px;height:26px;border-radius:9px;background:var(--paper);display:grid;place-items:center;color:var(--blue);transition:transform .25s}
+.faq details[open] .pm{transform:rotate(45deg)}
+.faq p{margin:0 0 16px;color:var(--ink2);font-size:14px}
+
+/* final */
+.final{position:relative;overflow:hidden;color:#fff;text-align:center;padding-bottom:56px;background:linear-gradient(168deg,#1F5FF0 0%,#2C7AFF 24%,#0E56E8 50%,#2B6FFA 73%,#0F47CC 100%)}
+.final::before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(74deg,transparent 30%,rgba(255,255,255,.30) 38%,transparent 45%),linear-gradient(104deg,transparent 56%,rgba(255,255,255,.20) 63%,transparent 70%),radial-gradient(125% 62% at 8% 4%,rgba(255,255,255,.30),transparent 56%),radial-gradient(100% 55% at 92% 98%,rgba(255,255,255,.22),transparent 58%)}
+.final>*{position:relative;z-index:1}
+.final .glass{position:absolute;z-index:0;border-radius:17px;background:rgba(255,255,255,.17);box-shadow:inset 0 0 0 1px rgba(255,255,255,.34);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);color:rgba(255,255,255,.6);display:grid;place-items:center;pointer-events:none}
+.final .glass svg{width:54%;height:54%;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.final .g1{width:62px;height:62px;left:14px;top:28px;transform:rotate(-8deg)}
+.final .g2{width:78px;height:88px;right:-20px;top:76px;transform:rotate(15deg)}
+.final .g3{width:74px;height:84px;left:-22px;bottom:40px;transform:rotate(11deg)}
+.final .g4{width:66px;height:66px;right:16px;bottom:24px;transform:rotate(-7deg)}
+/* kalau img/bg-final.(jpg|png|webp) ada, gambar asli dipakai dan hiasan CSS dimatikan */
+.final.bg-img{background-color:#1550E0;background-position:center;background-size:cover;background-repeat:no-repeat}
+.final.bg-img::before{display:none}
+.final.bg-img .glass{display:none}
+.final h2{font-size:34px;color:#fff}
+.collage{position:relative;height:210px;margin:26px auto 10px;max-width:320px}
+.collage img{position:absolute;width:118px;height:148px;object-fit:cover;border-radius:18px;border:4px solid #fff;box-shadow:0 18px 30px -12px rgba(0,0,0,.4);transition:transform .4s}
+.collage img:nth-child(1){left:0;top:30px;transform:rotate(-10deg)}
+.collage img:nth-child(2){left:50%;margin-left:-59px;top:0;z-index:2}
+.collage img:nth-child(3){right:0;top:30px;transform:rotate(10deg)}
+.collage:hover img:nth-child(1){transform:rotate(-16deg) translateX(-8px)}
+.collage:hover img:nth-child(3){transform:rotate(16deg) translateX(8px)}
+.final .btn-main{background:#fff;color:var(--blue-d);box-shadow:0 14px 28px -14px rgba(0,0,0,.4)}
+.final .honest{color:#D6E1FF;justify-content:center}
+.final .honest .ico{color:#fff}
+footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px;text-align:center}
+
+/* sticky buy bar */
+.buybar{position:fixed;left:50%;bottom:0;width:min(480px,100%);transform:translate(-50%,110%);z-index:50;padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));transition:transform .45s cubic-bezier(.2,.9,.3,1.1)}
+.buybar.show{transform:translate(-50%,0)}
+.buybar .inner{display:flex;align-items:center;gap:10px;padding:8px 8px 8px 16px;border-radius:22px;background:rgba(14,23,48,.94);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:#fff;box-shadow:var(--shadow-lg)}
+.buybar .sel{flex:1;min-width:0;text-align:left}
+.buybar .sel small{display:block;font-size:11px;color:#A9B4CF;font-weight:600}
+.buybar .sel strong{font-size:15px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.buybar .sel .swap{display:block;font-size:11px;color:var(--sun);font-weight:800}
+.buybar .btn{height:48px;border-radius:16px;padding:0 16px;font-size:14px}
+
+/* checkout sheet */
+.scrim{position:fixed;inset:0;background:rgba(14,23,48,.5);z-index:60;opacity:0;transition:opacity .3s}
+.scrim.show{opacity:1}
+.sheet{position:fixed;left:50%;bottom:0;width:min(480px,100%);max-height:92%;overflow-y:auto;transform:translate(-50%,105%);z-index:61;background:var(--paper);border-radius:30px 30px 0 0;padding:10px 20px calc(22px + env(safe-area-inset-bottom,0px));transition:transform .45s cubic-bezier(.2,.9,.3,1.05)}
+.sheet.show{transform:translate(-50%,0)}
+.grab{width:44px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 16px}
+.sheet h3{font-size:24px}
+.opt{display:flex;align-items:center;gap:12px;padding:14px;border-radius:18px;border:2px solid var(--line);margin-top:10px;cursor:pointer;transition:all .2s}
+.opt input{accent-color:var(--blue);width:20px;height:20px;flex:none}
+.opt:has(input:checked){border-color:var(--blue);background:var(--blue-soft)}
+.opt .grow{flex:1}
+.opt strong{display:block}
+.opt small{color:var(--muted);font-size:12px}
+.opt .p{font-family:var(--display);font-weight:800;font-size:19px;font-variant-numeric:tabular-nums;text-align:right;line-height:1.15}
+.opt .p s{display:block;font-family:var(--font);font-size:11px;font-weight:700;color:var(--muted);text-decoration-color:var(--coral)}
+.field{display:grid;gap:6px;margin-top:14px}
+.field label{font-size:13px;font-weight:700;color:var(--ink2)}
+.input{height:52px;border-radius:14px;border:1.5px solid var(--line);background:var(--bg);padding:0 14px;outline:none;width:100%}
+.input:focus{border-color:var(--blue);background:var(--paper)}
+.sum{margin-top:16px;padding:14px;border-radius:16px;background:var(--bg);display:grid;gap:6px;font-size:13.5px}
+.sum div{display:flex;justify-content:space-between}
+.sum .tot{font-weight:800;font-size:16px;padding-top:6px;border-top:1px dashed var(--line)}
+.pays{display:flex;gap:6px;margin-top:14px;flex-wrap:wrap}
+.pays span{font-size:12px;font-weight:700;padding:6px 10px;border-radius:99px;background:var(--tint);color:var(--blue-d)}
+
+/* toast + confetti */
+.toast{position:fixed;left:50%;top:calc(16px + env(safe-area-inset-top,0px));transform:translate(-50%,-220%);visibility:hidden;z-index:80;background:var(--ink);color:#fff;padding:11px 16px;border-radius:14px;font-weight:700;font-size:13px;transition:transform .4s cubic-bezier(.2,.9,.3,1.2);max-width:calc(100% - 32px)}
+.toast.show{transform:translate(-50%,0);visibility:visible}
+.mock-banner{background:#3A2A00;color:#FFE58A;text-align:center;font-size:13px;font-weight:800;letter-spacing:.2em;padding:6px 12px}
+.stickwrap{position:sticky;top:0;z-index:45}
+.confetti{position:fixed;inset:0;pointer-events:none;z-index:70}
+
+/* ---- brand lockup ---- */
+.brand-lock{display:block;width:132px;color:var(--ink)}
+.brand-lock svg{display:block;width:100%;height:auto}
+/* ---- preview label (contoh) ---- */
+.demo-tag{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:6px;background:var(--sun);color:#3A2A00;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;flex:none}
+/* ---- rating ---- */
+.rating{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px;font-size:13px;color:var(--ink2)}
+.stars{display:inline-flex;gap:2px;color:#F5B400}
+.stars svg{width:16px;height:16px;fill:currentColor;stroke:none}
+.stars.sm svg{width:13px;height:13px}
+.rating b{font-family:var(--display);font-size:18px;color:var(--ink)}
+.live-pill{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 12px;border-radius:99px;background:var(--mint-soft);color:#0B6B44;font-size:12.5px;font-weight:700;margin-top:12px}
+.live-pill i{width:8px;height:8px;border-radius:50%;background:var(--mint);box-shadow:0 0 0 0 rgba(22,163,106,.5);animation:ping 1.8s infinite}
+@keyframes ping{70%{box-shadow:0 0 0 8px rgba(22,163,106,0)}100%{box-shadow:0 0 0 0 rgba(22,163,106,0)}}
+.live-pill[hidden]{display:none}
+/* ---- testimonials ---- */
+.t-panel{position:relative;margin-top:2px;padding:20px 16px 18px;border-radius:28px;background:linear-gradient(170deg,#FFFFFF 0%,#F7FAFF 52%,#EFF4FE 100%);box-shadow:inset 0 0 0 1px var(--line)}
+.t-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.t-intro{flex:1;min-width:0}
+.t-intro h2{font-size:23px;margin-top:6px}
+.t-sub{margin:9px 0 0;font-size:12.5px;color:var(--ink2);line-height:1.45}
+.t-sub[hidden]{display:none}
+.t-score{flex:none;width:116px;display:grid;justify-items:center;gap:3px;padding:13px 10px;border-radius:19px;background:#E9F1FE;text-align:center}
+.t-score[hidden]{display:none}
+.t-score .big{font-family:var(--display);font-size:33px;font-weight:800;line-height:1;color:var(--ink)}
+.t-score small{color:var(--muted);font-size:11px;line-height:1.3}
+.t-stage{position:relative;margin-top:16px}
+.t-arw{position:absolute;top:50%;z-index:3;width:34px;height:34px;border-radius:50%;background:var(--paper);box-shadow:0 8px 18px -8px rgba(20,40,100,.55),0 0 0 1px var(--line);display:grid;place-items:center;color:var(--ink2);transform:translateY(-50%)}
+.t-arw svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.t-arw.prev{left:-17px}
+.t-arw.next{right:-17px}
+.t-arw:active{transform:translateY(-50%) scale(.92)}
+.t-viewport{overflow:hidden;margin:0 -16px;padding:4px 0 8px;touch-action:pan-y}
+.t-track{display:flex;gap:12px;padding-inline:16px;transition:transform .5s cubic-bezier(.22,.8,.24,1);will-change:transform}
+.t-card{flex:none;width:calc(100% - 32px);max-width:420px;background:var(--paper);border:1px solid var(--line);border-radius:22px;padding:16px;box-shadow:0 16px 32px -22px rgba(20,40,100,.5);display:grid;gap:13px}
+.t-top{display:flex;align-items:center;gap:11px}
+.t-ava{width:46px;height:46px;border-radius:50%;flex:none;overflow:hidden;background:var(--tint);box-shadow:0 0 0 2px #fff,0 0 0 3.5px var(--blue-soft)}
+.t-ava img{width:100%;height:100%;border-radius:50%;object-fit:cover;border:0}
+.t-who{flex:1;min-width:0}
+.t-who strong{display:block;font-size:15px;line-height:1.2}
+.t-who a{display:block;font-size:12px;color:var(--muted);text-decoration:none}
+.t-who .stars{margin-top:3px}
+.t-who .stars svg{width:14px;height:14px}
+.t-body{display:grid;gap:12px}
+.t-txt{display:grid;gap:7px;align-content:start}
+.t-card h3{font-size:17px;line-height:1.22}
+.t-card p{margin:0;color:var(--ink2);font-size:13.5px;line-height:1.5}
+.t-chip{justify-self:start;display:inline-flex;align-items:center;height:26px;padding:0 11px;border-radius:99px;background:var(--blue-soft);color:var(--blue-d);font-size:12px;font-weight:700}
+.t-photo{border-radius:14px;overflow:hidden;aspect-ratio:16/10}
+.t-photo img{width:100%;height:100%;object-fit:cover}
+@media (min-width:420px){.t-body{grid-template-columns:minmax(0,1fr) 148px;align-items:stretch}
+  .t-photo{aspect-ratio:auto;min-height:152px}}
+.t-dots{display:flex;justify-content:center;gap:6px;margin-top:10px}
+.t-dots button{width:8px;height:8px;border-radius:99px;background:#CBD7EC;transition:width .2s,background .2s}
+.t-dots button[aria-current="true"]{width:22px;background:var(--blue)}
+.t-empty{margin-top:14px;padding:14px;border-radius:16px;border:1.5px dashed var(--line);font-size:13px;color:var(--ink2)}
+/* ---- order popup ---- */
+.opop{position:fixed;left:12px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:70;max-width:min(300px,calc(100% - 120px));display:flex;gap:10px;align-items:center;background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:10px 34px 10px 14px;box-shadow:var(--shadow-lg);transform:translateY(20px) scale(.96);opacity:0;pointer-events:none;transition:transform .22s ease-out,opacity .22s ease-out}
+@media (min-width:560px){.opop{left:24px;bottom:24px}}
+.opop.show{transform:none;opacity:1;pointer-events:auto}
+.opop img{width:46px;height:46px;border-radius:12px;object-fit:cover;flex:none}
+.opop .tx{min-width:0;font-size:13px;line-height:1.35}
+.opop .tx strong{display:block}
+.opop .st{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;margin-top:3px}
+.opop .st.paid{color:var(--mint)}
+.opop .st.wait{color:#B7700A}
+.opop .ago{color:var(--muted);font-size:11.5px}
+.opop .cl{position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:var(--muted)}
+.opop .cl svg{width:13px;height:13px}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-logo" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="14" rx="4"/><path d="M8.5 6l1.4-2.2h4.2L15.5 6"/><circle cx="12" cy="13" r="3.6"/></symbol>
+  <symbol id="rf-lockup-t" viewBox="0 0 558.15 139.67"><path d="M84.29 30.88L39.52 30.88C19.52 30.88 6.18 44.18 6.18 64.13L6.18 94.53C6.18 105.93 9.99 112.58 18.57 118.28L18.57 133.48L38.57 121.13L78.57 121.13C99.53 121.13 113.81 106.88 113.81 86.93L113.81 55.58" fill="none" stroke="#5C8BFF" stroke-width="12.37" stroke-linecap="round" stroke-linejoin="round"/><path d="M27.14 94.53L47.14 70.78C49.68 67.62 52.54 67.62 55.71 70.78L68.09 85.03L74.76 77.43C76.67 75.53 78.57 75.85 80.48 78.38L93.81 94.53C96.99 98.97 96.03 101.18 90.95 101.18L31.9 101.18C26.18 101.18 24.6 98.97 27.14 94.53" fill="#5C8BFF"/><path d="M92.86 62.23C92.86 62.79 92.8 63.35 92.69 63.9C92.58 64.45 92.42 64.99 92.21 65.5C91.99 66.02 91.73 66.52 91.41 66.98C91.1 67.45 90.75 67.88 90.35 68.28C89.95 68.68 89.52 69.03 89.05 69.34C88.58 69.65 88.09 69.92 87.57 70.13C87.05 70.35 86.51 70.51 85.96 70.62C85.41 70.73 84.85 70.78 84.29 70.78C83.72 70.78 83.17 70.73 82.61 70.62C82.06 70.51 81.53 70.35 81.01 70.13C80.49 69.92 79.99 69.65 79.52 69.34C79.06 69.03 78.62 68.68 78.22 68.28C77.83 67.88 77.47 67.45 77.16 66.98C76.85 66.52 76.58 66.02 76.37 65.5C76.15 64.99 75.99 64.45 75.88 63.9C75.77 63.35 75.71 62.79 75.71 62.23C75.71 61.67 75.77 61.12 75.88 60.56C75.99 60.01 76.15 59.48 76.37 58.96C76.58 58.44 76.85 57.95 77.16 57.48C77.47 57.02 77.83 56.58 78.22 56.19C78.62 55.79 79.06 55.44 79.52 55.12C79.99 54.81 80.49 54.55 81.01 54.33C81.53 54.12 82.06 53.96 82.61 53.85C83.17 53.74 83.72 53.68 84.29 53.68C84.85 53.68 85.41 53.74 85.96 53.85C86.51 53.96 87.05 54.12 87.57 54.33C88.09 54.55 88.58 54.81 89.05 55.12C89.52 55.44 89.95 55.79 90.35 56.19C90.75 56.58 91.1 57.02 91.41 57.48C91.73 57.95 91.99 58.44 92.21 58.96C92.42 59.48 92.58 60.01 92.69 60.56C92.8 61.12 92.86 61.67 92.86 62.23" fill="#5C8BFF"/><path d="M109.05 6.18C113.1 18.3 113.1 18.3 125.24 22.33C113.1 26.37 113.1 26.37 109.05 38.48C105 26.37 105 26.37 92.86 22.33C105 18.3 105 18.3 109.05 6.18" fill="#5C8BFF"/><path d="M132.86 35.63C135.01 42.05 135.01 42.05 141.43 44.18C135.01 46.32 135.01 46.32 132.86 52.73C130.72 46.32 130.72 46.32 124.29 44.18C130.72 42.05 130.72 42.05 132.86 35.63" fill="#5C8BFF"/><path d="M167.68 84.08L179.71 84.08L179.71 63.78L190.26 63.78C190.3 63.78 190.34 63.78 190.38 63.78L200.69 84.08L213.58 84.08L201.9 61.52C208.42 58.52 212.29 52.76 212.29 45.08C212.29 33.39 204.09 26.03 190.96 26.03L167.68 26.03L167.68 84.08M179.71 54.16L179.71 36L190.22 36C196.59 36 200.53 39.55 200.53 45.08C200.53 50.61 196.59 54.16 190.26 54.16L179.71 54.16" fill="currentColor"/><path d="M236.28 85.02C246.28 85.02 254.25 79.33 255.77 71.15L245.26 71.15C244.21 74.34 241.12 76.41 236.63 76.41C230.57 76.41 227.06 72.47 226.86 66.39L256.2 66.39L256.2 63.31C256.2 50.77 248.04 42 235.89 42C224.05 42 215.65 51 215.65 63.55C215.65 76.06 223.78 85.02 236.28 85.02M226.94 59.07C227.57 53.92 230.96 50.73 236.12 50.73C241.32 50.73 244.76 53.92 245.34 59.07L226.94 59.07" fill="currentColor"/><path d="M279.52 85.1C290.31 85.1 297.81 79.72 297.81 71.5C297.81 65.46 293.98 61.87 285.66 60.24L277.84 58.72C274.68 58.05 272.84 56.69 272.84 54.59C272.84 52.13 275.23 50.22 279.17 50.22C283.24 50.22 286.05 52.68 286.13 55.99L296.79 55.99C296.56 47.42 289.53 42.08 278.86 42.08C268.12 42.08 261.36 47.22 261.36 55.02C261.36 61.41 265.62 65.46 273.63 67.02L280.85 68.42C284.21 69.08 286.21 70.37 286.21 72.55C286.21 75.08 283.59 76.87 279.33 76.87C274.84 76.87 272.18 74.73 271.75 71.15L260.42 71.15C261.12 79.99 268.82 85.1 279.52 85.1" fill="currentColor"/><path d="M322.81 85.02C332.81 85.02 340.78 79.33 342.3 71.15L331.8 71.15C330.74 74.34 327.65 76.41 323.16 76.41C317.11 76.41 313.59 72.47 313.39 66.39L342.73 66.39L342.73 63.31C342.73 50.77 334.57 42 322.42 42C310.58 42 302.18 51 302.18 63.55C302.18 76.06 310.31 85.02 322.81 85.02M313.47 59.07C314.1 53.92 317.5 50.73 322.65 50.73C327.85 50.73 331.29 53.92 331.87 59.07L313.47 59.07" fill="currentColor"/><path d="M348.91 100.37L360.43 100.37L360.43 77.93L360.55 77.93C362.93 82.56 367.11 84.94 372.54 84.94C383.32 84.94 390.4 76.37 390.4 63.47C390.4 50.85 383.17 42.08 372.62 42.08C367.27 42.08 362.93 44.22 360.39 48.51L360.28 48.51L360.28 42.94L348.91 42.94L348.91 100.37M369.57 75.59C363.75 75.59 359.88 70.83 359.88 63.47C359.88 56.15 363.75 51.35 369.57 51.35C375.16 51.35 378.79 55.76 378.79 63.47C378.79 71.19 375.16 75.59 369.57 75.59" fill="currentColor"/><path d="M397 84.08L409.03 84.08L409.03 60.55L435.52 60.55L435.52 50.57L409.03 50.57L409.03 36.31L437.47 36.31L437.47 26.03L397 26.03L397 84.08" fill="#5C8BFF"/><path d="M461.81 85.02C474.35 85.02 482.79 76.45 482.79 63.55C482.79 50.65 474.35 42 461.81 42C449.31 42 440.87 50.65 440.87 63.55C440.87 76.45 449.31 85.02 461.81 85.02M461.81 75.71C456.22 75.71 452.47 71.19 452.47 63.55C452.47 55.87 456.26 51.31 461.81 51.31C467.4 51.31 471.18 55.87 471.18 63.55C471.18 71.19 467.43 75.71 461.81 75.71" fill="#5C8BFF"/><path d="M512.83 42.94L504.39 42.94L504.39 31.71L492.87 31.71L492.87 42.94L485.76 42.94L485.76 51.94L492.87 51.94L492.87 73.17C492.87 80.65 497.05 84.08 506.11 84.08L512.83 84.08L512.83 75.08L508.41 75.08C505.29 75.08 504.39 74.19 504.39 71.38L504.39 51.94L512.83 51.94L512.83 42.94" fill="#5C8BFF"/><path d="M537.17 85.02C549.71 85.02 558.15 76.45 558.15 63.55C558.15 50.65 549.71 42 537.17 42C524.67 42 516.23 50.65 516.23 63.55C516.23 76.45 524.67 85.02 537.17 85.02M537.17 75.71C531.58 75.71 527.83 71.19 527.83 63.55C527.83 55.87 531.62 51.31 537.17 51.31C542.75 51.31 546.54 55.87 546.54 63.55C546.54 71.19 542.79 75.71 537.17 75.71" fill="#5C8BFF"/><path d="M167.26 109.3H169.38V125.88H167.26Z" fill="currentColor"/><path d="M173.15 125.88L175.16 125.88L175.16 118.05C175.16 116.06 176.49 115.04 177.95 115.04C179.35 115.04 180.39 115.96 180.39 117.34L180.39 125.88L182.4 125.88L182.4 117.76C182.4 116.19 183.43 115.04 185.11 115.04C186.45 115.04 187.64 115.75 187.64 117.54L187.64 125.88L189.65 125.88L189.65 117.49C189.65 114.61 187.88 113.21 185.72 113.21C183.91 113.21 182.38 114.18 181.79 115.75C181.34 114.22 180.25 113.21 178.61 113.21C177.13 113.21 175.73 114.04 175.11 115.72L175.1 113.44L173.15 113.44L173.15 125.88" fill="currentColor"/><path d="M196.67 126.17C198.78 126.17 199.95 125.07 200.37 124.19L200.51 124.19L200.51 125.88L202.48 125.88L202.48 117.68C202.48 113.79 199.48 113.28 197.81 113.28C195.87 113.28 193.73 113.97 192.77 116.23L194.7 116.87C195.09 116 196.06 115.04 197.86 115.04C199.59 115.04 200.47 115.93 200.47 117.48L200.47 117.54C200.47 118.47 199.49 118.4 197.27 118.68C194.96 118.97 192.41 119.49 192.41 122.34C192.41 124.79 194.3 126.17 196.67 126.17M197.01 124.4C195.52 124.4 194.43 123.73 194.43 122.44C194.43 121.03 195.72 120.56 197.18 120.37C197.95 120.27 200.14 120.05 200.47 119.66L200.47 121.39C200.47 122.91 199.23 124.4 197.01 124.4" fill="currentColor"/><path d="M211.07 130.8C214.1 130.8 216.5 129.42 216.5 126.21L216.5 113.44L214.55 113.44L214.55 115.43L214.36 115.43C213.93 114.76 213.13 113.28 210.72 113.28C207.61 113.28 205.41 115.75 205.41 119.6C205.41 123.51 207.68 125.68 210.68 125.68C213.09 125.68 213.88 124.31 214.3 123.6L214.49 123.6L214.49 126.09C214.49 128.14 213.05 129.06 211.07 129.06C208.87 129.06 208.09 127.94 207.56 127.22L205.93 128.27C206.7 129.63 208.3 130.8 211.07 130.8M211.01 123.9C208.67 123.9 207.45 122.12 207.45 119.56C207.45 117.08 208.63 115.07 211.01 115.07C213.31 115.07 214.52 116.92 214.52 119.56C214.52 122.28 213.28 123.9 211.01 123.9" fill="currentColor"/><path d="M220.03 125.88L222.04 125.88L222.04 113.44L220.03 113.44L220.03 125.88M221.04 111.4C221.81 111.4 222.45 110.81 222.45 110.07C222.45 109.34 221.81 108.75 221.04 108.75C220.29 108.75 219.65 109.34 219.65 110.07C219.65 110.81 220.29 111.4 221.04 111.4" fill="currentColor"/><path d="M227.57 118.42C227.57 116.3 228.92 115.08 230.72 115.08C232.46 115.08 233.53 116.23 233.53 118.15L233.53 125.88L235.54 125.88L235.54 117.98C235.54 114.83 233.85 113.28 231.32 113.28C229.65 113.28 228.31 113.98 227.51 115.74L227.5 113.44L225.57 113.44L225.57 125.88L227.57 125.88L227.57 118.42" fill="currentColor"/><path d="M244.32 126.15C246.87 126.15 248.74 124.87 249.32 122.99L247.38 122.45C246.91 123.72 245.8 124.37 244.33 124.37C242.12 124.37 240.6 122.94 240.5 120.34L249.52 120.34L249.52 119.5C249.52 114.91 246.73 113.28 244.08 113.28C240.68 113.28 238.47 115.94 238.47 119.76C238.47 123.59 240.7 126.15 244.32 126.15M240.51 118.65C240.63 116.74 241.94 115.06 244.08 115.06C246.14 115.06 247.29 116.53 247.48 118.65L240.51 118.65" fill="currentColor"/><path d="M263.76 125.88L265.88 125.88L265.88 119.09L272 109.3L269.55 109.3L266.27 114.65C265.74 115.53 265.29 116.29 264.84 117.36C264.4 116.32 263.95 115.56 263.39 114.65L260.1 109.3L257.64 109.3L263.76 119.09L263.76 125.88" fill="currentColor"/><path d="M277.67 126.15C281.07 126.15 283.37 123.58 283.37 119.74C283.37 115.84 281.07 113.28 277.67 113.28C274.28 113.28 271.99 115.84 271.99 119.74C271.99 123.58 274.28 126.15 277.67 126.15M277.67 124.36C275.18 124.36 274.03 122.19 274.03 119.74C274.03 117.26 275.18 115.07 277.67 115.07C280.19 115.07 281.34 117.27 281.34 119.74C281.34 122.19 280.19 124.36 277.67 124.36" fill="currentColor"/><path d="M290.53 126.04C292.17 126.04 293.53 125.37 294.34 123.56L294.34 125.88L296.29 125.88L296.29 113.44L294.27 113.44L294.27 120.9C294.27 123.02 292.92 124.24 291.13 124.24C289.39 124.24 288.31 123.09 288.31 121.17L288.31 113.44L286.3 113.44L286.3 121.34C286.3 124.49 288 126.04 290.53 126.04" fill="currentColor"/><path d="M299.81 125.88L301.82 125.88L301.82 118.09C301.82 116.41 303.14 115.2 304.94 115.2C305.47 115.2 306.02 115.28 306.14 115.31L306.14 113.29C305.91 113.28 305.42 113.26 305.13 113.26C303.64 113.26 302.35 114.09 301.89 115.35L301.76 115.35L301.76 113.44L299.81 113.44L299.81 125.88" fill="currentColor"/><path d="M315.09 125.88L317.22 125.88L317.22 119.88L320.8 119.88C324.67 119.88 326.46 117.53 326.46 114.57C326.46 111.62 324.67 109.3 320.79 109.3L315.09 109.3L315.09 125.88M317.22 118.02L317.22 111.15L320.68 111.15C323.33 111.15 324.35 112.61 324.35 114.57C324.35 116.54 323.33 118.02 320.7 118.02L317.22 118.02" fill="currentColor"/><path d="M331.46 118.42C331.46 116.3 332.81 115.08 334.61 115.08C336.35 115.08 337.42 116.23 337.42 118.15L337.42 125.88L339.44 125.88L339.44 117.98C339.44 114.83 337.73 113.28 335.21 113.28C333.58 113.28 332.27 113.94 331.46 115.6L331.46 109.3L329.45 109.3L329.45 125.88L331.46 125.88L331.46 118.42" fill="currentColor"/><path d="M348.04 126.15C351.45 126.15 353.75 123.58 353.75 119.74C353.75 115.84 351.45 113.28 348.04 113.28C344.65 113.28 342.36 115.84 342.36 119.74C342.36 123.58 344.65 126.15 348.04 126.15M348.04 124.36C345.56 124.36 344.41 122.19 344.41 119.74C344.41 117.26 345.56 115.07 348.04 115.07C350.57 115.07 351.72 117.27 351.72 119.74C351.72 122.19 350.57 124.36 348.04 124.36" fill="currentColor"/><path d="M361.58 113.44L359.02 113.44L359.02 110.48L357.01 110.48L357.01 113.44L355.13 113.44L355.13 115.15L357.01 115.15L357.01 122.81C357.01 124.85 358.28 126.04 360.43 126.04C360.95 126.04 361.52 125.96 361.93 125.82L361.52 124.12C361.18 124.19 360.75 124.26 360.49 124.26C359.43 124.26 359.02 123.77 359.02 122.65L359.02 115.15L361.58 115.15L361.58 113.44" fill="currentColor"/><path d="M369.01 126.15C372.41 126.15 374.71 123.58 374.71 119.74C374.71 115.84 372.41 113.28 369.01 113.28C365.61 113.28 363.33 115.84 363.33 119.74C363.33 123.58 365.61 126.15 369.01 126.15M369.01 124.36C366.52 124.36 365.37 122.19 365.37 119.74C365.37 117.26 366.52 115.07 369.01 115.07C371.53 115.07 372.68 117.27 372.68 119.74C372.68 122.19 371.53 124.36 369.01 124.36" fill="currentColor"/></symbol>
+<symbol id="rf-lockup" viewBox="0 0 558.15 139.67"><path d="M84.29 30.88L39.52 30.88C19.52 30.88 6.18 44.18 6.18 64.13L6.18 94.53C6.18 105.93 9.99 112.58 18.57 118.28L18.57 133.48L38.57 121.13L78.57 121.13C99.53 121.13 113.81 106.88 113.81 86.93L113.81 55.58" fill="none" stroke="#5C8BFF" stroke-width="12.37" stroke-linecap="round" stroke-linejoin="round"/><path d="M27.14 94.53L47.14 70.78C49.68 67.62 52.54 67.62 55.71 70.78L68.09 85.03L74.76 77.43C76.67 75.53 78.57 75.85 80.48 78.38L93.81 94.53C96.99 98.97 96.03 101.18 90.95 101.18L31.9 101.18C26.18 101.18 24.6 98.97 27.14 94.53" fill="#5C8BFF"/><path d="M92.86 62.23C92.86 62.79 92.8 63.35 92.69 63.9C92.58 64.45 92.42 64.99 92.21 65.5C91.99 66.02 91.73 66.52 91.41 66.98C91.1 67.45 90.75 67.88 90.35 68.28C89.95 68.68 89.52 69.03 89.05 69.34C88.58 69.65 88.09 69.92 87.57 70.13C87.05 70.35 86.51 70.51 85.96 70.62C85.41 70.73 84.85 70.78 84.29 70.78C83.72 70.78 83.17 70.73 82.61 70.62C82.06 70.51 81.53 70.35 81.01 70.13C80.49 69.92 79.99 69.65 79.52 69.34C79.06 69.03 78.62 68.68 78.22 68.28C77.83 67.88 77.47 67.45 77.16 66.98C76.85 66.52 76.58 66.02 76.37 65.5C76.15 64.99 75.99 64.45 75.88 63.9C75.77 63.35 75.71 62.79 75.71 62.23C75.71 61.67 75.77 61.12 75.88 60.56C75.99 60.01 76.15 59.48 76.37 58.96C76.58 58.44 76.85 57.95 77.16 57.48C77.47 57.02 77.83 56.58 78.22 56.19C78.62 55.79 79.06 55.44 79.52 55.12C79.99 54.81 80.49 54.55 81.01 54.33C81.53 54.12 82.06 53.96 82.61 53.85C83.17 53.74 83.72 53.68 84.29 53.68C84.85 53.68 85.41 53.74 85.96 53.85C86.51 53.96 87.05 54.12 87.57 54.33C88.09 54.55 88.58 54.81 89.05 55.12C89.52 55.44 89.95 55.79 90.35 56.19C90.75 56.58 91.1 57.02 91.41 57.48C91.73 57.95 91.99 58.44 92.21 58.96C92.42 59.48 92.58 60.01 92.69 60.56C92.8 61.12 92.86 61.67 92.86 62.23" fill="#5C8BFF"/><path d="M109.05 6.18C113.1 18.3 113.1 18.3 125.24 22.33C113.1 26.37 113.1 26.37 109.05 38.48C105 26.37 105 26.37 92.86 22.33C105 18.3 105 18.3 109.05 6.18" fill="#5C8BFF"/><path d="M132.86 35.63C135.01 42.05 135.01 42.05 141.43 44.18C135.01 46.32 135.01 46.32 132.86 52.73C130.72 46.32 130.72 46.32 124.29 44.18C130.72 42.05 130.72 42.05 132.86 35.63" fill="#5C8BFF"/><path d="M167.68 84.08L179.71 84.08L179.71 63.78L190.26 63.78C190.3 63.78 190.34 63.78 190.38 63.78L200.69 84.08L213.58 84.08L201.9 61.52C208.42 58.52 212.29 52.76 212.29 45.08C212.29 33.39 204.09 26.03 190.96 26.03L167.68 26.03L167.68 84.08M179.71 54.16L179.71 36L190.22 36C196.59 36 200.53 39.55 200.53 45.08C200.53 50.61 196.59 54.16 190.26 54.16L179.71 54.16" fill="currentColor"/><path d="M236.28 85.02C246.28 85.02 254.25 79.33 255.77 71.15L245.26 71.15C244.21 74.34 241.12 76.41 236.63 76.41C230.57 76.41 227.06 72.47 226.86 66.39L256.2 66.39L256.2 63.31C256.2 50.77 248.04 42 235.89 42C224.05 42 215.65 51 215.65 63.55C215.65 76.06 223.78 85.02 236.28 85.02M226.94 59.07C227.57 53.92 230.96 50.73 236.12 50.73C241.32 50.73 244.76 53.92 245.34 59.07L226.94 59.07" fill="currentColor"/><path d="M279.52 85.1C290.31 85.1 297.81 79.72 297.81 71.5C297.81 65.46 293.98 61.87 285.66 60.24L277.84 58.72C274.68 58.05 272.84 56.69 272.84 54.59C272.84 52.13 275.23 50.22 279.17 50.22C283.24 50.22 286.05 52.68 286.13 55.99L296.79 55.99C296.56 47.42 289.53 42.08 278.86 42.08C268.12 42.08 261.36 47.22 261.36 55.02C261.36 61.41 265.62 65.46 273.63 67.02L280.85 68.42C284.21 69.08 286.21 70.37 286.21 72.55C286.21 75.08 283.59 76.87 279.33 76.87C274.84 76.87 272.18 74.73 271.75 71.15L260.42 71.15C261.12 79.99 268.82 85.1 279.52 85.1" fill="currentColor"/><path d="M322.81 85.02C332.81 85.02 340.78 79.33 342.3 71.15L331.8 71.15C330.74 74.34 327.65 76.41 323.16 76.41C317.11 76.41 313.59 72.47 313.39 66.39L342.73 66.39L342.73 63.31C342.73 50.77 334.57 42 322.42 42C310.58 42 302.18 51 302.18 63.55C302.18 76.06 310.31 85.02 322.81 85.02M313.47 59.07C314.1 53.92 317.5 50.73 322.65 50.73C327.85 50.73 331.29 53.92 331.87 59.07L313.47 59.07" fill="currentColor"/><path d="M348.91 100.37L360.43 100.37L360.43 77.93L360.55 77.93C362.93 82.56 367.11 84.94 372.54 84.94C383.32 84.94 390.4 76.37 390.4 63.47C390.4 50.85 383.17 42.08 372.62 42.08C367.27 42.08 362.93 44.22 360.39 48.51L360.28 48.51L360.28 42.94L348.91 42.94L348.91 100.37M369.57 75.59C363.75 75.59 359.88 70.83 359.88 63.47C359.88 56.15 363.75 51.35 369.57 51.35C375.16 51.35 378.79 55.76 378.79 63.47C378.79 71.19 375.16 75.59 369.57 75.59" fill="currentColor"/><path d="M397 84.08L409.03 84.08L409.03 60.55L435.52 60.55L435.52 50.57L409.03 50.57L409.03 36.31L437.47 36.31L437.47 26.03L397 26.03L397 84.08" fill="#5C8BFF"/><path d="M461.81 85.02C474.35 85.02 482.79 76.45 482.79 63.55C482.79 50.65 474.35 42 461.81 42C449.31 42 440.87 50.65 440.87 63.55C440.87 76.45 449.31 85.02 461.81 85.02M461.81 75.71C456.22 75.71 452.47 71.19 452.47 63.55C452.47 55.87 456.26 51.31 461.81 51.31C467.4 51.31 471.18 55.87 471.18 63.55C471.18 71.19 467.43 75.71 461.81 75.71" fill="#5C8BFF"/><path d="M512.83 42.94L504.39 42.94L504.39 31.71L492.87 31.71L492.87 42.94L485.76 42.94L485.76 51.94L492.87 51.94L492.87 73.17C492.87 80.65 497.05 84.08 506.11 84.08L512.83 84.08L512.83 75.08L508.41 75.08C505.29 75.08 504.39 74.19 504.39 71.38L504.39 51.94L512.83 51.94L512.83 42.94" fill="#5C8BFF"/><path d="M537.17 85.02C549.71 85.02 558.15 76.45 558.15 63.55C558.15 50.65 549.71 42 537.17 42C524.67 42 516.23 50.65 516.23 63.55C516.23 76.45 524.67 85.02 537.17 85.02M537.17 75.71C531.58 75.71 527.83 71.19 527.83 63.55C527.83 55.87 531.62 51.31 537.17 51.31C542.75 51.31 546.54 55.87 546.54 63.55C546.54 71.19 542.79 75.71 537.17 75.71" fill="#5C8BFF"/></symbol>
+<symbol id="rf-mark" viewBox="0 0 147.62 139.67"><path d="M84.29 30.88L39.52 30.88C19.52 30.88 6.18 44.18 6.18 64.13L6.18 94.53C6.18 105.93 9.99 112.58 18.57 118.28L18.57 133.48L38.57 121.13L78.57 121.13C99.53 121.13 113.81 106.88 113.81 86.93L113.81 55.58" fill="none" stroke="#5C8BFF" stroke-width="12.37" stroke-linecap="round" stroke-linejoin="round"/><path d="M27.14 94.53L47.14 70.78C49.68 67.62 52.54 67.62 55.71 70.78L68.09 85.03L74.76 77.43C76.67 75.53 78.57 75.85 80.48 78.38L93.81 94.53C96.99 98.97 96.03 101.18 90.95 101.18L31.9 101.18C26.18 101.18 24.6 98.97 27.14 94.53" fill="#5C8BFF"/><path d="M92.86 62.23C92.86 62.79 92.8 63.35 92.69 63.9C92.58 64.45 92.42 64.99 92.21 65.5C91.99 66.02 91.73 66.52 91.41 66.98C91.1 67.45 90.75 67.88 90.35 68.28C89.95 68.68 89.52 69.03 89.05 69.34C88.58 69.65 88.09 69.92 87.57 70.13C87.05 70.35 86.51 70.51 85.96 70.62C85.41 70.73 84.85 70.78 84.29 70.78C83.72 70.78 83.17 70.73 82.61 70.62C82.06 70.51 81.53 70.35 81.01 70.13C80.49 69.92 79.99 69.65 79.52 69.34C79.06 69.03 78.62 68.68 78.22 68.28C77.83 67.88 77.47 67.45 77.16 66.98C76.85 66.52 76.58 66.02 76.37 65.5C76.15 64.99 75.99 64.45 75.88 63.9C75.77 63.35 75.71 62.79 75.71 62.23C75.71 61.67 75.77 61.12 75.88 60.56C75.99 60.01 76.15 59.48 76.37 58.96C76.58 58.44 76.85 57.95 77.16 57.48C77.47 57.02 77.83 56.58 78.22 56.19C78.62 55.79 79.06 55.44 79.52 55.12C79.99 54.81 80.49 54.55 81.01 54.33C81.53 54.12 82.06 53.96 82.61 53.85C83.17 53.74 83.72 53.68 84.29 53.68C84.85 53.68 85.41 53.74 85.96 53.85C86.51 53.96 87.05 54.12 87.57 54.33C88.09 54.55 88.58 54.81 89.05 55.12C89.52 55.44 89.95 55.79 90.35 56.19C90.75 56.58 91.1 57.02 91.41 57.48C91.73 57.95 91.99 58.44 92.21 58.96C92.42 59.48 92.58 60.01 92.69 60.56C92.8 61.12 92.86 61.67 92.86 62.23" fill="#5C8BFF"/><path d="M109.05 6.18C113.1 18.3 113.1 18.3 125.24 22.33C113.1 26.37 113.1 26.37 109.05 38.48C105 26.37 105 26.37 92.86 22.33C105 18.3 105 18.3 109.05 6.18" fill="#5C8BFF"/><path d="M132.86 35.63C135.01 42.05 135.01 42.05 141.43 44.18C135.01 46.32 135.01 46.32 132.86 52.73C130.72 46.32 130.72 46.32 124.29 44.18C130.72 42.05 130.72 42.05 132.86 35.63" fill="#5C8BFF"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 16l.7 1.8 1.8.7-1.8.7L19 21l-.7-1.8-1.8-.7 1.8-.7z"/></symbol>
+  <symbol id="i-arrows" viewBox="0 0 24 24"><path d="M9 7l-5 5 5 5M15 7l5 5-5 5"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11" height="11" rx="2.5"/><path d="M15.5 8.5V6A1.5 1.5 0 0 0 14 4.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+  <symbol id="i-wa" viewBox="0 0 24 24"><path d="M4 20l1.3-3.9A8 8 0 1 1 8 18.8z"/><path d="M9 9.5c.2 2.4 2.6 4.8 5 5l1.2-1.4-1.9-.9-.8.8a4 4 0 0 1-2-2l.8-.8-.9-1.9z"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-face" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 10h.01M15 10h.01M8.5 14.5c2 2 5 2 7 0"/></symbol>
+  <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6L4.5 18.5A1.7 1.7 0 0 0 6 21h12a1.7 1.7 0 0 0 1.5-2.5L14 9V3"/><path d="M7 15h10"/></symbol>
+  <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="18" rx="2.5"/><path d="M11 18h2"/></symbol>
+  <symbol id="i-hand" viewBox="0 0 24 24"><path d="M8 13V6.5a1.5 1.5 0 0 1 3 0V12M11 11V4.5a1.5 1.5 0 0 1 3 0V11M14 11V6.5a1.5 1.5 0 0 1 3 0V14a7 7 0 0 1-7 7h-.5a6 6 0 0 1-4.6-2.2L3.5 16a1.5 1.5 0 0 1 2.3-1.9L8 16"/></symbol>
+  <symbol id="i-gift" viewBox="0 0 24 24"><rect x="3.5" y="8.5" width="17" height="4" rx="1"/><path d="M5 12.5V20h14v-7.5M12 8.5V20M12 8.5S10.5 4 8 4.5 7 8.5 12 8.5zM12 8.5S13.5 4 16 4.5 17 8.5 12 8.5z"/></symbol>
+  <symbol id="i-swipe" viewBox="0 0 24 24"><path d="M4 12h14M14 8l4 4-4 4"/></symbol>
+  <symbol id="f-face" viewBox="0 0 64 64"><rect x="5" y="11" width="41" height="34" rx="8" fill="#D7E6FE"/><rect x="5" y="11" width="41" height="34" rx="8" fill="none" stroke="#2B66F6" stroke-width="3"/><circle cx="16.5" cy="22" r="4.2" fill="#FFD23F"/><path d="M9 39l10.5-11 8 8 5-5L45 40" fill="none" stroke="#2B66F6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="46" cy="41" r="13.5" fill="#2B66F6"/><circle cx="41.4" cy="38" r="2" fill="#fff"/><circle cx="50.6" cy="38" r="2" fill="#fff"/><path d="M41 44.4c2.7 2.7 7.3 2.7 10 0" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/><path d="M54 12l2.2 2.2M58.5 20H61M53 24.5l2-2" stroke="#2B66F6" stroke-width="2.8" stroke-linecap="round" fill="none"/></symbol>
+  <symbol id="f-flask" viewBox="0 0 64 64"><path d="M25 9v14L13.5 43A6 6 0 0 0 18.7 52h15.6A6 6 0 0 0 39.5 43L28 23V9z" fill="#FFDDE4" stroke="#FF5C7A" stroke-width="3" stroke-linejoin="round"/><path d="M21 9h11" stroke="#FF5C7A" stroke-width="3.4" stroke-linecap="round"/><path d="M18.6 38h15.8l5.1 5A6 6 0 0 1 34.3 52H18.7a6 6 0 0 1-5.2-9z" fill="#FF8FA3"/><path d="M26.5 25.5l1.6 4.2 4.2 1.6-4.2 1.6-1.6 4.2-1.6-4.2-4.2-1.6 4.2-1.6z" fill="#fff"/><rect x="38" y="29" width="22" height="18" rx="6" fill="#FF3355"/><text x="49" y="42" text-anchor="middle" fill="#fff" font-size="12" font-weight="800">AI</text><path d="M45 13l2.2 2.2M52 8.5v3M56 17h3" stroke="#FF5C7A" stroke-width="2.8" stroke-linecap="round" fill="none"/></symbol>
+  <symbol id="f-bulb" viewBox="0 0 64 64"><rect x="27" y="33" width="32" height="21" rx="7" fill="#DCF2E6"/><path d="M34 41h18M34 47.5h12" stroke="#16A36A" stroke-width="3" stroke-linecap="round"/><path d="M22 9a14.5 14.5 0 0 0-8.6 26.2c1.6 1.2 2.6 3 2.6 5h12c0-2 1-3.8 2.6-5A14.5 14.5 0 0 0 22 9z" fill="#FFD23F"/><path d="M16 44.5h12M18.5 50h7" stroke="#B07D00" stroke-width="3" stroke-linecap="round"/><path d="M22 21.5v9" stroke="#fff" stroke-width="2.8" stroke-linecap="round"/><path d="M41 13l2.2 2.2M48 8.5v3M52.5 17h3" stroke="#16A36A" stroke-width="2.8" stroke-linecap="round" fill="none"/></symbol>
+  <symbol id="f-copy" viewBox="0 0 64 64"><g transform="rotate(-9 22 30)"><rect x="8" y="13" width="28" height="34" rx="7" fill="#8FB5FC"/></g><rect x="16" y="15" width="30" height="37" rx="7" fill="#2B66F6"/><path d="M23 26h16M23 33.5h16M23 41h10" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".92"/><path d="M40.5 37.5L55 46l-6.3 1.5L45.5 54z" fill="#0E1730"/><path d="M51 12l2.2 2.2M57 19.5h3M48.5 7.5v3" stroke="#FFC107" stroke-width="2.8" stroke-linecap="round" fill="none"/></symbol>
+  <symbol id="f-lock" viewBox="0 0 64 64"><rect x="17" y="5" width="30" height="53" rx="9" fill="#2E2A45"/><rect x="21" y="11.5" width="22" height="39" rx="5" fill="#F3F0FE"/><rect x="26" y="26" width="12" height="11.5" rx="3" fill="#7C5CE0"/><path d="M28.6 26v-3.6a3.4 3.4 0 0 1 6.8 0V26" fill="none" stroke="#7C5CE0" stroke-width="2.6"/><path d="M52 16l3 1.8M56.5 25.5h3M50.5 9.5l1.5-2.6" stroke="#7C5CE0" stroke-width="2.8" stroke-linecap="round" fill="none"/><path d="M11 21.5l-2.4 2.4M7.5 31h-3M12.5 13l-2-2" stroke="#7C5CE0" stroke-width="2.8" stroke-linecap="round" fill="none"/></symbol>
+  <symbol id="g-photo" viewBox="0 0 24 24"><rect x="3" y="4.6" width="18" height="15" rx="3.6"/><circle cx="8.6" cy="10" r="1.5"/><path d="M4 16.4l4.8-5 3.4 3.4 2.4-2.4L20 17"/><path d="M18.6 2.6l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/></symbol>
+  <symbol id="g-photo-plus" viewBox="0 0 24 24"><rect x="3" y="4.6" width="18" height="15" rx="3.6"/><circle cx="8.6" cy="10" r="1.5"/><path d="M4 16.4l4.8-5 3.4 3.4 2.4-2.4L20 17"/><path d="M18.6 1.8v4.2M16.5 3.9h4.2"/></symbol>
+  <symbol id="i-left" viewBox="0 0 24 24"><path d="M14.5 6L9 12l5.5 6"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24"><path d="M9.5 6l5.5 6-5.5 6"/></symbol>
+</svg>
+
+<div class="page">
+  <div class="stickwrap">
+  <header class="topbar" id="topbar">
+    <a class="brand-lock" href="#top" aria-label="ResepFoto, Imagine Your Photo"><svg viewBox="0 0 558.15 139.67"><use href="#rf-lockup-t"/></svg></a>
+    <a class="btn btn-main" href="#harga">Lihat Paket</a>
+  </header>
+  </div>
+
+  <!-- HERO -->
+  <section class="hero wrap" id="top">
+    <span class="pill"><b>BARU</b>Resep foto AI siap pake</span>
+    <h1>Sulap foto apa pun jadi <span class="hl">foto impian.</span></h1>
+    <p class="sub">Cukup <strong>1 resep</strong>, fotomu auto jadi di <strong>Gemini</strong> atau <strong>ChatGPT</strong>.</p>
+
+    <div class="compare" id="compare" style="--pos:50%">
+      <img id="cmp-after" src="img/ra2.jpg" alt="Sesudah: foto hasil resep">
+      <img id="cmp-before" class="before" src="img/rb2.jpg" alt="Sebelum: foto asli">
+      <span class="tag l">Sebelum</span><span class="tag r">Sesudah</span>
+      <div class="handle"><button class="knob" id="knob" aria-label="Geser untuk membandingkan sebelum dan sesudah"><svg class="ico"><use href="#i-arrows"/></svg></button></div>
+      <span class="hint" id="cmp-hint">Geser untuk lihat</span>
+      <div class="cap"><span class="n"><svg class="ico"><use href="#i-spark"/></svg></span><div><strong id="cmp-title">Headshot Profesional</strong><span id="cmp-sub">Foto duduk biasa → potret latar gelap</span></div></div>
+    </div>
+    <div class="ex-tabs" id="ex-tabs" role="tablist" aria-label="Contoh hasil"></div>
+
+    <div class="hero-cta">
+      <a class="btn btn-main" href="#harga">Ambil Resepnya</a>
+      <a class="btn btn-ghost" href="#galeri" aria-label="Lihat contoh hasil">Contoh</a>
+    </div>
+    <a class="rating" id="hero-rating" href="#testimoni" hidden></a>
+    <div class="live-pill" id="live-pill" hidden><i></i><span id="live-text"></span></div>
+    <div class="trust">
+      <span><svg class="ico"><use href="#i-check"/></svg>Tanpa fotografer</span>
+      <span><svg class="ico"><use href="#i-check"/></svg>Tanpa Photoshop</span>
+      <span><svg class="ico"><use href="#i-check"/></svg>Gemini/ChatGPT gratis</span>
+    </div>
+  </section>
+
+  <div class="marquee" aria-hidden="true"><div class="track" id="marquee"></div></div>
+
+  <!-- PROBLEM -->
+  <section class="wrap" id="masalah">
+    <span class="eyebrow">Kamu banget?</span>
+    <h2>Mau foto keren, tapi…</h2>
+    <div class="probs" id="probs">
+      <div class="prob"><span class="x"><svg class="ico"><use href="#i-x"/></svg></span>Sewa studio foto mahal & ribet janjian</div>
+      <div class="prob"><span class="x"><svg class="ico"><use href="#i-x"/></svg></span>Coba AI, hasilnya aneh & wajah berubah</div>
+      <div class="prob"><span class="x"><svg class="ico"><use href="#i-x"/></svg></span>Bingung harus nulis prompt apa</div>
+    </div>
+    <div class="relief">
+      <span class="rs" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#i-spark"/></svg></span>
+      <span class="rt">Tenang, resepnya sudah kami racik.</span>
+      <span class="rb"><button id="solve">Beresin</button><span class="rays" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2.5v4.2M19.2 5.1l-2.9 3M22 12.6h-4.2"/></svg></span></span>
+    </div>
+  </section>
+
+  <!-- DEMO -->
+  <section class="demo wrap" id="cara">
+    <span class="eyebrow">Cara kerja</span>
+    <h2>3 langkah. <span class="hl">Cekrek</span>, jadi.</h2>
+    <p class="lead">Semudah salin–tempel. Ketuk langkahnya untuk lihat alurnya.</p>
+    <div class="steps-nav" id="steps-nav">
+      <button class="step-btn" data-step="0" aria-pressed="true"><b>1</b>Pilih & salin resep<span class="bar"></span></button>
+      <button class="step-btn" data-step="1" aria-pressed="false"><b>2</b>Tempel + upload foto<span class="bar"></span></button>
+      <button class="step-btn" data-step="2" aria-pressed="false"><b>3</b>Fotomu jadi<span class="bar"></span></button>
+    </div>
+    <div class="phone" aria-label="Ilustrasi alur penggunaan di iPhone">
+      <i class="sb l" style="top:13.4%;height:4.3%" aria-hidden="true"></i>
+      <i class="sb l" style="top:20.4%;height:7.3%" aria-hidden="true"></i>
+      <i class="sb l" style="top:29.4%;height:7.3%" aria-hidden="true"></i>
+      <i class="sb r" style="top:22%;height:10.6%" aria-hidden="true"></i>
+      <div class="bezel">
+      <div class="screen">
+        <span class="island" aria-hidden="true"><i class="cam"></i></span>
+        <div class="scene on" data-scene="0">
+          <div class="app-h">Paling laris</div>
+          <div class="rcard active" style="position:relative"><img src="img/9e64523b9aa07e1a.jpg" alt=""><div>Potret Studio Sinematik Gelap<small>Profesional</small></div><span class="cp">Salin</span><span class="tap" style="right:6px;top:6px"></span></div>
+          <div class="rcard"><img src="img/8c3b666b3d257c3d.jpg" alt=""><div>Foto Pasangan Sinematik Film 35mm<small>Couple</small></div><span class="cp">Salin</span></div>
+          <div class="rcard"><img src="img/p25.jpg" alt=""><div>Doodle Sketsa Lucu<small>Kartun & Ilustrasi</small></div><span class="cp">Salin</span></div>
+          <div class="rcard"><img src="img/df1e914edf146ea8.jpg" alt=""><div>Potret Retro Jakarta Era 80-an<small>Foto Jadul</small></div><span class="cp">Salin</span></div>
+          <div class="rcard"><img src="img/p45.jpg" alt=""><div>Senja di Peron Stasiun<small>Jalan-jalan</small></div><span class="cp">Salin</span></div>
+          <span class="copied"><svg class="ico" style="width:13px;height:13px"><use href="#i-check"/></svg>Resep tersalin</span>
+        </div>
+        <div class="scene" data-scene="1">
+          <div class="chat-top"><i></i>Gemini / ChatGPT</div>
+          <div class="bub me"><img src="img/rb2.jpg" alt=""></div>
+          <div class="bub me mono">Turn my uploaded photo into a dark cinematic studio portrait with one dramatic key light. Keep my face exactly the same…</div>
+          <div class="bub ai"><span class="typing"><i></i><i></i><i></i></span></div>
+        </div>
+        <div class="scene" data-scene="2">
+          <div class="chat-top"><i></i>Gemini / ChatGPT</div>
+          <div class="result"><img src="img/ra2.jpg" alt="Contoh hasil potret studio sinematik gelap"><span class="spark"></span></div>
+          <div class="saved"><span>Simpan</span><span>Bagikan</span></div>
+        </div>
+      </div>
+      </div>
+    </div>
+    <p class="demo-note">Ilustrasi alur. Foto dibuat oleh Gemini/ChatGPT memakai resep dari ResepFoto.</p>
+  </section>
+
+  <!-- GALLERY -->
+  <section class="wrap" id="galeri">
+    <span class="eyebrow">Paling laris</span>
+    <h2>14 resep yang paling sering dipakai member.</h2>
+    <div class="shots" id="shots"></div>
+    <div class="swipe-hint"><svg class="ico" style="width:16px;height:16px"><use href="#i-swipe"/></svg>Geser untuk lihat lainnya</div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="wrap" style="padding-top:8px">
+    <div class="feat-head">
+      <span class="eyebrow">Kenapa ResepFoto</span>
+      <h2>Resepnya diracik, bukan asal <span class="sq">comot.</span></h2>
+      <span class="note" aria-hidden="true">Foto biasa<br>jadi luar biasa
+        <svg class="arw" viewBox="0 0 64 30"><path d="M60 5C49 2.5 25 4 12 17"/><path d="M12 17l9.5-1M12 17l1.6-9.2"/></svg>
+        <svg class="nsp" viewBox="0 0 24 24"><use href="#i-spark"/></svg>
+      </span>
+    </div>
+    <div class="feats">
+      <div class="feat c1"><span class="fi"><svg viewBox="0 0 64 64"><use href="#f-face"/></svg></span><strong>Wajah tetap mirip</strong><p>Tiap resep punya perintah khusus menjaga wajah asli.</p></div>
+      <div class="feat c2"><span class="fi"><svg viewBox="0 0 64 64"><use href="#f-flask"/></svg></span><strong>Sudah dites</strong><p>Dicoba di Gemini &amp; ChatGPT sebelum dirilis.</p></div>
+      <div class="feat c3"><span class="fi"><svg viewBox="0 0 64 64"><use href="#f-bulb"/></svg></span><strong>Ada tipsnya</strong><p>Panduan singkat biar hasilnya maksimal.</p></div>
+      <div class="feat c4"><span class="fi"><svg viewBox="0 0 64 64"><use href="#f-copy"/></svg></span><strong>1 klik salin</strong><p>Tanpa PDF ribet. Tinggal tekan tombol.</p></div>
+      <div class="feat wide"><span class="fi"><svg viewBox="0 0 64 64"><use href="#f-lock"/></svg></span><div><strong>Buka dari HP, kapan saja</strong><p>Login sekali, semua resep ada di genggaman.</p></div></div>
+    </div>
+  </section>
+
+  <!-- AUDIENCE -->
+  <section class="wrap" style="padding-top:8px">
+    <span class="eyebrow">Cocok untuk siapa?</span>
+    <h2>Ketuk yang paling kamu banget.</h2>
+    <div class="aud" id="aud"></div>
+    <div class="aud-out" id="aud-out" aria-live="polite"></div>
+  </section>
+
+  <!-- CALCULATOR -->
+  <section class="wrap" style="padding-top:8px">
+    <span class="eyebrow">Hitung hematnya</span>
+    <h2>Lebih hemat dari satu sesi studio.</h2>
+    <div class="calc">
+      <label for="qty">Berapa foto keren yang kamu mau?</label>
+      <div class="qty"><span id="qty-out">10</span> <small>foto</small></div>
+      <input type="range" id="qty" min="1" max="1000" value="10">
+      <div class="cmp">
+        <div class="cmp-row"><span>Foto di studio</span><div class="cmp-bar studio" id="bar-studio">Rp 195.700</div></div>
+        <div class="cmp-row"><span>ResepFoto</span><div class="cmp-bar rf" id="bar-rf">Rp 79.900</div></div>
+      </div>
+      <div class="save"><span>Kamu hemat sekitar</span><b id="save">Rp 115.800</b></div>
+      <p class="assume">*Estimasi Rp 50.000 untuk satu foto hasil edit studio, makin murah per foto untuk jumlah banyak, sampai Rp 3.000.000 untuk satu paket studio penuh di 1000 foto. Harga studio berbeda di tiap kota.</p>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section class="pricing wrap" id="harga">
+    <span class="eyebrow">Pilih paket</span>
+    <h2>Sekali bayar, <span class="hl">akses selamanya.</span></h2>
+    <div class="switch" id="switch" data-plan="premium" role="tablist" aria-label="Pilih paket">
+      <span class="thumb"></span>
+      <button data-plan="standard" aria-pressed="false">Standard</button>
+      <button data-plan="premium" aria-pressed="true">Premium <span class="hot">LARIS</span></button>
+    </div>
+
+    <div class="plans">
+      <article class="plan" id="plan-standard" hidden>
+        <div class="plan-top"><div class="plan-name">Standard</div><span class="ribbon calm">Hemat</span></div>
+        <div class="price"><span class="rp">Rp</span><span class="num" data-count="49900">49.900</span><span class="per">/ sekali bayar</span></div>
+        <div class="was"><s>Rp 150.000</s><span class="off">Hemat 67%</span></div>
+        <p class="plan-desc">Semua resep yang tersedia saat kamu beli, akses selamanya.</p>
+        <ul class="checks">
+          <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Akses web selamanya</li>
+          <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Koleksi resep saat pembelian</li>
+          <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Tips & panduan tiap resep</li>
+          <li class="no"><span class="ck"><svg class="ico"><use href="#i-x"/></svg></span>Update resep baru</li>
+          <li class="no"><span class="ck"><svg class="ico"><use href="#i-x"/></svg></span>Resep tren viral terbaru</li>
+        </ul>
+        <button class="btn btn-main btn-block" data-buy="standard">Ambil Standard</button>
+        <div class="upsell"><svg class="ico" style="color:#B07D00"><use href="#i-gift"/></svg><span>Mau resep baru terus?</span><button data-goplan="premium">Lihat Premium</button></div>
+      </article>
+
+      <article class="plan premium" id="plan-premium">
+        <div class="plan-top"><div class="plan-name">Premium</div><span class="ribbon">Paling laris</span></div>
+        <div class="price"><span class="rp">Rp</span><span class="num" data-count="79900">79.900</span><span class="per">/ sekali bayar</span></div>
+        <div class="was"><s>Rp 299.000</s><span class="off">Hemat 73%</span></div>
+        <p class="plan-desc">Semua resep + update resep baru & tren viral, selamanya.</p>
+        <ul class="checks">
+          <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Akses web selamanya</li>
+          <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Semua resep yang sudah ada</li>
+          <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Update resep baru rutin</li>
+          <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Resep tren viral terbaru</li>
+          <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Tips & panduan tiap resep</li>
+        </ul>
+        <div class="roadmap">
+          <div class="rt"><span>Koleksi terus bertambah</span><span>Target 1000+ resep</span></div>
+          <div class="track2"><i id="road"></i></div>
+          <div class="miles"><span>Sekarang 100</span><span>100</span><span>500</span><span>1000+</span></div>
+        </div>
+        <button class="btn btn-main btn-block" data-buy="premium">Ambil Premium</button>
+      </article>
+    </div>
+    <p class="honest"><svg class="ico"><use href="#i-info"/></svg>Bayar aman via Mayar (QRIS, transfer bank, e-wallet). Akses dikirim ke email setelah pembayaran.</p>
+
+    <details class="vs">
+      <summary>Bandingkan paket <svg class="ico"><use href="#i-down"/></svg></summary>
+      <div class="vs-table">
+        <table>
+          <thead><tr><th></th><th>Standard</th><th>Premium</th></tr></thead>
+          <tbody>
+            <tr><td>Harga</td><td><s>Rp 150.000</s>Rp 49.900</td><td><s>Rp 299.000</s>Rp 79.900</td></tr>
+            <tr><td>Akses</td><td class="yes">Selamanya</td><td class="yes">Selamanya</td></tr>
+            <tr><td>Resep saat beli</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+            <tr><td>Update resep baru</td><td class="nope">–</td><td class="yes">✓</td></tr>
+            <tr><td>Tren viral terbaru</td><td class="nope">–</td><td class="yes">✓</td></tr>
+            <tr><td>Tips & panduan</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </section>
+
+  <!-- LABEL GARANSI -->
+  <section class="wrap" style="padding-top:12px">
+    <div class="guarlabel">
+      <span class="tick" aria-hidden="true"><i></i><i></i></span>
+      <svg class="seal" viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="gseal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#27B571"/><stop offset="1" stop-color="#0A7341"/></linearGradient></defs><circle cx="50" cy="50" r="48" fill="url(#gseal)"/><circle cx="50" cy="50" r="43.5" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/><g fill="rgba(255,255,255,.44)"><path d="M23 47c-3.6 5.6-3.6 13 0 18.6 2.8-5.6 2.8-13 0-18.6z"/><path d="M26 40.5c-4.7 3.8-6.6 10.4-4.7 16.1 3.8-3.8 5.7-10.4 4.7-16.1z"/><path d="M31 35c-5.7 2.9-8.6 8.6-8.6 14.3 4.8-2.9 8.6-8.6 8.6-14.3z"/><path d="M77 47c3.6 5.6 3.6 13 0 18.6-2.8-5.6-2.8-13 0-18.6z"/><path d="M74 40.5c4.7 3.8 6.6 10.4 4.7 16.1-3.8-3.8-5.7-10.4-4.7-16.1z"/><path d="M69 35c5.7 2.9 8.6 8.6 8.6 14.3-4.8-2.9-8.6-8.6-8.6-14.3z"/></g><path d="M50 17l15 5.4v12.9c0 9.4-6.1 17.3-15 20.7-8.9-3.4-15-11.3-15-20.7V22.4z" fill="#fff"/><path d="M43 35.5l5 5 9.5-10" fill="none" stroke="#0C8A4F" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><text x="50" y="76" text-anchor="middle" fill="#fff" font-size="17" font-weight="800">100%</text><text x="50" y="86.5" text-anchor="middle" fill="#fff" font-size="7.5" font-weight="800" letter-spacing="1.1">GUARANTEE</text></svg>
+      <div class="gt"><h3>Satisfaction Guarantee</h3><p>Shop with confidence, backed by our guarantee.</p></div>
+      <svg class="sp" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-spark"/></svg>
+    </div>
+  </section>
+
+  <!-- TESTIMONI -->
+  <section class="wrap" id="testimoni" style="padding-top:20px">
+    <div class="t-panel">
+      <div class="t-head">
+        <div class="t-intro">
+          <span class="eyebrow">Testimoni</span>
+          <h2>Kata mereka yang sudah coba.</h2>
+          <p class="t-sub" id="t-sub" hidden></p>
+        </div>
+        <div class="t-score" id="t-score" hidden></div>
+      </div>
+      <div class="t-stage" id="t-stage">
+        <button class="t-arw prev" id="t-prev" type="button" aria-label="Testimoni sebelumnya"><svg viewBox="0 0 24 24"><use href="#i-left"/></svg></button>
+        <div class="t-viewport" id="t-view" aria-roledescription="carousel" aria-label="Testimoni pembeli"><div class="t-track" id="t-track"></div></div>
+        <button class="t-arw next" id="t-next" type="button" aria-label="Testimoni berikutnya"><svg viewBox="0 0 24 24"><use href="#i-right"/></svg></button>
+      </div>
+      <div class="t-dots" id="t-dots"></div>
+      <div class="t-empty" id="t-empty" hidden>Testimoni pembeli akan tampil di sini.</div>
+    </div>
+  </section>
+
+  <!-- RESULTS WALL -->
+  <section class="wrap" style="padding-top:20px">
+    <span class="eyebrow">Hasil dari resep kami</span>
+    <h2>Satu resep, banyak kemungkinan.</h2>
+    <div class="wall" id="wall"></div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="wrap" id="faq" style="padding-top:8px">
+    <span class="eyebrow">Tanya jawab</span>
+    <h2>Yang sering ditanyakan</h2>
+    <div class="faq">
+      <details><summary>Perlu bayar Gemini/ChatGPT?<span class="pm"><svg class="ico" style="width:15px;height:15px"><use href="#i-plus"/></svg></span></summary><p>Tidak wajib. Versi gratis keduanya sudah bisa mengedit foto, dengan batas jumlah per hari.</p></details>
+      <details><summary>Wajahku bakal berubah?<span class="pm"><svg class="ico" style="width:15px;height:15px"><use href="#i-plus"/></svg></span></summary><p>Setiap resep sudah berisi perintah menjaga wajah asli. Pakai foto yang jelas dan terang supaya hasilnya paling mirip.</p></details>
+      <details><summary>Bisa dipakai di HP?<span class="pm"><svg class="ico" style="width:15px;height:15px"><use href="#i-plus"/></svg></span></summary><p>Bisa. Semua resep dibuka lewat browser HP, tinggal tekan tombol salin.</p></details>
+      <details><summary>Setelah bayar, aksesnya gimana?<span class="pm"><svg class="ico" style="width:15px;height:15px"><use href="#i-plus"/></svg></span></summary><p>Pilih paket, bayar lewat halaman pembayaran Mayar (QRIS, transfer bank, atau e-wallet). Setelah lunas, username dan kode akses otomatis dikirim ke email yang kamu isi.</p></details>
+      <details><summary>Apa beda Standard dan Premium?<span class="pm"><svg class="ico" style="width:15px;height:15px"><use href="#i-plus"/></svg></span></summary><p>Standard berisi resep yang tersedia saat kamu beli. Premium mendapat semua update resep baru dan tren viral, dengan koleksi yang terus bertambah menuju 1000+ resep.</p></details>
+      <details><summary>Ini aplikasi atau apa?<span class="pm"><svg class="ico" style="width:15px;height:15px"><use href="#i-plus"/></svg></span></summary><p>ResepFoto adalah kumpulan resep prompt siap tempel. Kamu salin resepnya, tempel di Gemini atau ChatGPT bersama fotomu, lalu fotonya dibuat di sana.</p></details>
+    </div>
+  </section>
+
+  <!-- FINAL CTA -->
+  <section class="final wrap">
+    <span class="glass g1" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#g-photo"/></svg></span>
+    <span class="glass g2" aria-hidden="true"></span>
+    <span class="glass g3" aria-hidden="true"></span>
+    <span class="glass g4" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#g-photo-plus"/></svg></span>
+    <span class="eyebrow" style="color:var(--sun)">Tunggu apa lagi</span>
+    <h2>Fotomu berikutnya bisa jadi foto terbaikmu.</h2>
+    <div class="collage"><img src="img/1743d9195b3e3bad.jpg" alt="Hasil resep Potret Sinematik Noir Korek Api"><img src="img/50ab0fd2a6efb6dd.jpg" alt="Hasil resep Foto Anggun di Akuarium Bawah Laut"><img src="img/p58.jpg" alt="Hasil resep Prajurit Steampunk Selfie"></div>
+    <button class="btn btn-main btn-block" data-buy="premium">Ambil Premium Sekarang</button>
+    <p class="honest"><svg class="ico"><use href="#i-info"/></svg>Resep Photo siap pake untuk Gemini/ChatGPT</p>
+  </section>
+  <footer>© 2026 ResepFoto<br>ResepFoto dirancang untuk melengkapi workflow kreatif bersama berbagai platform AI populer, termasuk Gemini™ dan ChatGPT™. Seluruh merek dagang merupakan milik pemiliknya masing-masing.</footer>
+</div>
+
+<!-- checkout -->
+<div class="scrim" id="scrim" hidden></div>
+<div class="sheet" id="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="co-title">
+  <div class="grab"></div>
+  <h3 id="co-title">Pilih paket kamu</h3>
+  <p class="lead" style="margin-top:4px;font-size:14px">Kamu akan diarahkan ke halaman pembayaran aman Mayar. Isi nama, email, dan nomor HP di sana.</p>
+  <label class="opt"><input type="radio" name="plan" value="standard" id="co-standard"><span class="grow"><strong>Standard</strong><small>Resep saat beli · akses selamanya</small></span><span class="p"><s>Rp 150.000</s>Rp 49.900</span></label>
+  <label class="opt"><input type="radio" name="plan" value="premium" id="co-premium" checked><span class="grow"><strong>Premium</strong><small>+ update resep & tren viral</small></span><span class="p"><s>Rp 299.000</s>Rp 79.900</span></label>
+ <div class="pays"><span>QRIS</span><span>Transfer bank</span><span>E-wallet</span></div>
+  <div class="sum"><div><span>Paket</span><span id="sum-plan">Premium</span></div><div><span>Akses</span><span>Selamanya</span></div><div class="tot"><span>Total</span><span id="sum-total">Rp 79.900</span></div></div>
+  <button class="btn btn-main btn-block" id="co-send" style="margin-top:14px">Lanjut ke pembayaran</button>
+  <p class="honest"><svg class="ico"><use href="#i-info"/></svg>Akses dikirim ke email setelah lunas.</p>
+</div>
+<div class="opop" id="opop" role="status" aria-live="polite"><div class="tx"><strong id="op-name"></strong><span id="op-what"></span><div><span class="st" id="op-st"></span> <span class="ago" id="op-ago"></span></div></div><button class="cl" id="op-close" aria-label="Tutup notifikasi"><svg class="ico"><use href="#i-x"/></svg></button></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<canvas class="confetti" id="confetti" aria-hidden="true"></canvas>
+
+<script>
+(() => {
+"use strict";
+/* ---- ubah di sini ---- */
+const CHECKOUT = {              // link pembayaran Mayar
+  standard: "https://kitlab.myr.id/pl/resepfoto-standard",
+  premium: "https://kitlab.myr.id/pl/resepfoto-premium"
+};
+/* ---- bukti sosial: isi dengan data ASLI ----
+   PREVIEW = true  → tampil contoh berlabel "CONTOH" supaya kamu bisa lihat desainnya.
+   PREVIEW = false → hanya data asli di bawah yang tampil; bagian yang kosong otomatis disembunyikan. */
+const PREVIEW = false;
+const MOCKUP = false;
+const TRACK_URL = "/api.php";   // pelacakan untuk Admin -> Iklan
+// Testimoni hanya boleh diisi dari ulasan ASLI yang sudah diizinkan pembelinya.
+// Selama kosong, bagian testimoni disembunyikan seluruhnya.
+const TESTIMONIALS = [];
+// Ringkasan rating dari ulasan asli, contoh: {avg: 4.8, count: 37}. Biarkan null kalau belum ada.
+const RATING = null;            // isi {avg, count} hanya dari ulasan asli
+// Notifikasi order asli dari server (aktif setelah landing page ada di domain resepfoto.oziera.co.id).
+const ORDER_FEED_URL = "/api.php?a=recent_orders";
+// Jumlah pengunjung aktif dari sistem analitik asli (angka), atau null untuk disembunyikan.
+const LIVE_VIEWERS = null;
+
+const PLANS = { standard: {name: "Standard", price: 49900, was: 150000}, premium: {name: "Premium", price: 79900, was: 299000} };
+
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+const rp = n => "Rp " + Math.round(n).toLocaleString("id-ID");
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const store = { get(k,d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch{ return d; } }, set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} } };
+let plan = store.get("rfp_plan", "premium");
+if (!PLANS[plan]) plan = "premium";
+
+function toast(msg){ const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), 2200); }
+
+/* ---- data (ganti gambar before/after dengan hasil asli) ---- */
+const EXAMPLES = [
+  {label: "Motion Blur", title: "Potret Sinematik Motion Blur Kota", sub: "Foto studio biasa → jalanan kota sinematik", before: "img/rb3.jpg", after: "img/ra3.jpg"},
+  {label: "Fisheye", title: "Potret Fisheye Sudut Atas", sub: "Foto di gunung → potret studio fisheye", before: "img/rb6.jpg", after: "img/ra6.jpg"},
+  {label: "Mini Chibi", title: "Mini Chibi Gemas di Telapak Tangan", sub: "Selfie di kamar → figur mini di telapak tangan", before: "img/rb5.jpg", after: "img/ra5.jpg"},
+  {label: "Gaya 1985", title: "Potret Gaya 1985", sub: "Selfie di meja kerja → potret film jadul", before: "img/rb4.jpg", after: "img/ra4.jpg"},
+  {label: "Scrapbook", title: "Foto Scrapbook Chibi 3D Gemas", sub: "Foto berdiri → satu lembar scrapbook chibi", before: "img/rb1.jpg", after: "img/ra1.jpg"},
+  {label: "Studio Gelap", title: "Potret Studio Sinematik Gelap", sub: "Foto duduk biasa → potret studio dramatis", before: "img/rb2.jpg", after: "img/ra2.jpg"}
+];
+const RECIPES = [
+  ["p16","Profesional","Potret Pebisnis Modern","img/p16.jpg"],
+  ["p17","Tren Viral","Potret Neon Sinematik","img/p17.jpg"],
+  ["rtlhqfm5b68","Jalan-jalan","Potret Sinematik Motion Blur Kota","img/77b7c14277850ca3.jpg"],
+  ["rtlhql02003","Profesional","Potret Hitam Putih Dramatis","img/dc4ceb130cd4faf0.jpg"],
+  ["rtlhwfsf0fd","Entertainment","OOTD Bersama Mini Me","img/a989967fcdae0f63.jpg"],
+  ["rtlhwlo6ac4","Entertainment","Foto Scrapbook Chibi 3D Gemas","img/41ce0bd7c7d56af9.jpg"],
+  ["rtlhwnq0386","Entertainment","Mini Chibi Gemas di Telapak Tangan","img/a6da59b97742d195.jpg"],
+  ["rtlhwqx0237","Entertainment","Foto Unik Mini Me Chibi","img/33b1a4e684214d52.jpg"],
+  ["rtlhwub484d","Entertainment","Poster Zodiak Chibi Karakter Lucu","img/d761fcd63d08949d.jpg"],
+  ["rtlhwx8cb88","Entertainment","Dunia Kartun Tiny Planet","img/23bc9ae4209a057d.jpg"],
+  ["rtlhx0cf87b","Entertainment","Cosplay Polisi Kelinci Fantasi","img/ae6121ff516ff038.jpg"],
+  ["rtlhx4154b6","Profesional","Potret Fisheye Sudut Atas","img/31e6f543b4ef4be8.jpg"],
+  ["rtlhx9g6773","Keluarga","Foto Studio Ayah & Anak Monokrom","img/a5f03d013e7a01f7.jpg"],
+  ["rtlhxfg41e2","Jalan-jalan","Candid Sinematik Golden Hour","img/e09183b6be3b2db0.jpg"],
+  ["rtlhxhv6170","Jalan-jalan","Potret Sinematik Jalanan Kota","img/41426d67aad46379.jpg"],
+  ["rtlhxku1b73","Entertainment","Selfie Bersama Karakter Mainan 3D","img/555773730623622a.jpg"],
+  ["rtlhxp6cc8c","Profesional","Potret Studio Editorial Hijab","img/931935911be41516.jpg"],
+  ["rtlhxst1c7e","Profesional","Potret Editorial Majalah Mewah","img/942a7d4c1c4d417e.jpg"],
+  ["rtlhxxc2199","Profesional","Potret Editorial Blazer Mewah","img/47001368a27e54ca.jpg"],
+  ["rtlhy2z7267","Profesional","Potret Studio Sinematik Gelap","img/9e64523b9aa07e1a.jpg"],
+  ["rtlhy6l10d7","Entertainment","Foto POV Intip Tas Resleting Berdua","img/c47f63ea6d3080bc.jpg"],
+  ["rtlhybg6396","Jalan-jalan","Gaya Santai Jalanan Tokyo","img/02fde47ad65cd527.jpg"],
+  ["rtlhygk1305","Profesional","Potret Estetik Kain Linen","img/837050fd6113af3d.jpg"],
+  ["p21","Foto Jadul","Potret Gaya 1985","img/p21.jpg"],
+  ["p22","Editorial","Potret Studio Ivory","img/p22.jpg"],
+  ["p23","Editorial","Lift Mewah Ala 90-an","img/p23.jpg"],
+  ["p24","Tren Viral","Selfie Spider-Man","img/p24.jpg"],
+  ["p25","Kartun & Ilustrasi","Doodle Sketsa Lucu","img/p25.jpg"],
+  ["p26","Tren Viral","Candid Malam Tertangkap Kamera","img/p26.jpg"],
+  ["p27","Tren Viral","Singgasana Shinobi Gelap","img/p27.jpg"],
+  ["p28","Momen Spesial","Layar MacBook Berdua","img/p28.jpg"],
+  ["p29","Tren Viral","Mirror Selfie Kamera Digital","img/p29.jpg"],
+  ["p30","Editorial","Sorot Cahaya Hitam Putih","img/p30.jpg"],
+  ["p31","Editorial","Potret Sweater Krem","img/p31.jpg"],
+  ["p32","Editorial","Sampul Majalah Gelap","img/p32.jpg"],
+  ["p33","Tren Viral","Photobooth Spider-Man","img/p33.jpg"],
+  ["p34","Profesional","Iklan Produk Jaring Laba-laba","img/p34.jpg"],
+  ["p35","Foto Jadul","Kamera Sekali Pakai 90-an","img/p35.jpg"],
+  ["p36","Tren Viral","Selfie Cermin Cembung Minimarket","img/p36.jpg"],
+  ["p37","Foto Jadul","Jersey Bola di Pesta Rumah","img/p37.jpg"],
+  ["p38","Momen Spesial","Santai di Kursi Bioskop","img/p38.jpg"],
+  ["p39","Jalan-jalan","Ladang Bunga Kuning","img/p39.jpg"],
+  ["p40","Editorial","Studio Oranye Gelap","img/p40.jpg"],
+  ["p41","Editorial","Studio Beige Tenang","img/p41.jpg"],
+  ["p42","Editorial","Studio Hijau Santai","img/p42.jpg"],
+  ["p43","Editorial","Kontras Merah Tajam","img/p43.jpg"],
+  ["p44","Gaya Jalanan","Depan Kulkas Minimarket","img/p44.jpg"],
+  ["p45","Jalan-jalan","Senja di Peron Stasiun","img/p45.jpg"],
+  ["p46","Gaya Jalanan","Jalan Kota Sehabis Hujan","img/p46.jpg"],
+  ["p47","Editorial","Kolase Tiga Panel","img/p47.jpg"],
+  ["p48","Editorial","Template Potret Sinematik","img/p48.jpg"],
+  ["p49","Editorial","Profil Oranye Bergerak","img/p49.jpg"],
+  ["p50","Gaya Jalanan","Lari Sore di Kota","img/p50.jpg"],
+  ["p51","Editorial","Mengapung di Air Bunga","img/p51.jpg"],
+  ["p52","Jalan-jalan","Gunung dan Sungai Ala Vogue","img/p52.jpg"],
+  ["p53","Jalan-jalan","Papan Loncat di Atas Laut","img/p53.jpg"],
+  ["p54","Editorial","Di Balik Kaca Akuarium","img/p54.jpg"],
+  ["p55","Kartun & Ilustrasi","Ilustrasi Buku Anak","img/p55.jpg"],
+  ["p56","Kartun & Ilustrasi","Karakter Piksel Everskies","img/p56.jpg"],
+  ["p57","Kartun & Ilustrasi","Kartun Sketsa Charlie & Lola","img/p57.jpg"],
+  ["p58","Tren Viral","Prajurit Steampunk Selfie","img/p58.jpg"],
+  ["p59","Gaya Jalanan","Diam di Tengah Zebra Cross","img/p59.jpg"],
+  ["p60","Jalan-jalan","Negeri di Atas Awan","img/p60.jpg"],
+  ["p61","Kartun & Ilustrasi","Ditarik Doodle Kecil","img/p61.jpg"],
+  ["p62","Kartun & Ilustrasi","Jalan Bareng Versi Sketsa","img/p62.jpg"],
+  ["p63","Editorial","Poster Fashion Sinematik","img/p63.jpg"],
+  ["p64","Kartun & Ilustrasi","Dikejar Doodle","img/p64.jpg"],
+  ["p65","Editorial","Taksi Kuning Malam Hari","img/p65.jpg"],
+  ["p66","Gaya Jalanan","Senja di Rooftop Parkir","img/p66.jpg"],
+  ["rtlhyuo71b3","Profesional","Foto Editorial Musim Semi Anak","img/6991eabc240f077e.jpg"],
+  ["rtlhyzmfbab","Jalan-jalan","OOTD Pria Sinematik High-Angle","img/174d4627ccf7acdc.jpg"],
+  ["rtlhz3r3787","Jalan-jalan","Kolase Editorial Pasangan Jepang","img/ce188dcb0b7c28c6.jpg"],
+  ["rtlhz6n2e40","Keluarga","Foto Keluarga Kejar-kejaran Lucu","img/dbbeedb995fe89e5.jpg"],
+  ["rtlhz9x669f","Keluarga","Foto Prewed Vintage di Padang Rumput","img/4ff8b7296d5208f1.jpg"],
+  ["rtlhzekd64d","Couple","Foto Pasangan Sinematik Film 35mm","img/8c3b666b3d257c3d.jpg"],
+  ["rtlhzgyfb75","Couple","Film Strip Estetik Berdua","img/fdcde6c7306fbd4d.jpg"],
+  ["rtlhzjgcd10","Couple","Foto Pasangan Sinematik 35mm","img/3c32088fc6495914.jpg"],
+  ["rtlhzkx2abf","Couple","Candid Romantis Sinematik 35mm","img/0751bc20430da6c7.jpg"],
+  ["rtlhznw25f6","Couple","Foto Pasangan Sinematik 35mm","img/eda8bab27405a82b.jpg"],
+  ["rtlhzp2cc23","Couple","Strip Film Jadul Couple","img/97a518b61c174582.jpg"],
+  ["rtlhzs47c09","Couple","Foto Sinematik Pasangan Indie Film","img/9f3f6298ef681e38.jpg"],
+  ["rtlhzvp67db","Couple","Prewed Editorial Urban Keren","img/e755549f861a8469.jpg"],
+  ["rtli00l0ac9","Jalan-jalan","Sorot Sinematik Pameran Seni","img/67bd33e340a8ce2e.jpg"],
+  ["rtli0bg957b","Profesional","Foto Editorial Jas Burgundy Elegan","img/9b8fbd21dbf21c2f.jpg"],
+  ["rtli0gid54e","Profesional","Potret Motion Blur Sinematik","img/d54807e11ccdbec0.jpg"],
+  ["rtli0km2d6e","Foto Jadul","Gaya Fisheye 90an Kamera Retro","img/292abb23da6cd750.jpg"],
+  ["rtli0p483d7","Foto Jadul","Potret Retro Jakarta Era 80-an","img/df1e914edf146ea8.jpg"],
+  ["rtli0qu6778","Foto Jadul","Foto Keren Vintage 1980-an","img/f68cef53482c26d4.jpg"],
+  ["rtli0t24a3d","Foto Jadul","Gaya Retro 80an di Warung Kopi","img/44b0e8d893f7365e.jpg"],
+  ["rtli0ukacf7","Profesional","Malam Bintang & Api Unggun","img/df668492bcf123f3.jpg"],
+  ["rtli0z55026","Tren Viral","Action Figure Kustom di Meja Kerja","img/006403e96d92933f.jpg"],
+  ["rtli12x0839","Entertainment","Ngopi Bareng Bintang Sepak Bola","img/f9de06f4b0731847.jpg"],
+  ["rtli13ob41a","Profesional","Potret Hitam Putih Sinematik","img/dea0898a21ad8417.jpg"],
+  ["rtli161edbf","Jalan-jalan","Selfie Fisheye Puncak Gunung","img/720bf73c3613f0ba.jpg"],
+  ["rtli1688c19","Profesional","Potret Sinematik Noir Korek Api","img/1743d9195b3e3bad.jpg"],
+  ["rtli17r707b","Profesional","Potret Editorial Gelap Dramatis","img/277b23e45aa3aeda.jpg"],
+  ["rtli19y2f54","Jalan-jalan","Foto Anggun di Akuarium Bawah Laut","img/50ab0fd2a6efb6dd.jpg"],
+  ["rtli1a1e133","Entertainment","Latar Kartun Dunia Game 3D","img/ca8f2e4909404e86.jpg"],
+  ["rtli1caaa70","Editorial","Putri Salju Fantasi Hijab","img/a3add10c2e28860f.jpg"],
+  ["rtli1cr5cd3","Entertainment","Foto Doodle Lucu Penuh Warna","img/99f9dd76d71df43a.jpg"]
+].map(([id, cat, title, img]) => ({id, cat, title, img}));
+const byId = Object.fromEntries(RECIPES.map(r => [r.id, r]));
+const BESTSELLERS = ["rtlhqfm5b68", "rtlhwlo6ac4", "rtlhwnq0386", "rtlhx4154b6", "rtlhxp6cc8c", "p21", "p23", "p24", "p27", "p29", "p33", "p36", "p39", "p65"].map(id => byId[id]);
+const WALL = ["p51", "rtli1caaa70", "p17", "rtlhwub484d", "p56", "p52", "rtlhzgyfb75", "p37", "p66"];
+const AUDIENCE = [
+  {k: "Mahasiswa", rec: "p44", text: "Gaya anak kampus yang gampang ditiru."},
+  {k: "Pencari kerja", rec: "rtlhxxc2199", text: "Potret blazer rapi untuk CV dan LinkedIn."},
+  {k: "Ibu rumah tangga", rec: "rtlhz6n2e40", text: "Momen keluarga hangat untuk dipajang."},
+  {k: "Pasangan", rec: "rtlhzvp67db", text: "Prewedding editorial, tanpa biaya jutaan."},
+  {k: "Pecinta nostalgia", rec: "rtli0qu6778", text: "Nuansa foto era 80-an yang bikin kangen."},
+  {k: "Content creator", rec: "rtli1cr5cd3", text: "Feed warna-warni, tiap hari beda gaya."},
+  {k: "Pebisnis", rec: "p16", text: "Foto founder untuk website dan proposal."},
+  {k: "Suka jalan-jalan", rec: "p60", text: "Negeri di atas awan dari ruang tamu."}
+];
+
+/* ---- topbar shadow + sticky buy bar ---- */
+const hero = $("#top");
+const io = new IntersectionObserver(([e]) => {
+  $("#topbar").classList.toggle("scrolled", !e.isIntersecting);
+}, {rootMargin: "-40% 0px 0px 0px"});
+io.observe(hero);
+
+/* ---- hero compare slider ---- */
+const cmp = $("#compare");
+let exIdx = 0, exTimer = null, userDragged = false;
+function setPos(p){ cmp.style.setProperty("--pos", Math.max(0, Math.min(100, p)) + "%"); }
+function showExample(i){
+  exIdx = (i + EXAMPLES.length) % EXAMPLES.length;
+  const ex = EXAMPLES[exIdx];
+  $("#cmp-after").src = ex.after; $("#cmp-before").src = ex.before;
+  $("#cmp-title").textContent = ex.title; $("#cmp-sub").textContent = ex.sub;
+  $$(".ex-tab").forEach((t, j) => { t.setAttribute("aria-pressed", j === exIdx); t.classList.remove("paused"); t.style.animation = "none"; t.offsetHeight; t.style.animation = ""; });
+  if (!reduce && !userDragged) sweep();
+}
+function sweep(){
+  const start = performance.now();
+  const run = now => {
+    const t = Math.min(1, (now - start) / 2200);
+    const e = t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2;
+    setPos(85 - 70 * Math.sin(e * Math.PI) * .9 - 5);
+    if (t < 1 && !userDragged) requestAnimationFrame(run);
+  };
+  requestAnimationFrame(run);
+}
+function autoplay(){ clearInterval(exTimer); if (reduce) return; exTimer = setInterval(() => showExample(exIdx + 1), 4500); }
+$("#ex-tabs").innerHTML = EXAMPLES.map((e, i) => `<button class="ex-tab" role="tab" aria-pressed="${i === 0}" data-ex="${i}">${e.label}</button>`).join("");
+$("#ex-tabs").addEventListener("click", e => { const b = e.target.closest("[data-ex]"); if (!b) return; userDragged = false; showExample(+b.dataset.ex); autoplay(); });
+let dragging = false;
+function fromEvent(ev){ const r = cmp.getBoundingClientRect(); return (ev.clientX - r.left) / r.width * 100; }
+cmp.addEventListener("pointerdown", ev => {
+  dragging = true; userDragged = true; clearInterval(exTimer);
+  $$(".ex-tab").forEach(t => t.classList.add("paused"));
+  $("#cmp-hint").style.opacity = 0;
+  cmp.setPointerCapture(ev.pointerId); setPos(fromEvent(ev));
+});
+cmp.addEventListener("pointermove", ev => { if (dragging) setPos(fromEvent(ev)); });
+const endDrag = () => { if (!dragging) return; dragging = false; setTimeout(() => { userDragged = false; autoplay(); $$(".ex-tab").forEach(t => t.classList.remove("paused")); }, 3500); };
+cmp.addEventListener("pointerup", endDrag); cmp.addEventListener("pointercancel", endDrag);
+$("#knob").addEventListener("keydown", ev => {
+  const cur = parseFloat(cmp.style.getPropertyValue("--pos")) || 50;
+  if (ev.key === "ArrowLeft"){ userDragged = true; clearInterval(exTimer); setPos(cur - 5); ev.preventDefault(); }
+  if (ev.key === "ArrowRight"){ userDragged = true; clearInterval(exTimer); setPos(cur + 5); ev.preventDefault(); }
+});
+EXAMPLES.forEach(e => { new Image().src = e.before; new Image().src = e.after; });
+showExample(0); autoplay();
+
+/* ---- marquee ---- */
+const words = ["Potret Pebisnis Modern", "Potret Neon Sinematik", "OOTD Bersama Mini Me", "Foto Unik Mini Me Chibi", "Dunia Kartun Tiny Planet", "Potret Gaya 1985", "Potret Studio Ivory", "Lift Mewah Ala 90-an", "Selfie Spider-Man", "Doodle Sketsa Lucu", "Singgasana Shinobi Gelap", "Layar MacBook Berdua", "Sorot Cahaya Hitam Putih", "Potret Sweater Krem"];
+$("#marquee").innerHTML = [0,1].map(() => `<span>${words.map(w => `<span>${w}</span>`).join("")}</span>`).join("");
+
+/* ---- problems ---- */
+$("#solve").addEventListener("click", () => {
+  const items = $$(".prob");
+  const fixes = ["Tanpa studio, cukup dari HP", "Resep menjaga wajah tetap mirip", "Resep sudah jadi, tinggal copas"];
+  items.forEach((p, i) => setTimeout(() => {
+    p.classList.add("solved");
+    p.innerHTML = `<span class="x"><svg class="ico"><use href="#i-check"/></svg></span>${fixes[i]}`;
+    if (!reduce) p.animate([{transform:"scale(.96)"},{transform:"scale(1.03)"},{transform:"scale(1)"}], {duration: 380});
+  }, i * 260));
+  const btn = $("#solve"); btn.textContent = "Beres ✓"; btn.disabled = true;
+});
+
+/* ---- demo steps ---- */
+let step = 0, stepTimer = null, demoVisible = false;
+function setStep(i){
+  step = i % 3;
+  $$(".step-btn").forEach((b, j) => { b.setAttribute("aria-pressed", j === step); b.classList.remove("paused"); });
+  $$(".scene").forEach((s, j) => { s.classList.toggle("on", j === step); });
+  // restart CSS animations of the active scene
+  const sc = $(`.scene[data-scene="${step}"]`); sc.classList.remove("on"); sc.offsetHeight; sc.classList.add("on");
+}
+function stepLoop(){ clearInterval(stepTimer); if (reduce) return; stepTimer = setInterval(() => { if (demoVisible) setStep(step + 1); }, 3200); }
+$("#steps-nav").addEventListener("click", e => { const b = e.target.closest("[data-step]"); if (!b) return; setStep(+b.dataset.step); stepLoop(); });
+new IntersectionObserver(([e]) => {
+  demoVisible = e.isIntersecting;
+  if (demoVisible){ setStep(step); stepLoop(); } else { clearInterval(stepTimer); $$(".step-btn").forEach(b => b.classList.add("paused")); }
+}, {threshold: .35}).observe($(".phone"));
+
+/* ---- gallery ---- */
+// resep bertanda "paling laris" (popular) di app — urut sesuai yang paling sering dipakai
+function renderShots(){
+  // semua resep bertanda "paling laris"; yang fotonya belum ada tampil sebagai kartu bertint
+  const TINT = {
+    "Jalan-jalan":   ["#DCE9FE","#F1F6FF","#2B66F6"],
+    "Entertainment": ["#FFE0E8","#FFF1F4","#FF5C7A"],
+    "Profesional":   ["#E2EAFF","#F2F5FF","#1C4BD0"],
+    "Foto Jadul":    ["#FFF0BE","#FFF9E4","#B07D00"],
+    "Editorial":     ["#E7E2F8","#F4F1FD","#6B4FD0"],
+    "Tren Viral":    ["#D6F2E5","#EDFAF3","#0B6B44"]
+  };
+  // urutan diacak tiap halaman dibuka supaya tiap pengunjung melihat kombinasi berbeda
+  const urut = BESTSELLERS.slice();
+  for (let i = urut.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [urut[i], urut[j]] = [urut[j], urut[i]]; }
+  $("#shots").innerHTML = urut.map(r => {
+    const t = TINT[r.cat] || ["#E9EEF8","#F5F8FD","#7481A0"];
+    const ph = r.img
+      ? `<img loading="lazy" src="${r.img}" alt="Contoh hasil ${r.title}">`
+      : `<div class="noimg" style="--c1:${t[0]};--c2:${t[1]};--c3:${t[2]}"><svg viewBox="0 0 24 24"><use href="#g-photo"/></svg><b>${r.title}</b></div>`;
+    return `<a class="shot" href="#harga" data-rec="${r.id}"><div class="ph">${ph}<span class="badge">★ Paling laris</span></div><div class="meta"><strong>${r.title}</strong><span>${r.cat} · ada di paket →</span></div></a>`;
+  }).join("");
+  if (!reduce) $$(".shot").forEach((s, i) => s.animate([{opacity: .3, transform: "translateY(10px)"}, {opacity: 1, transform: "none"}], {duration: 380, delay: i * 40, easing: "cubic-bezier(.2,.8,.2,1)"}));
+}
+renderShots();
+
+/* ---- audience ---- */
+let aud = 0;
+function renderAud(){
+  $("#aud").innerHTML = AUDIENCE.map((a, i) => `<button aria-pressed="${i === aud}" data-aud="${i}">${a.k}</button>`).join("");
+  const a = AUDIENCE[aud], r = RECIPES.find(x => x.id === a.rec);
+  $("#aud-out").innerHTML = `<img src="${r.img}" alt=""><div><strong>Resep pas: ${r.title}</strong><p>${a.text}</p></div>`;
+}
+$("#aud").addEventListener("click", e => { const b = e.target.closest("[data-aud]"); if (!b) return; aud = +b.dataset.aud; renderAud();
+  if (!reduce) $("#aud-out").animate([{transform: "scale(.97)", opacity: .5}, {transform: "none", opacity: 1}], {duration: 300}); });
+renderAud();
+
+/* ---- calculator ---- */
+const PER_PHOTO = 50000;        // biaya foto pertama di studio
+const STUDIO_MAX = 3000000;     // biaya satu paket studio penuh, tercapai tepat di ujung slider
+const QTY_MAX = 1000;
+// kurva pangkat: foto pertama tepat PER_PHOTO, foto ke-1000 tepat STUDIO_MAX,
+// dan angkanya terus naik di sepanjang slider (tidak mendatar di tengah)
+const STUDIO_K = Math.log(PER_PHOTO / STUDIO_MAX) / Math.log(1 / QTY_MAX);
+const studioCost = q => Math.round(STUDIO_MAX * Math.pow(q / QTY_MAX, STUDIO_K) / 100) * 100;
+function countTo(el, to){
+  const from = el._v || 0; el._v = to;
+  if (reduce){ el.textContent = rp(to); return; }
+  const start = performance.now();
+  const tick = now => { const t = Math.min(1, (now - start) / 450); el.textContent = rp(from + (to - from) * (1 - Math.pow(1 - t, 3))); if (t < 1) requestAnimationFrame(tick); };
+  requestAnimationFrame(tick);
+}
+function calc(){
+  const q = +$("#qty").value;
+  const price = PLANS[plan].price;
+  const studio = studioCost(q);
+  $("#qty-out").textContent = q >= QTY_MAX ? QTY_MAX + "+" : q;
+  $("#qty").style.setProperty("--fill", ((q - 1) / (QTY_MAX - 1) * 100) + "%");
+  const max = Math.max(studio, price);
+  $("#bar-studio").style.width = Math.max(28, studio / max * 100) + "%";
+  $("#bar-rf").style.width = Math.max(28, price / max * 100) + "%";
+  $("#bar-studio").textContent = rp(studio);
+  $("#bar-rf").textContent = rp(price) + " (" + PLANS[plan].name + ")";
+  countTo($("#save"), Math.max(0, studio - price));
+  $(".save span").textContent = studio > price ? "Kamu hemat sekitar" : "Tambah foto, makin hemat";
+}
+$("#qty").addEventListener("input", calc);
+
+/* ---- plan switch ---- */
+function setPlan(p, fromUser){
+  plan = p; store.set("rfp_plan", p);
+  $("#switch").dataset.plan = p;
+  $$("#switch button").forEach(b => b.setAttribute("aria-pressed", b.dataset.plan === p));
+  ["standard","premium"].forEach(k => {
+    const el = $("#plan-" + k); const show = k === p;
+    if (show && el.hidden){ el.hidden = false; if (!reduce){ el.classList.remove("flip-in"); el.offsetHeight; el.classList.add("flip-in"); } countPrice(el); }
+    else if (!show) el.hidden = true;
+  });
+  $("#co-" + p).checked = true; syncSummary();
+  calc();
+  if (p === "premium") animateRoad();
+  if (fromUser && navigator.vibrate) navigator.vibrate(8);
+}
+function countPrice(el){
+  const n = $(".num", el), to = +n.dataset.count;
+  if (reduce){ n.textContent = to.toLocaleString("id-ID"); return; }
+  const start = performance.now();
+  const tick = now => { const t = Math.min(1, (now - start) / 600); n.textContent = Math.round(to * (1 - Math.pow(1 - t, 3)) / 1000 * 1000).toLocaleString("id-ID"); if (t < 1) requestAnimationFrame(tick); };
+  requestAnimationFrame(tick);
+}
+function animateRoad(){ const r = $("#road"); r.style.width = "0"; requestAnimationFrame(() => requestAnimationFrame(() => r.style.width = "10%")); }
+$("#switch").addEventListener("click", e => { const b = e.target.closest("[data-plan]"); if (b) setPlan(b.dataset.plan, true); });
+document.addEventListener("click", e => { const g = e.target.closest("[data-goplan]"); if (g){ setPlan(g.dataset.goplan, true); $("#harga").scrollIntoView({behavior: reduce ? "auto" : "smooth"}); } });
+new IntersectionObserver(([e]) => { if (e.isIntersecting && plan === "premium") animateRoad(); }, {threshold: .4}).observe($("#plan-premium"));
+// swipe between plan cards
+let sx = null;
+$(".plans").addEventListener("touchstart", e => { sx = e.touches[0].clientX; }, {passive: true});
+$(".plans").addEventListener("touchend", e => { if (sx === null) return; const dx = e.changedTouches[0].clientX - sx; sx = null;
+  if (Math.abs(dx) > 60) setPlan(dx < 0 ? "premium" : "standard", true); });
+// subtle tilt on the visible plan
+if (matchMedia("(pointer:fine)").matches && !reduce){
+  $(".plans").addEventListener("pointermove", e => { const c = e.target.closest(".plan"); if (!c) return; const r = c.getBoundingClientRect();
+    c.style.transform = `rotateY(${((e.clientX - r.left) / r.width - .5) * 8}deg) rotateX(${-((e.clientY - r.top) / r.height - .5) * 6}deg)`; });
+  $(".plans").addEventListener("pointerleave", () => $$(".plan").forEach(c => c.style.transform = ""));
+}
+
+/* ---- results wall ---- */
+$("#wall").innerHTML = WALL.map(id => `<img loading="lazy" src="${byId[id].img}" alt="Hasil resep ${byId[id].title}">`).join("") +
+  `<div class="send"><svg class="ico" style="color:var(--blue)"><use href="#i-hand"/></svg>Sudah coba? Kirim hasilmu ke kami, fotomu bisa tampil di sini.</div>`;
+
+/* ---- checkout ---- */
+function syncSummary(){
+  const p = $$('input[name="plan"]').find(i => i.checked)?.value || plan;
+  $("#sum-plan").textContent = PLANS[p].name; $("#sum-total").textContent = rp(PLANS[p].price);
+}
+$$('input[name="plan"]').forEach(i => i.addEventListener("change", () => { setPlan(i.value, true); }));
+function openSheet(p){
+  if (p) setPlan(p);
+  trk("checkout", {plan: p || plan});
+  $("#scrim").hidden = false; $("#sheet").hidden = false;
+  requestAnimationFrame(() => { $("#scrim").classList.add("show"); $("#sheet").classList.add("show"); });
+  setTimeout(() => $("#co-send").focus({preventScroll: true}), 400);
+}
+function closeSheet(){
+  $("#scrim").classList.remove("show"); $("#sheet").classList.remove("show");
+  setTimeout(() => { $("#scrim").hidden = true; $("#sheet").hidden = true; }, reduce ? 0 : 420);
+}
+document.addEventListener("click", e => { const b = e.target.closest("[data-buy]"); if (b) openSheet(b.dataset.buy); });
+$("#scrim").addEventListener("click", closeSheet);
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeSheet(); });
+let sy = null;
+$("#sheet").addEventListener("touchstart", e => { if ($("#sheet").scrollTop <= 0) sy = e.touches[0].clientY; }, {passive: true});
+$("#sheet").addEventListener("touchend", e => { if (sy !== null && e.changedTouches[0].clientY - sy > 90) closeSheet(); sy = null; });
+$("#co-send").addEventListener("click", () => {
+  const url = CHECKOUT[plan];
+  trk("pay", {plan});
+  confetti();
+  toast("Membuka halaman pembayaran " + PLANS[plan].name + "…");
+  setTimeout(() => { const w = window.open(url, "_blank", "noopener"); if (!w) location.href = url; }, reduce ? 0 : 450);
+});
+
+/* ---- confetti ---- */
+function confetti(){
+  if (reduce) return;
+  const c = $("#confetti"), ctx = c.getContext("2d");
+  c.width = innerWidth * devicePixelRatio; c.height = innerHeight * devicePixelRatio; ctx.scale(devicePixelRatio, devicePixelRatio);
+  const colors = ["#2B66F6","#FFD23F","#FF5C7A","#16A36A"];
+  const parts = Array.from({length: 90}, () => ({x: innerWidth / 2, y: innerHeight * .7, vx: (Math.random() - .5) * 12, vy: -Math.random() * 14 - 6, s: Math.random() * 6 + 4, r: Math.random() * 6, c: colors[Math.random() * 4 | 0]}));
+  const start = performance.now();
+  const frame = now => {
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
+    parts.forEach(p => { p.vy += .45; p.x += p.vx; p.y += p.vy; p.r += .2; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c; ctx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); ctx.restore(); });
+    if (now - start < 1800) requestAnimationFrame(frame); else ctx.clearRect(0, 0, innerWidth, innerHeight);
+  };
+  requestAnimationFrame(frame);
+}
+
+/* ---- bukti sosial ---- */
+const starSvg = n => `<span class="stars" aria-label="${n} dari 5 bintang">${Array.from({length:5},(_,i)=>`<svg viewBox="0 0 24 24" style="opacity:${i<n?1:.25}"><use href="#i-star"/></svg>`).join("")}</span>`;
+const escH = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const demoTag = "";
+const SAMPLE_T = [
+  {photo:"img/p22.jpg", title:"Judul testimoni #1"},
+  {photo:"img/p46.jpg", title:"Judul testimoni #2"},
+  {photo:"img/p50.jpg", title:"Judul testimoni #3"},
+  {photo:"img/23bc9ae4209a057d.jpg", title:"Judul testimoni #4"},
+  {photo:"img/9b8fbd21dbf21c2f.jpg", title:"Judul testimoni #5"}
+].map((x, i) => ({...x, name:"Nama Pembeli " + (i+1), ig:"akun_ig_" + (i+1), stars:5, text:"Tulis komentar asli dari pembeli di sini (sudah minta izin). Ganti isi ini di bagian TESTIMONIALS.", plan:"Premium", date:"—", demo:true}));
+const tList = TESTIMONIALS.length ? TESTIMONIALS.map(t => MOCKUP ? {...t, demo:true} : t).slice().sort((a,b) => (b.stars||0) - (a.stars||0)).slice(0,5) : (PREVIEW ? SAMPLE_T : []);
+
+// rating
+(() => {
+  const r = RATING && RATING.count > 0 ? RATING : null;
+  const hr = $("#hero-rating"), sc = $("#t-score");
+  if (r){
+    hr.innerHTML = `${MOCKUP ? demoTag : ""}${starSvg(Math.round(r.avg))}<b>${r.avg.toFixed(1).replace(".", ",")}</b><span>dari ${r.count.toLocaleString("id-ID")} ulasan</span>`;
+    sc.innerHTML = `<span class="big">${r.avg.toFixed(1).replace(".", ",")}</span><span>${starSvg(Math.round(r.avg))} ${MOCKUP ? demoTag : ""}</span><small>Rata-rata dari ${r.count.toLocaleString("id-ID")} ulasan pembeli</small>`;
+    hr.hidden = false; sc.hidden = false;
+  } else if (PREVIEW){
+    hr.innerHTML = `${demoTag}${starSvg(5)}<b>–</b><span>dari … ulasan</span>`;
+    sc.innerHTML = `<span class="big">–</span><span>${starSvg(5)} ${demoTag}</span><small>Isi RATING dengan angka dari ulasan asli</small>`;
+    hr.hidden = false; sc.hidden = false;
+  }
+})();
+
+// sub-judul testimoni
+(() => {
+  const el = $("#t-sub");
+  if (MOCKUP){ el.textContent = "Ribuan pengguna sudah merasakan hasil luar biasa dengan ResepFoto."; el.hidden = false; }
+  else if (RATING && RATING.count > 0){ el.textContent = RATING.count.toLocaleString("id-ID") + " pembeli sudah memberi ulasan untuk ResepFoto."; el.hidden = false; }
+})();
+
+// viewers — angka asli dari api.php?a=live
+(() => {
+  const el = $("#live-pill");
+  if (!TRACK_URL) return;
+  const upd = () => fetch(TRACK_URL + "?a=live", {credentials: "omit"}).then(r => r.json()).then(d => {
+    if (!d || !d.ok) return;
+    if (d.now >= 5){ $("#live-text").textContent = d.now.toLocaleString("id-ID") + " orang sedang melihat halaman ini"; el.hidden = false; }
+    else if (d.day >= 50){ $("#live-text").textContent = d.day.toLocaleString("id-ID") + " orang mengunjungi halaman ini dalam 24 jam terakhir"; el.hidden = false; }
+    else el.hidden = true;
+  }).catch(() => {});
+  upd(); setInterval(upd, 30000);
+})();
+
+// carousel
+(() => {
+  const track = $("#t-track"), dots = $("#t-dots"), view = $("#t-view");
+  if (!tList.length){ $("#testimoni").hidden = true; return; }
+  track.innerHTML = tList.map((t, i) => `
+    <article class="t-card" aria-roledescription="slide" aria-label="${i+1} dari ${tList.length}">
+      <div class="t-top">
+        <span class="t-ava"><img src="${escH(t.avatar || t.photo)}" alt="" data-fb="${escH(t.photo)}"></span>
+        <div class="t-who"><strong>${escH(t.name)}</strong>${t.ig ? `<a href="https://instagram.com/${encodeURIComponent(t.ig)}" target="_blank" rel="noopener">@${escH(t.ig)}</a>` : ""}${starSvg(t.stars || 5)}</div>
+        ${t.demo ? demoTag : ""}
+      </div>
+      <div class="t-body">
+        <div class="t-txt">
+          <h3>${escH(t.title)}</h3>
+          <p>${escH(t.text)}</p>
+          ${t.plan ? `<span class="t-chip">Paket ${escH(t.plan)}</span>` : ""}
+        </div>
+        ${t.photo ? `<div class="t-photo"><img loading="lazy" src="${escH(t.photo)}" alt="Hasil foto ${escH(t.name)}"></div>` : ""}
+      </div>
+    </article>`).join("");
+  $$(".t-ava img").forEach(im => im.addEventListener("error", () => {
+    const fb = im.dataset.fb; if (fb && !im.src.endsWith(fb)) im.src = fb;
+  }, {once: true}));
+  dots.innerHTML = tList.map((_, i) => `<button aria-label="Testimoni ${i+1}"></button>`).join("");
+  let idx = 0, timer = null;
+  const cards = [...track.children];
+  const goT = i => {
+    idx = (i + tList.length) % tList.length;
+    track.style.transform = `translateX(${-cards[idx].offsetLeft + cards[0].offsetLeft}px)`;
+    [...dots.children].forEach((d, k) => d.setAttribute("aria-current", k === idx));
+  };
+  const play = () => { if (reduce) return; clearInterval(timer); timer = setInterval(() => goT(idx + 1), 4500); };
+  dots.addEventListener("click", e => { const b = e.target.closest("button"); if (b){ goT([...dots.children].indexOf(b)); play(); } });
+  $("#t-prev").addEventListener("click", () => { goT(idx - 1); play(); });
+  $("#t-next").addEventListener("click", () => { goT(idx + 1); play(); });
+  let sx = null;
+  view.addEventListener("pointerdown", e => { sx = e.clientX; clearInterval(timer); });
+  view.addEventListener("pointerup", e => { if (sx !== null){ const dx = e.clientX - sx; if (Math.abs(dx) > 40) goT(idx + (dx < 0 ? 1 : -1)); sx = null; play(); } });
+  view.addEventListener("mouseenter", () => clearInterval(timer));
+  view.addEventListener("mouseleave", play);
+  addEventListener("resize", () => goT(idx));
+  goT(0); play();
+})();
+
+// order popup
+(() => {
+  const box = $("#opop"); let queue = [], closedAt = 0;
+  const ago = iso => { const m = Math.max(1, Math.round((Date.now() - new Date(iso)) / 60000)); return m < 60 ? m + " menit lalu" : m < 1440 ? Math.round(m/60) + " jam lalu" : Math.round(m/1440) + " hari lalu"; };
+  const show = o => {
+    $("#op-name").innerHTML = escH(o.name) + (o.demo ? " " + demoTag : "");
+    $("#op-what").textContent = (o.paid ? " membeli " : " memesan ") + "Paket " + o.plan;
+    const st = $("#op-st"); st.className = "st " + (o.paid ? "paid" : "wait");
+    st.textContent = o.paid ? "✓ Sudah membayar" : "⏳ Menunggu pembayaran";
+    $("#op-ago").textContent = o.demo ? (MOCKUP ? "· " + (2 + Math.floor(Math.random() * 12)) + " menit lalu" : "") : "· " + ago(o.at);
+    box.classList.add("show");
+    setTimeout(() => box.classList.remove("show"), 5000);
+  };
+  $("#op-close").addEventListener("click", () => { box.classList.remove("show"); closedAt = Date.now(); });
+  const tick = () => {
+    if (Date.now() - closedAt > 120000 && queue.length && !document.hidden) show(queue.shift());
+    setTimeout(tick, 15000 + Math.random() * 25000);
+  };
+  if (MOCKUP){
+    const N = ["A****","B*****","C****","D****","E***","F*****","G****","H*****","I***","J****","K*****","L****","M*****","N****","P*****","R****","S*****","T****","W****","Y*****"];
+    const all = N.map((name, i) => ({name, plan: i % 3 === 1 ? "Standard" : "Premium", paid: Math.random() > .35, demo:true}));
+    const refill = () => { queue = all.slice().sort(() => Math.random() - .5); };
+    refill();
+    const loop = () => {
+      if (Date.now() - closedAt > 60000 && !document.hidden){ if (!queue.length) refill(); show(queue.shift()); }
+      setTimeout(loop, [15000, 20000, 30000, 25000, 40000][Math.floor(Math.random() * 5)]);
+    };
+    setTimeout(loop, 5000);
+    return;
+  }
+  if (ORDER_FEED_URL){
+    const load = () => fetch(ORDER_FEED_URL, {credentials:"omit"}).then(r => r.json()).then(d => {
+      if (d && d.ok && Array.isArray(d.orders)) queue = d.orders.map(o => ({name:o.name, plan:o.plan, paid:o.paid, at:o.at}));
+    }).catch(() => {});
+    load(); setInterval(load, 120000);
+    setTimeout(tick, 8000);
+  } else if (PREVIEW){
+    const demo = () => [
+      {name:"B***", plan:"Premium", paid:true, demo:true},
+      {name:"S***", plan:"Standard", paid:false, demo:true},
+      {name:"R***", plan:"Premium", paid:false, demo:true}
+    ];
+    queue = demo();
+    setInterval(() => { if (!queue.length) queue = demo(); }, 20000);
+    setTimeout(tick, 6000);
+  }
+})();
+
+/* ---- latar CTA penutup: pakai gambar asli kalau tersedia ---- */
+(() => {
+  const el = $(".final");
+  const names = ["img/bg-final.jpg", "img/bg-final.png", "img/bg-final.webp"];
+  let i = 0;
+  const tryNext = () => {
+    if (i >= names.length) return;                 // tidak ada file: pakai latar CSS
+    const src = names[i++], im = new Image();
+    im.onload = () => { el.style.backgroundImage = `url("${src}")`; el.classList.add("bg-img"); };
+    im.onerror = tryNext;
+    im.src = src;
+  };
+  tryNext();
+})();
+
+/* ---- pelacakan (Admin → Iklan) ---- */
+const trk = (() => {
+  if (!TRACK_URL) return () => {};
+  const rnd = () => Array.from(crypto.getRandomValues(new Uint8Array(8)), b => b.toString(36).padStart(2, "0")).join("").slice(0, 16);
+  let vid = store.get("rf_vid", null); if (!/^[a-z0-9]{8,32}$/.test(vid || "")) { vid = rnd(); store.set("rf_vid", vid); }
+  let sid; try { sid = sessionStorage.getItem("rf_sid") || rnd(); sessionStorage.setItem("rf_sid", sid); } catch { sid = rnd(); }
+  const q = new URLSearchParams(location.search);
+  let utm = store.get("rf_utm", {});
+  if (q.get("utm_source") || q.get("utm_campaign") || q.get("fbclid")){
+    utm = {src: q.get("utm_source") || "", med: q.get("utm_medium") || "", camp: q.get("utm_campaign") || "", content: q.get("utm_content") || "", fbclid: q.get("fbclid") ? 1 : 0, at: Date.now()};
+    store.set("rf_utm", utm);
+  } else if (utm.at && Date.now() - utm.at > 7 * 864e5) utm = {};
+  const url = TRACK_URL + "?a=lt";
+  const send = (type, extra = {}) => {
+    const body = JSON.stringify({type, vid, sid, page: "promo", ref: document.referrer, ...utm, ...extra});
+    try { if (navigator.sendBeacon && navigator.sendBeacon(url, new Blob([body], {type: "text/plain"}))) return; } catch {}
+    fetch(url, {method: "POST", body, keepalive: true, credentials: "omit", headers: {"Content-Type": "text/plain"}}).catch(() => {});
+  };
+  send("view");
+  setInterval(() => { if (!document.hidden) send("ping"); }, 20000);
+  return send;
+})();
+document.addEventListener("click", e => {
+  const b = e.target.closest('a[href="#harga"],[data-goplan],[data-buy]');
+  if (b) trk("cta", {plan: b.dataset.buy || b.dataset.goplan || ""});
+}, true);
+
+/* ---- init ---- */
+setPlan(plan);
+calc();
+})();
+</script>
+
+</body>
+</html>

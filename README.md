@@ -6,8 +6,9 @@ Resep prompt foto siap salin untuk Gemini & ChatGPT.
 | Folder | Isi | Online? |
 |---|---|---|
 | `app/` | Aplikasi member + admin (PHP 7.4+ & SQLite), webhook Mayar, halaman terima kasih | Ya, auto-deploy ke resepfoto.oziera.co.id |
-| `landing/index.html` | Halaman jualan. Data bukti sosial diatur di bagian `bukti sosial` di script (`PREVIEW`, `TESTIMONIALS`, `RATING`, `ORDER_FEED_URL`, `LIVE_VIEWERS`) | Belum (tidak ikut auto-deploy) |
-| `landing/mockup.html` | Mockup presentasi, pembayaran nonaktif | Tidak untuk publik |
+| `app/promo/` | **Halaman iklan**, dibuat oleh `landing/build-promo.mjs`. Jangan diedit langsung | Ya → resepfoto.oziera.co.id/promo |
+| `landing/mockup.html` | Sumber desain halaman iklan + versi presentasi (pembayaran nonaktif, berlabel CONTOH) | Tidak untuk publik |
+| `landing/index.html` | Halaman jualan versi lama, digantikan `app/promo/` | Tidak dipakai |
 | `brand/` | Logo, ikon, gambar share + skrip pembuatnya | – |
 
 ## Auto-deploy (server menarik dari GitHub)
@@ -17,6 +18,24 @@ Server cPanel menjalankan `deploy/rf-deploy.sh` lewat cron tiap 2 menit:
 3. Riwayat deploy: `~/rf-deploy/deploy.log`.
 
 Jadi cukup push ke `main`, website ter-update dalam ±2 menit. Tidak ada password yang disimpan di GitHub.
+Karena skrip menyalin **seluruh isi** `app/`, folder `app/promo/` ikut tayang di `resepfoto.oziera.co.id/promo` tanpa perlu mengubah cron.
+
+### Halaman iklan `/promo`
+Desainnya dirawat di `landing/mockup.html`. Setelah mengubahnya, bangun ulang halaman produksinya:
+
+```bash
+node landing/build-promo.mjs      # -> app/promo/index.html + app/promo/img/
+```
+
+Skrip itu menyalakan pelacakan iklan (`TRACK_URL = "/api.php"`), menyambungkan notifikasi pesanan dan penghitung
+pengunjung ke data asli, lalu membuang semua data ilustrasi: testimoni karangan, rating, dan label CONTOH.
+Bagian testimoni otomatis disembunyikan selama `TESTIMONIALS` kosong — isi hanya dengan ulasan asli yang sudah diizinkan pembelinya.
+
+Link iklan Meta:
+
+```
+https://resepfoto.oziera.co.id/promo?utm_source=facebook&utm_medium=paid&utm_campaign=NAMA&utm_content={{ad.name}}
+```
 Yang **tidak** pernah disentuh: `config.php`, database `data/*.sqlite`, folder `uploads/` (tidak ada di repo).
 
 ## Setup server baru
