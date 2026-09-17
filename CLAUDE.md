@@ -25,9 +25,8 @@ app/            ← yang di-deploy ke document root website
   webhook-mayar.php webhook pembayaran Mayar
   terima-kasih.html halaman sesudah bayar
   img/          foto contoh resep bawaan (p01…p66.jpg, 4:5) — ikut ter-deploy
-  promo/        HALAMAN IKLAN — dibangkitkan, JANGAN diedit tangan (lihat landing/CLAUDE.md)
   .htaccess     blokir file sensitif, paksa HTTPS, header keamanan, cache
-  .autodeploy   penanda warisan; skrip deploy sekarang tidak mengeceknya, tapi jangan dihapus
+  .autodeploy   PENANDA WAJIB — cron hanya men-deploy kalau file ini ada. Jangan dihapus
   config.example.php  template config (config.php asli TIDAK di repo)
   data/         seed-prompts.json, seed-en.json, pack2-prompts.json (database .sqlite TIDAK di repo)
   uploads/      hanya .htaccess (file upload TIDAK di repo)
