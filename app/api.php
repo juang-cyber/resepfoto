@@ -84,7 +84,7 @@ function fail(string $msg, int $code = 400): void { out(['ok' => false, 'error' 
 function currentUser(): ?array {
   $s = $_SESSION['user'] ?? null;
   if (!$s) return null;
-  if ($s['role'] === 'admin') return ['role' => 'admin', 'adminRole' => 'super_admin', 'username' => ADMIN_USER, 'name' => 'Admin ResepFoto', 'plan' => 'Admin', 'expires' => '', 'avatar' => setting('admin_avatar')];
+  if ($s['role'] === 'admin') return ['role' => 'admin', 'adminRole' => 'super_admin', 'username' => ADMIN_USER, 'name' => ADMIN_DISPLAY_NAME, 'plan' => 'Admin', 'expires' => '', 'avatar' => setting('admin_avatar')];
   $st = db()->prepare('SELECT * FROM members WHERE username = ?');
   $st->execute([$s['username']]);
   $m = $st->fetch();
@@ -95,7 +95,7 @@ function currentUser(): ?array {
   return ['role' => 'member', 'adminRole' => ''] + $pub;
 }
 function requireUser(): array { $u = currentUser(); if (!$u) fail('Sesi berakhir. Silakan masuk lagi.', 401); return $u; }
-function requireAdmin(): void { $u = requireUser(); if ($u['role'] !== 'admin') fail('Khusus admin.', 403); }
+function requireAdmin(): array { $u = requireUser(); if ($u['role'] !== 'admin') fail('Khusus admin.', 403); return $u; }
 function requireSuperAdmin(): array { $u = requireUser(); if (($u['adminRole'] ?? '') !== 'super_admin') fail('Khusus super admin.', 403); return $u; }
 function coverConfig(): array {
   return [
@@ -105,12 +105,13 @@ function coverConfig(): array {
     'img' => [setting('cover_img1'), setting('cover_img2'), setting('cover_img3')],
   ];
 }
-function rowToPrompt(array $r): array {
+function rowToPrompt(array $r, bool $forAdmin = false): array {
   return ['id' => $r['id'], 'order' => (int)$r['ord'], 'cat' => $r['cat'], 'title' => $r['title'], 'desc' => $r['descr'],
     'popular' => (bool)$r['popular'], 'tools' => json_decode($r['tools'] ?: '[]', true), 'prompt' => $r['prompt'],
     'tips' => $r['tips'], 'image' => $r['image'], 'createdAt' => $r['created_at'] ?? '',
     'catEn' => (string)($r['cat_en'] ?? ''), 'titleEn' => (string)($r['title_en'] ?? ''),
-    'descEn' => (string)($r['descr_en'] ?? ''), 'tipsEn' => (string)($r['tips_en'] ?? '')];
+    'descEn' => (string)($r['descr_en'] ?? ''), 'tipsEn' => (string)($r['tips_en'] ?? '')]
+    + ($forAdmin ? ['createdBy' => (string)($r['created_by'] ?? '')] : []);
 }
 function input(): array {
   if (!empty($_POST)) return $_POST;
@@ -243,7 +244,7 @@ if ($method === 'POST' && !in_array($a, ['lt'], true) && !hash_equals($_SESSION[
 try {
   switch ($a) {
     case 'me':
-      out(['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => currentUser(), 'cover' => coverConfig(), 'v' => 'admin-9']);
+      out(['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => currentUser(), 'cover' => coverConfig(), 'v' => 'admin-10']);
 
     case 'cover_save': {
       requireAdmin();
@@ -304,11 +305,14 @@ try {
       } else {
         $rows = db()->query('SELECT * FROM prompts ORDER BY ord, id')->fetchAll();
       }
-      out(['ok' => true, 'prompts' => array_map('rowToPrompt', $rows)]);
+      $isAdmin = $u['role'] === 'admin';
+      $res = ['ok' => true, 'prompts' => array_map(function (array $r) use ($isAdmin) { return rowToPrompt($r, $isAdmin); }, $rows)];
+      if ($isAdmin) $res['authors'] = promptAuthors(db());
+      out($res);
     }
 
     case 'prompt_save': {
-      requireAdmin();
+      $me = requireAdmin();
       $in = input(); $pdo = db();
       $id = preg_replace('/[^a-z0-9_-]/i', '', str($in, 'id', 40));
       $title = str($in, 'title', 80); $cat = str($in, 'cat', 40); $prompt = str($in, 'prompt', 6000);
@@ -335,12 +339,13 @@ try {
         $id = 'r' . base_convert((string)time(), 10, 36) . bin2hex(random_bytes(2));
         $ord = (int)$pdo->query('SELECT COALESCE(MAX(ord),0)+1 FROM prompts')->fetchColumn();
       } else $ord = (int)$old['ord'];
-      $pdo->prepare('INSERT OR REPLACE INTO prompts (id, ord, cat, title, descr, popular, tools, prompt, tips, image, updated_at, created_at, cat_en, title_en, descr_en, tips_en) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')->execute([
+      $pdo->prepare('INSERT OR REPLACE INTO prompts (id, ord, cat, title, descr, popular, tools, prompt, tips, image, updated_at, created_at, cat_en, title_en, descr_en, tips_en, created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')->execute([
         $id, $ord, $cat, $title, str($in, 'desc', 160), !empty($in['popular']) && $in['popular'] !== '0' ? 1 : 0,
         json_encode($tools), $prompt, str($in, 'tips', 400), $image, gmdate('c'), $old['created_at'] ?? gmdate('c'),
-        str($in, 'cat_en', 40), str($in, 'title_en', 80), str($in, 'desc_en', 160), str($in, 'tips_en', 400)]);
+        str($in, 'cat_en', 40), str($in, 'title_en', 80), str($in, 'desc_en', 160), str($in, 'tips_en', 400),
+        $old ? (string)($old['created_by'] ?? '') : (string)$me['username']]);
       $st = $pdo->prepare('SELECT * FROM prompts WHERE id = ?'); $st->execute([$id]);
-      out(['ok' => true, 'prompt' => rowToPrompt($st->fetch())]);
+      out(['ok' => true, 'prompt' => rowToPrompt($st->fetch(), true)]);
     }
 
     case 'prompt_delete': {

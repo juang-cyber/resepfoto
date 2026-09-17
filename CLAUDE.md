@@ -120,6 +120,8 @@ Tanpa token cocok, pesanan tetap tercatat tapi hanya `notifyAdmin()` yang jalan 
 Tabel: `prompts, members, attempts, settings, orders, webhook_log, ai_log, prompt_tests, events, lt_events, presence,
 ad_spend`.
 Kolom penting `members`: `username, name, code_hash, code_hint, plan, expires, active, email, phone, role, avatar`.
+Kolom penting `prompts`: `id, ord, cat, title, descr, popular, tools, prompt, tips, image, created_at,
+updated_at, cat_en, title_en, descr_en, tips_en, created_by`.
 Kunci `settings`: `admin_hash, admin_avatar, admin_email, mail_from, mayar_webhook_token, auto_without_token, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass, fonnte_token, admin_wa, gemini_api_key, gemini_model, gemini_image_model, cover_title, cover_sub, cover_title_en, cover_sub_en, cover_chip, cover_img1..3`.
 
 **Email & WhatsApp.** `sendMail()` di `lib.php` memakai SMTP kalau `smtp_host` diisi, kalau tidak `mail()` dengan
@@ -137,6 +139,8 @@ walau SPF & DKIM sudah benar.
 dan hasilnya disimpan di kolom `orders.wa_sent`. Nomor admin (`admin_wa`) harus nomor **lain** dari nomor device
 Fonnte — pesan dari device ke nomornya sendiri sering tidak sampai. WA ke pembeli hanya terkirim kalau payload
 webhook Mayar memuat `customerMobile`.
+
+**Penulis resep (`created_by`).** Diisi otomatis dengan username admin yang menyimpan lewat `prompt_save`, dan dipertahankan saat resep diedit admin lain. Resep lama diisi sekali lewat `backfillPromptAuthors()` (ditandai kunci `backfill_created_by` di `settings`): resep dari paket resep atas nama super admin bawaan, sisanya atas nama `LEGACY_PROMPT_AUTHOR`, yang dicocokkan ke akun admin yang ada lewat `resolveAuthorUsername()` supaya foto profilnya ikut terpakai. Endpoint `prompts` hanya menyertakan `createdBy` dan peta `authors` (nama + foto) untuk admin — member biasa tidak melihatnya.
 
 **Menambah resep massal — paket resep.** `seed-prompts.json` hanya jalan saat tabel `prompts` masih kosong, jadi
 database yang sudah dipakai tidak bisa diisi lewat situ. Gunakan **paket resep**: file `data/pack*-prompts.json`
