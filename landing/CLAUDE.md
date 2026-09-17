@@ -159,6 +159,28 @@ Link iklan Meta:
 https://resepfoto.oziera.co.id/promo?utm_source=facebook&utm_medium=paid&utm_campaign=NAMA&utm_content={{ad.name}}
 ```
 
+### Meta Pixel
+Terpisah dari pelacakan di atas, dan tujuannya beda: yang di atas melapor ke **kamu** (Admin → Iklan), pixel melapor
+ke **Meta** supaya algoritma iklannya bisa dioptimalkan ke pembelian, dan supaya audiens retargeting/lookalike bisa
+dibangun.
+
+- **ID-nya tidak ditanam di halaman.** Halaman mengambilnya dari `api.php?a=pixel`, yang membaca kunci
+  `meta_pixel_id` di tabel `settings`. Diisi dari **Admin → Iklan → Meta Pixel**. Satu Pixel ID berlaku untuk semua
+  kampanye di akun iklan yang sama, jadi bikin kampanye baru **tidak** perlu menyentuh kode.
+- **Kolom kosong = pixel mati total** — tidak ada permintaan ke `connect.facebook.net` sama sekali. Sudah diuji.
+- Peristiwa yang dikirim, dipetakan dari `trk()` yang sudah ada: `PageView` + `ViewContent` saat halaman dibuka,
+  `CTAClick` (custom) dari `cta`, `InitiateCheckout` dari `checkout`, `AddPaymentInfo` dari `pay`. `value` &
+  `currency` diambil dari `PLANS`, jadi otomatis ikut kalau harga berubah. Tiap peristiwa membawa `eventID` unik,
+  supaya kalau nanti Conversions API dipasang, deduplikasinya sudah siap.
+- **`Purchase` tidak dikirim dan memang tidak bisa** — pembayaran terjadi di domain Mayar (`kitlab.myr.id`), pixel
+  halaman ini tidak pernah melihatnya. Cara yang benar: Meta Conversions API dari `app/webhook-mayar.php`, di titik
+  `$paid`/`fulfillOrder()` yang tahu pembayaran sungguh lunas. **Belum dibuat.** Tanpa itu, Meta tidak bisa
+  dioptimalkan ke Purchase — paling jauh ke `AddPaymentInfo`.
+- Access Token Conversions API **tidak boleh** ikut ke `api.php?a=pixel` atau ke repo. Pixel ID publik (memang
+  terbaca di sumber halaman tiap situs), token tidak.
+- Pixel itu pelacak pihak ketiga. Kebijakan Meta dan UU PDP minta pemberitahuan ke pengunjung; `/promo` belum punya
+  halaman kebijakan privasi.
+
 ## Pembayaran Mayar — setelan dashboard
 Kode sudah siap dan sudah diuji. Setelan dashboard **sudah terpasang 17 Sep 2026**; daftar ini untuk pengecekan ulang
 kalau produk atau harga diganti:

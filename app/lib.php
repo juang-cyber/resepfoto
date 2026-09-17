@@ -47,6 +47,9 @@ function db(): PDO {
   $pdo->exec('CREATE INDEX IF NOT EXISTS ix_lt_day ON lt_events(day)');
   $pdo->exec('CREATE INDEX IF NOT EXISTS ix_lt_ts ON lt_events(ts)');   // dipakai recent_orders (aktivitas keranjang) & live
   $pdo->exec('CREATE TABLE IF NOT EXISTS presence (vid TEXT PRIMARY KEY, ts INTEGER, page TEXT)');
+  // Tempat sampah resep. Barisnya disimpan utuh sebagai JSON supaya bisa dipulihkan apa adanya,
+  // dan file gambarnya sengaja TIDAK ikut dihapus sampai sampahnya benar-benar dikosongkan.
+  $pdo->exec('CREATE TABLE IF NOT EXISTS prompts_trash (id TEXT PRIMARY KEY, data TEXT, deleted_at TEXT, deleted_by TEXT)');
   $pdo->exec('CREATE TABLE IF NOT EXISTS ad_spend (day TEXT, campaign TEXT, amount INTEGER, note TEXT, PRIMARY KEY (day, campaign))');
   // migrasi kolom baru
   $cols = array_column($pdo->query('PRAGMA table_info(prompts)')->fetchAll(), 'name');
@@ -55,6 +58,10 @@ function db(): PDO {
     $pdo->exec("UPDATE prompts SET created_at = COALESCE(updated_at, '2026-09-01T00:00:00+00:00')");
   }
   if (!in_array('created_by', $cols, true)) $pdo->exec('ALTER TABLE prompts ADD COLUMN created_by TEXT');
+  // kolom review (panel admin): status QC, penilaian hasil, dan penanda resep khusus Inggris
+  if (!in_array('qc_status', $cols, true)) $pdo->exec("ALTER TABLE prompts ADD COLUMN qc_status TEXT DEFAULT ''");
+  if (!in_array('result_status', $cols, true)) $pdo->exec("ALTER TABLE prompts ADD COLUMN result_status TEXT DEFAULT ''");
+  if (!in_array('en_only', $cols, true)) $pdo->exec('ALTER TABLE prompts ADD COLUMN en_only INTEGER DEFAULT 0');
   $mcols = array_column($pdo->query('PRAGMA table_info(members)')->fetchAll(), 'name');
   if (!in_array('email', $mcols, true)) $pdo->exec('ALTER TABLE members ADD COLUMN email TEXT');
   if (!in_array('phone', $mcols, true)) $pdo->exec('ALTER TABLE members ADD COLUMN phone TEXT');
@@ -88,6 +95,7 @@ function db(): PDO {
       'plan' => 'Premium', 'expires' => '', 'active' => 1, 'created_at' => gmdate('c'), 'last_login' => null, 'email' => '', 'phone' => ''], $pdo);
   }
   importPromptPacks($pdo, $dir);
+  fixAmbiguousPrompts($pdo);
   backfillPromptAuthors($pdo, $dir);
   return $pdo;
 }
@@ -97,6 +105,34 @@ function db(): PDO {
  * Resep dari paket resep dicatat atas nama super admin bawaan, sisanya atas nama
  * LEGACY_PROMPT_AUTHOR. Resep baru mengisi created_by sendiri lewat `prompt_save`.
  */
+/**
+ * Sekali jalan: bedakan dua judul Spider-Man yang nyaris kembar, dan perjelas bahwa
+ * resep iklan jaring laba-laba butuh foto PRODUK, bukan foto orang — tiga resep itu
+ * bersebelahan di katalog dan mudah tertukar.
+ * importPromptPacks() memakai INSERT OR IGNORE, jadi memperbaiki JSON saja tidak
+ * menyentuh database yang sudah berisi. Nilai hanya diganti kalau MASIH persis seperti
+ * aslinya, sehingga suntingan admin tidak pernah tertimpa.
+ */
+function fixAmbiguousPrompts(PDO $pdo): void {
+  $chk = $pdo->prepare('SELECT 1 FROM settings WHERE k = ?');
+  $chk->execute(['fix_ambigu_spiderman']);
+  if ($chk->fetchColumn() !== false) return;
+  try {
+    $pdo->beginTransaction();
+    $tt = $pdo->prepare('UPDATE prompts SET title = ?, title_en = ? WHERE id = ? AND title = ?');
+    $tt->execute(['Selfie Spider-Man di Times Square', 'Spider-Man Selfie in Times Square', 'p24', 'Selfie Spider-Man']);
+    $tt->execute(['Photobooth Spider-Man 4 Pose', 'Spider-Man Photobooth (4 Poses)', 'p33', 'Photobooth Spider-Man']);
+    $pdo->prepare('UPDATE prompts SET descr = ?, descr_en = ? WHERE id = ? AND descr = ?')->execute([
+      'Upload foto PRODUK (bukan foto orang). Iklan sinematik: produkmu melayang di atas jalanan kota, digantung jaring laba-laba tebal saat senja.',
+      'Upload a PRODUCT photo (not a person). Cinematic ad: your product floats above the city street, slung from thick spiderwebs at dusk.',
+      'p34', 'Iklan sinematik: produkmu melayang di atas jalanan kota, digantung jaring laba-laba tebal saat senja.']);
+    $pdo->prepare('INSERT OR REPLACE INTO settings (k, v) VALUES (?, ?)')->execute(['fix_ambigu_spiderman', gmdate('c')]);
+    $pdo->commit();
+  } catch (Throwable $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+  }
+}
+
 function backfillPromptAuthors(PDO $pdo, string $dir): void {
   $chk = $pdo->prepare('SELECT 1 FROM settings WHERE k = ?');
   $chk->execute(['backfill_created_by']);
@@ -211,6 +247,52 @@ function setSetting(string $k, string $v): void {
 }
 
 function today(): string { return (new DateTime('now', new DateTimeZone('Asia/Jakarta')))->format('Y-m-d'); }
+/* ---------------- hak akses katalog per paket ---------------- */
+const VIRAL_CAT = 'Tren Viral';
+
+/** Jatah per paket: [best seller, Tren Viral, regular]. -1 berarti semuanya. */
+function planQuota(string $plan): ?array {
+  $q = ['Trial' => [3, 1, 6], 'Standard' => [10, 10, -1]];
+  return isset($q[$plan]) ? $q[$plan] : null;         // null = paket bebas (Premium dsb.)
+}
+
+/**
+ * Ambil $n id secara stabil. Seed kosong = pakai urutan kurasi (ord) apa adanya;
+ * seed terisi = diacak tapi tetap sama tiap kali dipanggil untuk seed yang sama,
+ * supaya katalog member tidak berubah-ubah tiap halaman dimuat.
+ */
+function pickStable(array $ids, int $n, string $seed): array {
+  if ($n <= 0 || !$ids) return [];
+  if (count($ids) <= $n) return $ids;
+  if ($seed !== '') usort($ids, function ($a, $b) use ($seed) {
+    return strcmp(md5($seed . '|' . $a), md5($seed . '|' . $b));
+  });
+  return array_slice($ids, 0, $n);
+}
+
+/**
+ * Peta id resep yang boleh dibuka paket ini (id => true). null berarti semuanya boleh.
+ * Ember-nya saling lepas dan best seller menang: resep yang popular DAN Tren Viral
+ * dihitung sebagai best seller, tidak dua kali.
+ */
+function allowedPromptIds(array $rows, string $plan, string $seed): ?array {
+  $q = planQuota($plan);
+  if ($q === null) return null;
+  list($nPop, $nVir, $nReg) = $q;
+  $pop = $vir = $reg = [];
+  foreach ($rows as $r) {
+    if ((int)$r['popular']) $pop[] = $r['id'];
+    elseif ((string)$r['cat'] === VIRAL_CAT) $vir[] = $r['id'];
+    else $reg[] = $r['id'];
+  }
+  $take = array_merge(
+    pickStable($pop, $nPop, ''),                               // best seller: urutan kurasi
+    pickStable($vir, $nVir, $nVir === 1 ? $seed : ''),         // jatah 1 (Trial) diacak per member
+    $nReg < 0 ? $reg : pickStable($reg, $nReg, $seed)
+  );
+  return array_fill_keys($take, true);
+}
+
 function memberStatus(array $m): string {
   if (!(int)$m['active']) return 'off';
   if (!empty($m['expires']) && $m['expires'] < today()) return 'expired';

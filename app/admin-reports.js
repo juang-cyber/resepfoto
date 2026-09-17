@@ -216,6 +216,14 @@ function renderAds(d){
       </form>
       ${d.spendRows.length ? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tanggal</th><th>Kampanye</th><th class="n">Biaya</th><th></th></tr></thead><tbody>${d.spendRows.map(r => `<tr><td>${esc(dLabel(r.day))}</td><td>${esc(r.campaign)}</td><td class="n">${rp(r.amount)}</td><td class="n"><button class="sq danger" data-del-spend="${esc(r.day)}|${esc(r.campaign)}" aria-label="Hapus">${'<svg class="ico"><use href="#i-trash"/></svg>'}</button></td></tr>`).join("")}</tbody></table></div>` : empty("Belum ada biaya tercatat pada periode ini.")}`,
       "Salin angka “Jumlah yang dibelanjakan” per hari per kampanye dari Meta Ads Manager. Nilai yang sama pada tanggal & kampanye yang sama akan ditimpa.")}
+    ${card("Meta Pixel", `
+      <p class="muted" style="font-size:12px;margin:0 0 10px">Isi Pixel ID dari <b>Meta Events Manager → Data sources</b>. Halaman <code>/promo</code> memuatnya sendiri, jadi ID ini berlaku untuk <b>semua kampanye di akun iklan yang sama</b> — tidak perlu diganti tiap bikin iklan baru. Kosongkan kalau tidak mau ada pelacakan Meta sama sekali.</p>
+      <div class="two">
+        <div class="field"><label for="px-id">Pixel ID</label><input class="input" id="px-id" inputmode="numeric" maxlength="20" value="${esc(d.metaPixelId || "")}" placeholder="contoh 1234567890123456"></div>
+        <div class="field" style="display:flex;align-items:flex-end"><button class="btn btn-primary btn-sm" id="px-save" style="height:42px;width:100%">Simpan Pixel</button></div>
+      </div>
+      <p class="muted" style="font-size:12px;margin:10px 0 0">Peristiwa yang dikirim: <code>PageView</code>, <code>ViewContent</code>, <code>CTAClick</code>, <code>InitiateCheckout</code>, <code>AddPaymentInfo</code>. <b><code>Purchase</code> tidak dikirim</b> — pembayaran terjadi di domain Mayar, jadi pixel halaman ini tidak bisa melihatnya.</p>`,
+      "Cek dengan ekstensi <b>Meta Pixel Helper</b> di Chrome, atau Events Manager → Test Events.")}
     ${card("Pembuat link iklan (UTM)", `
       <div class="field"><label for="utm-base">Alamat landing page</label><input class="input" id="utm-base" value="${esc(base)}"></div>
       <div class="two"><div class="field"><label for="utm-camp">Nama kampanye</label><input class="input" id="utm-camp" placeholder="contoh: wisuda-sept" maxlength="60"></div>
@@ -235,6 +243,13 @@ function bindAds(){
   ["#utm-base", "#utm-camp", "#utm-content"].forEach(s => $(s).addEventListener("input", upd));
   upd();
   $("#utm-copy").onclick = async () => toast(await copyText($("#utm-out").textContent) ? "Link iklan tersalin" : "Gagal menyalin", false);
+  $("#px-save").onclick = async () => {
+    const id = $("#px-id").value.replace(/[^0-9]/g, "");
+    try {
+      await api("settings_save", {metaPixelId: id});
+      toast(id ? "Pixel ID disimpan" : "Pixel dimatikan"); adsData = null; loadAds();
+    } catch (ex) { toast(ex.message, true); }
+  };
   $("#spend-form").onsubmit = async e => {
     e.preventDefault();
     try {

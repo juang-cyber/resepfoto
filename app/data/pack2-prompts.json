@@ -63,7 +63,7 @@
    "id": "p24",
    "order": 24,
    "cat": "Tren Viral",
-   "title": "Selfie Spider-Man",
+   "title": "Selfie Spider-Man di Times Square",
    "desc": "Selfie kamera depan memakai kostum Spider-Man realistis lengkap dengan tekstur kain tenun dan jahitannya.",
    "popular": true,
    "tools": [
@@ -74,7 +74,7 @@
    "tips": "Pakai foto selfie setengah badan. Ganti lokasinya sesuai kotamu, misalnya \"in Jakarta at night\".",
    "image": "img/p24.jpg",
    "cat_en": "Viral Trends",
-   "title_en": "Spider-Man Selfie",
+   "title_en": "Spider-Man Selfie in Times Square",
    "desc_en": "Front-camera selfie in a photorealistic Spider-Man suit, complete with woven fabric and stitching.",
    "tips_en": "Use a half-body selfie. Swap the location for your own city, e.g. \"in Jakarta at night\"."
   },
@@ -234,7 +234,7 @@
    "id": "p33",
    "order": 33,
    "cat": "Tren Viral",
-   "title": "Photobooth Spider-Man",
+   "title": "Photobooth Spider-Man 4 Pose",
    "desc": "Empat foto photobooth dalam grid 2×2, semuanya bergaya superhero tapi wajahnya tetap kamu.",
    "popular": true,
    "tools": [
@@ -245,7 +245,7 @@
    "tips": "Minta pose berbeda di tiap kotak. Bisa diganti kostum lain, misalnya \"Batman-inspired suit\".",
    "image": "img/p33.jpg",
    "cat_en": "Viral Trends",
-   "title_en": "Spider-Man Photobooth",
+   "title_en": "Spider-Man Photobooth (4 Poses)",
    "desc_en": "Four photobooth shots in a 2×2 grid, all superhero-styled while keeping your own face.",
    "tips_en": "Ask for a different pose per frame. Swap in another costume, e.g. \"Batman-inspired suit\"."
   },
@@ -254,7 +254,7 @@
    "order": 34,
    "cat": "Profesional",
    "title": "Iklan Produk Jaring Laba-laba",
-   "desc": "Iklan sinematik: produkmu melayang di atas jalanan kota, digantung jaring laba-laba tebal saat senja.",
+   "desc": "Upload foto PRODUK (bukan foto orang). Iklan sinematik: produkmu melayang di atas jalanan kota, digantung jaring laba-laba tebal saat senja.",
    "popular": false,
    "tools": [
     "Gemini",
@@ -265,7 +265,7 @@
    "image": "img/p34.jpg",
    "cat_en": "Professional",
    "title_en": "Spiderweb Product Ad",
-   "desc_en": "Cinematic ad: your product floating above a city street, suspended by thick spider webs at dusk.",
+   "desc_en": "Upload a PRODUCT photo (not a person). Cinematic ad: your product floats above the city street, slung from thick spiderwebs at dusk.",
    "tips_en": "Upload a product photo, not a person. A plain background keeps the product shape readable."
   },
   {

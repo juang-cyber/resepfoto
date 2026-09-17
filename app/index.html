@@ -225,7 +225,28 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 .fav-dot.on{background:#fff;color:#E5484D}
 .fav-dot.on .ico{fill:currentColor}
 .tag-new{position:absolute;top:14px;left:14px;z-index:2;background:var(--warm);color:var(--warm-ink);font-size:11px;font-weight:800;padding:4px 9px;border-radius:99px;letter-spacing:.02em}
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.grid{display:grid;grid-template-columns:repeat(var(--cols,2),minmax(0,1fr));gap:12px}
+.zoom{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+.qcbtn{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;line-height:1;padding:5px 9px;border-radius:9px;background:var(--surface-2);color:var(--ink2);border:1px solid var(--line)}
+.qcbtn b{font-weight:800;color:var(--ink)}
+.pill.qc-lolos{background:#DDF5E9;color:#0B6B44}
+.pill.qc-review{background:#FFF4C7;color:#7A5B00}
+.pill.qc-gagal{background:#FFE6EB;color:#A3143A}
+.pill.rs-cocok{background:#DDF5E9;color:#0B6B44}
+.pill.rs-kurang{background:#FFE6EB;color:#A3143A}
+:root[data-theme="dark"] .pill.qc-lolos,:root[data-theme="dark"] .pill.rs-cocok{background:#10352A;color:#7BE0B0}
+:root[data-theme="dark"] .pill.qc-review{background:#3A2E05;color:#F5D97A}
+:root[data-theme="dark"] .pill.qc-gagal,:root[data-theme="dark"] .pill.rs-kurang{background:#3B1420;color:#FFA3B8}
+.zoom input{width:82px;accent-color:var(--accent)}
+.card.locked .ph img,.pop-card.locked img{filter:saturate(.35) brightness(.86)}
+.card .lock,.pop-card .lock{position:absolute;top:8px;right:8px;z-index:2;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:rgba(6,12,28,.62);color:#fff;backdrop-filter:blur(4px)}
+.card .lock svg,.pop-card .lock svg{width:14px;height:14px}
+.card .lockmsg{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:6px 8px;font-size:10.5px;font-weight:700;line-height:1.25;color:#fff;background:linear-gradient(180deg,rgba(6,12,28,0),rgba(6,12,28,.88))}
+.lockbox{border:1px solid var(--line);border-radius:var(--r-card);padding:18px;background:var(--surface-2);text-align:center}
+.lockbox .ic{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;margin:0 auto 10px;background:var(--accent-soft);color:var(--accent)}
+.lockbox .ic svg{width:21px;height:21px}
+.lockbox h3{font-size:17px;margin-bottom:6px}
+.lockbox p{color:var(--muted);font-size:13.5px;line-height:1.5}
 .card{position:relative;text-align:left;border-radius:var(--r-card);overflow:hidden;background:var(--surface-2);display:flex;flex-direction:column;color:var(--ink)}
 .card .ph{position:relative;aspect-ratio:4/5;max-width:100%;overflow:hidden}
 .card .ph img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s}
@@ -465,6 +486,7 @@ input[type=checkbox]:disabled + *{opacity:.6}
   <symbol id="i-ext" viewBox="0 0 24 24"><path d="M13.5 5H19v5.5M19 5l-8 8M17 14v4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h4"/></symbol>
   <symbol id="i-moon" viewBox="0 0 24 24"><path d="M19 14.5A7.5 7.5 0 0 1 9.5 5a7.5 7.5 0 1 0 9.5 9.5z"/></symbol>
   <symbol id="i-image" viewBox="0 0 24 24"><rect x="4" y="4.5" width="16" height="15" rx="3"/><circle cx="9.5" cy="10" r="1.8"/><path d="M5 17l4.5-4 3.5 3 2.5-2 3.5 3"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></symbol>
   <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="3.5"/><path d="M10.5 12.5L19 4M16 7l2.5 2.5M14 9l2 2"/></symbol>
   <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1.2 1.2M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2"/></symbol>
   <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/></symbol>
@@ -525,7 +547,19 @@ input[type=checkbox]:disabled + *{opacity:.6}
         <div class="section-head"><h2 class="h-md" data-i18n="home.popular">Paling laris</h2><button class="link" id="see-all" data-i18n="home.seeAll">Lihat semua</button></div>
         <div class="carousel" id="carousel"></div>
       </div>
-      <div class="section-head" style="margin-top:8px"><h2 class="h-md" id="grid-title"></h2><span class="muted" style="font-size:13px" id="grid-count"></span></div>
+      <div id="viral-wrap" hidden>
+        <div class="section-head"><h2 class="h-md" data-i18n="home.viral">Tren viral</h2><span class="muted" style="font-size:13px" id="viral-count"></span></div>
+        <div class="carousel" id="viral-carousel"></div>
+      </div>
+      <div class="section-head" style="margin-top:8px">
+        <h2 class="h-md" id="grid-title"></h2>
+        <div class="row" style="gap:12px;align-items:center">
+          <span class="muted" style="font-size:13px" id="grid-count"></span>
+          <label class="zoom"><span data-i18n="home.zoomBig">Besar</span>
+            <input type="range" id="grid-zoom" min="1" max="5" step="1" value="2" data-i18n-aria="home.zoom" aria-label="Ukuran thumbnail">
+            <span data-i18n="home.zoomSmall">Kecil</span></label>
+        </div>
+      </div>
       <div class="grid" id="grid"></div>
     </section>
 
@@ -544,7 +578,12 @@ input[type=checkbox]:disabled + *{opacity:.6}
           <p style="margin:0;color:var(--ink-2)" id="d-desc"></p>
           <div class="row" style="margin-top:12px;flex-wrap:wrap;gap:6px" id="d-tools"></div>
         </div>
-        <div>
+        <div class="lockbox" id="d-lock" hidden>
+          <span class="ic"><svg class="ico"><use href="#i-lock"/></svg></span>
+          <h3 data-i18n="detail.lockT">Resep ini terkunci</h3>
+          <p data-i18n="detail.lockP">Silakan berlangganan Premium untuk membuka semua resep.</p>
+        </div>
+        <div id="d-steps">
           <h3 class="h-md" style="margin-bottom:12px" data-i18n="detail.how">Cara pakai</h3>
           <ol class="steps">
             <li data-i18n="detail.s1">Buka Gemini atau ChatGPT, lalu upload foto kamu.</li>
@@ -552,7 +591,7 @@ input[type=checkbox]:disabled + *{opacity:.6}
             <li data-i18n="detail.s3">Kirim. Kalau belum pas, minta “buat ulang” atau ubah detail kecil di prompt.</li>
           </ol>
         </div>
-        <div>
+        <div id="d-promptwrap">
           <div class="prompt-box">
             <header><span class="eyebrow">Prompt</span><button class="copy-mini" id="d-copy-mini"><svg class="ico" style="width:15px;height:15px"><use href="#i-copy"/></svg><span data-i18n="detail.copy">Salin</span></button></header>
             <pre id="d-prompt"></pre>
@@ -560,7 +599,7 @@ input[type=checkbox]:disabled + *{opacity:.6}
           <p class="disclaimer" data-i18n="detail.note">Hasil dapat berbeda sesuai model, prompt, dan pengaturan.</p>
         </div>
         <div class="tip" id="d-tip-wrap"><svg class="ico"><use href="#i-bulb"/></svg><p id="d-tip"></p></div>
-        <div class="open-row">
+        <div class="open-row" id="d-openrow">
           <a href="https://gemini.google.com/app" data-app="gemini" target="_blank" rel="noopener"><span data-i18n="detail.openGemini">Buka Gemini</span> <svg class="ico" style="width:15px;height:15px"><use href="#i-ext"/></svg></a>
           <a href="https://chatgpt.com/" data-app="gpt" target="_blank" rel="noopener"><span data-i18n="detail.openGpt">Buka ChatGPT</span> <svg class="ico" style="width:15px;height:15px"><use href="#i-ext"/></svg></a>
         </div>
@@ -643,7 +682,12 @@ input[type=checkbox]:disabled + *{opacity:.6}
       <div class="adm-tools" id="adm-tools">
         <label class="adm-search" for="adm-q"><svg class="ico"><use href="#i-search"/></svg><input id="adm-q" type="search" autocomplete="off" data-i18n-ph="adm.searchPh" placeholder="Cari judul, kategori, atau isi prompt…"><button type="button" id="adm-q-clear" hidden aria-label="Bersihkan">✕</button></label>
         <div class="adm-chips" id="adm-chips"></div>
-        <div class="adm-meta"><span id="adm-count"></span><button type="button" class="link" id="adm-reset" hidden data-i18n="adm.resetFilter">Reset filter</button></div>
+        <div class="adm-chips" id="adm-filters"></div>
+        <div class="adm-meta"><span id="adm-count"></span>
+          <span class="row" style="gap:10px">
+            <button type="button" class="link" id="adm-trash">Tempat sampah</button>
+            <button type="button" class="link" id="adm-reset" hidden data-i18n="adm.resetFilter">Reset filter</button>
+          </span></div>
       </div>
       <div class="list" id="adm-prompts" style="margin-top:12px"></div>
       <div class="list" id="adm-members" style="margin-top:14px" hidden></div>
@@ -666,18 +710,8 @@ input[type=checkbox]:disabled + *{opacity:.6}
     <div class="row between" style="margin-bottom:12px"><h2 class="h-md" id="pf-title"></h2><button class="btn btn-ghost btn-sm" data-close data-i18n="common.close">Tutup</button></div>
 
     <div class="lang wide pf-modes" id="pf-modes" role="tablist" aria-label="Cara menambah resep">
-      <button type="button" data-mode="link"><svg class="ico" style="width:16px;height:16px"><use href="#i-link"/></svg>Link referensi</button>
       <button type="button" data-mode="upload"><svg class="ico" style="width:16px;height:16px"><use href="#i-image"/></svg>Upload sendiri</button>
       <button type="button" data-mode="image"><svg class="ico" style="width:16px;height:16px"><use href="#i-spark"/></svg>Prompt dari gambar</button>
-    </div>
-
-    <div class="studio-box" id="pf-linkbox">
-      <label class="studio-label" for="pf-link">Link share Gemini atau ChatGPT</label>
-      <div class="row" style="gap:8px">
-        <input class="input" id="pf-link" type="url" inputmode="url" placeholder="https://g.co/gemini/share/…" autocomplete="off">
-        <button type="button" class="btn btn-primary" id="pf-link-go" style="flex:none"><svg class="ico"><use href="#i-spark"/></svg>Ambil</button>
-      </div>
-      <small class="muted">Gemini membaca percakapan di link, lalu mengisi prompt, judul, kategori, deskripsi, tips, versi English, dan mengambil gambar hasilnya. Alat AI otomatis mengikuti sumber link.</small>
     </div>
 
     <div class="studio-box" id="pf-ocrbox" hidden>
@@ -738,6 +772,7 @@ input[type=checkbox]:disabled + *{opacity:.6}
         <div class="field"><label for="pf-cat-en">Category (EN)</label><input class="input" id="pf-cat-en" maxlength="40" placeholder="e.g. Special Moments"></div>
         <div class="field"><label for="pf-desc-en">Short description (EN)</label><input class="input" id="pf-desc-en" maxlength="110"></div>
         <div class="field"><label for="pf-tips-en">Tips (EN)</label><input class="input" id="pf-tips-en"></div>
+        <label class="check" style="margin-top:4px"><input type="checkbox" id="pf-enonly">Resep ini English saja</label>
         <small class="muted" data-i18n="pf.enNote">Kalau kosong, tampilan English memakai teks Indonesia.</small>
       </details>
       <div>
@@ -748,6 +783,25 @@ input[type=checkbox]:disabled + *{opacity:.6}
           <label class="check"><input type="checkbox" id="pf-pop"><span data-i18n="pf.pop">Tampilkan di Paling laris</span></label>
         </div>
         <small class="muted" id="pf-tool-note" hidden></small>
+      </div>
+      <div>
+        <div class="studio-label">Status review</div>
+        <div class="two">
+          <div class="field"><label for="pf-qc">Status QC</label>
+            <select class="input" id="pf-qc">
+              <option value="">Belum dinilai</option>
+              <option value="lolos">Lolos QC</option>
+              <option value="review">Perlu review</option>
+              <option value="gagal">Belum lolos</option>
+            </select></div>
+          <div class="field"><label for="pf-result">Hasil kelihatan di luar</label>
+            <select class="input" id="pf-result">
+              <option value="">Belum dinilai</option>
+              <option value="cocok">Cocok</option>
+              <option value="kurang">Kurang</option>
+            </select></div>
+        </div>
+        <small class="muted">Dipakai untuk menyaring di daftar resep. Tidak pernah tampil ke member.</small>
       </div>
       <div class="error" id="pf-error" hidden></div>
       <button class="btn btn-primary btn-block" type="submit" id="pf-save" data-i18n="pf.save">Simpan resep</button>
@@ -821,13 +875,22 @@ input[type=checkbox]:disabled + *{opacity:.6}
       <button type="button" class="btn btn-ghost btn-sm" id="mf-gen" style="justify-self:start"><svg class="ico" style="width:16px;height:16px"><use href="#i-key"/></svg><span id="mf-gen-label"></span></button>
       <small class="muted" id="mf-code-note" data-i18n="mf.codeNote">Kode hanya ditampilkan sekali setelah disimpan. Simpan atau kirim langsung ke pembeli.</small>
       <div class="two">
-        <div class="field"><label for="mf-plan" data-i18n="acc.plan">Paket</label><select class="input" id="mf-plan"><option value="Premium">Premium</option><option value="Standard">Standard</option><option value="Bulanan" data-i18n="plan.Bulanan">Bulanan</option><option value="Tahunan" data-i18n="plan.Tahunan">Tahunan</option><option value="Lifetime">Lifetime</option></select></div>
+        <div class="field"><label for="mf-plan" data-i18n="acc.plan">Paket</label><select class="input" id="mf-plan"><option value="Premium">Premium</option><option value="Standard">Standard</option><option value="Trial">Trial</option><option value="Bulanan" data-i18n="plan.Bulanan">Bulanan</option><option value="Tahunan" data-i18n="plan.Tahunan">Tahunan</option><option value="Lifetime">Lifetime</option></select></div>
         <div class="field"><label for="mf-exp" data-i18n="acc.until">Berlaku sampai</label><input class="input" id="mf-exp" type="date"></div>
       </div>
       <label class="check" style="justify-self:start"><input type="checkbox" id="mf-active" checked><span data-i18n="mf.active">Akses aktif</span></label>
       <div class="error" id="mf-error" hidden></div>
       <button class="btn btn-primary btn-block" type="submit" data-i18n="mf.save">Simpan member</button>
     </form>
+  </div>
+
+  <!-- tempat sampah resep -->
+  <div class="sheet" id="sheet-trash" hidden role="dialog" aria-modal="true" aria-labelledby="trash-title">
+    <div class="grab"></div>
+    <div class="row between" style="margin-bottom:12px"><h2 class="h-md" id="trash-title">Tempat sampah</h2><button type="button" class="btn btn-ghost btn-sm" data-close data-i18n="common.close">Tutup</button></div>
+    <p class="muted" style="font-size:13px;margin:0 0 12px">Resep yang dihapus mendarat di sini. Gambar dan galeri tesnya ikut disimpan utuh, jadi pemulihan mengembalikan resep persis seperti semula. File baru benar-benar dibuang saat sampah dikosongkan.</p>
+    <div class="list" id="trash-list"></div>
+    <button type="button" class="btn btn-ghost btn-block danger" id="trash-empty" style="margin-top:12px" hidden>Kosongkan tempat sampah</button>
   </div>
 
   <!-- crop foto 1:1 -->
@@ -900,6 +963,9 @@ const I18N = {
     "home.title":"Mau foto seperti apa hari ini?", "home.search":"Cari resep: jadul, wisuda, LinkedIn…",
     "home.filter":"Filter alat AI", "home.allTools":"Semua alat", "home.cats":"Kategori", "home.all":"Semua",
     "home.popular":"Paling laris", "home.seeAll":"Lihat semua", "home.best":"Terlaris",
+    "home.viral":"Tren viral", "home.zoom":"Ukuran thumbnail", "home.zoomBig":"Besar", "home.zoomSmall":"Kecil",
+    "card.locked":"Langganan Premium", "detail.lockT":"Resep ini terkunci",
+    "detail.lockP":"Silakan berlangganan Premium untuk membuka semua resep.",
     "home.allRecipes":"Semua resep", "home.results":"Hasil pencarian", "home.count":"{n} resep",
     "home.emptyT":"Resep belum ketemu", "home.emptyP":"Coba kata lain, misalnya “jadul”, “wisuda”, atau “LinkedIn”.",
     "card.alt":"Contoh hasil: {t}", "fav.add":"Simpan ke favorit", "fav.remove":"Hapus dari favorit",
@@ -923,7 +989,7 @@ const I18N = {
     "faq.4q":"Lupa kode akses?", "faq.4a":"Cek lagi email pembelian (termasuk folder Spam), atau hubungi admin lewat WhatsApp.",
     "acc.title":"Profil kamu", "acc.plan":"Paket", "acc.until":"Berlaku sampai", "acc.count":"Resep tersedia",
     "acc.theme":"Tampilan", "acc.light":"Terang", "acc.dark":"Gelap", "acc.admin":"Buka panel admin", "acc.logout":"Keluar",
-    "date.forever":"Selamanya", "plan.Bulanan":"Bulanan", "plan.Tahunan":"Tahunan",
+    "date.forever":"Selamanya", "plan.Bulanan":"Bulanan", "plan.Tahunan":"Tahunan", "plan.Trial":"Trial",
     "err.net":"Tidak bisa terhubung ke server. Periksa internet lalu coba lagi.", "err.generic":"Terjadi kesalahan.",
     "session.ended":"Sesi berakhir. Silakan masuk lagi.",
     "common.close":"Tutup", "common.cancel":"Batal", "common.done":"Selesai", "common.optional":"opsional", "common.edit":"Ubah {t}", "common.del":"Hapus {t}", "common.confirm":"Hapus?",
@@ -965,6 +1031,9 @@ const I18N = {
     "home.title":"What kind of photo today?", "home.search":"Search recipes: retro, graduation, LinkedIn…",
     "home.filter":"Filter by AI tool", "home.allTools":"All tools", "home.cats":"Categories", "home.all":"All",
     "home.popular":"Best sellers", "home.seeAll":"See all", "home.best":"Top pick",
+    "home.viral":"Viral trends", "home.zoom":"Thumbnail size", "home.zoomBig":"Large", "home.zoomSmall":"Small",
+    "card.locked":"Go Premium", "detail.lockT":"This recipe is locked",
+    "detail.lockP":"Subscribe to Premium to unlock every recipe.",
     "home.allRecipes":"All recipes", "home.results":"Search results", "home.count":"{n} recipes",
     "home.emptyT":"No recipes found", "home.emptyP":"Try another word, like “retro”, “graduation” or “LinkedIn”.",
     "card.alt":"Sample result: {t}", "fav.add":"Save to favorites", "fav.remove":"Remove from favorites",
@@ -988,7 +1057,7 @@ const I18N = {
     "faq.4q":"Forgot your access code?", "faq.4a":"Check your purchase email again (including Spam), or contact the admin on WhatsApp.",
     "acc.title":"Your profile", "acc.plan":"Plan", "acc.until":"Valid until", "acc.count":"Recipes available",
     "acc.theme":"Appearance", "acc.light":"Light", "acc.dark":"Dark", "acc.admin":"Open admin panel", "acc.logout":"Sign out",
-    "date.forever":"Forever", "plan.Bulanan":"Monthly", "plan.Tahunan":"Yearly",
+    "date.forever":"Forever", "plan.Bulanan":"Monthly", "plan.Tahunan":"Yearly", "plan.Trial":"Trial",
     "err.net":"Can't reach the server. Check your connection and try again.", "err.generic":"Something went wrong.",
     "session.ended":"Your session has ended. Please sign in again.",
     "common.close":"Close", "common.cancel":"Cancel", "common.done":"Done", "common.optional":"optional", "common.edit":"Edit {t}", "common.del":"Delete {t}", "common.confirm":"Delete?",
@@ -1153,9 +1222,31 @@ function favBtn(p, cls){
   const on = state.favs.has(p.id);
   return `<span role="button" tabindex="0" class="${cls} ${on ? "on" : ""}" data-fav="${esc(p.id)}" aria-label="${t(on ? "fav.remove" : "fav.add")}" aria-pressed="${on}">${icon("heart")}</span>`;
 }
+const VIRAL_CAT = "Tren Viral";
+const QC_LABEL = {"": "belum dinilai", lolos: "lolos", review: "perlu review", gagal: "belum lolos"};
+const RS_LABEL = {"": "belum dinilai", cocok: "cocok", kurang: "kurang"};
+const QC_NEXT = {"": "review", review: "lolos", lolos: "gagal", gagal: ""};     // tombolnya berputar
+const RS_NEXT = {"": "cocok", cocok: "kurang", kurang: ""};
+const qcPill = p => p.qc ? `<span class="pill qc-${esc(p.qc)}">${esc(QC_LABEL[p.qc])}</span>` : "";
+const resultPill = p => p.result ? `<span class="pill rs-${esc(p.result)}">hasil ${esc(RS_LABEL[p.result])}</span>` : "";
+const authorName = u => (state.authors && state.authors[u] && state.authors[u].name) || u;
+function popCardHTML(p, tag){
+  // di kartu besar tidak ada pita ajakan: bagian bawahnya sudah dipakai .meta
+  const lock = p.locked ? `<span class="lock">${icon("lock")}</span>` : favBtn(p, "fav-dot");
+  return `<button class="pop-card${p.locked ? " locked" : ""}" data-open="${esc(p.id)}">
+      <img src="${imgSrc(p)}" alt="${esc(t("card.alt", {t: loc(p, "title")}))}">
+      ${tag ? `<span class="tag-new">${esc(tag)}</span>` : ""}
+      ${lock}
+      <div class="meta"><strong>${esc(loc(p, "title"))}</strong><span>${esc(catName(p.cat))} · ${(p.tools||[]).map(esc).join(" & ")}</span></div>
+    </button>`;
+}
 function cardHTML(p){
-  return `<button class="card" data-open="${esc(p.id)}">
-    <div class="ph"><img loading="lazy" src="${imgSrc(p)}" alt="${esc(t("card.alt", {t: loc(p, "title")}))}">${favBtn(p, "fav-dot")}</div>
+  // Resep terkunci tetap memperlihatkan thumbnail dan judulnya — yang ditahan cuma isinya.
+  const lock = p.locked
+    ? `<span class="lock">${icon("lock")}</span><span class="lockmsg">${esc(t("card.locked"))}</span>`
+    : favBtn(p, "fav-dot");
+  return `<button class="card${p.locked ? " locked" : ""}" data-open="${esc(p.id)}">
+    <div class="ph"><img loading="lazy" src="${imgSrc(p)}" alt="${esc(t("card.alt", {t: loc(p, "title")}))}">${lock}</div>
     <div class="body"><strong>${esc(loc(p, "title"))}</strong><span>${esc(catName(p.cat))}</span></div></button>`;
 }
 function filtered(){
@@ -1171,15 +1262,16 @@ function renderHome(){
   $("#chips").innerHTML = `<button class="chip text-only" data-cat="" aria-pressed="${!state.cat}">${esc(t("home.all"))}</button>` +
     cats().map(c => { const first = all.find(p => p.cat === c);
       return `<button class="chip" data-cat="${esc(c)}" aria-pressed="${state.cat === c}"><img src="${imgSrc(first)}" alt="">${esc(catName(c))}</button>`; }).join("");
+  const bare = !state.q && !state.cat && !state.tool;
   const pops = all.filter(p => p.popular);
-  $("#pop-wrap").hidden = !(!state.q && !state.cat && !state.tool && pops.length);
-  $("#carousel").innerHTML = pops.map((p, i) => `
-    <button class="pop-card" data-open="${esc(p.id)}">
-      <img src="${imgSrc(p)}" alt="${esc(t("card.alt", {t: loc(p, "title")}))}">
-      ${i === 0 ? `<span class="tag-new">${esc(t("home.best"))}</span>` : ""}
-      ${favBtn(p, "fav-dot")}
-      <div class="meta"><strong>${esc(loc(p, "title"))}</strong><span>${esc(catName(p.cat))} · ${(p.tools||[]).map(esc).join(" & ")}</span></div>
-    </button>`).join("");
+  $("#pop-wrap").hidden = !(bare && pops.length);
+  $("#carousel").innerHTML = pops.map((p, i) => popCardHTML(p, i === 0 ? t("home.best") : "")).join("");
+  // Tren viral tepat di bawah best seller. Sengaja memuat yang popular juga —
+  // ini etalase kategori, bukan daftar sisa.
+  const viral = all.filter(p => p.cat === VIRAL_CAT);
+  $("#viral-wrap").hidden = !(bare && viral.length);
+  $("#viral-count").textContent = t("home.count", {n: viral.length});
+  $("#viral-carousel").innerHTML = viral.map(p => popCardHTML(p, "")).join("");
   const list = filtered();
   $("#grid-title").textContent = state.cat ? catName(state.cat) : t(state.q ? "home.results" : "home.allRecipes");
   $("#grid-count").textContent = t("home.count", {n: list.length});
@@ -1199,8 +1291,11 @@ function renderDetail(){
   $("#d-cat").textContent = catName(p.cat); $("#d-title").textContent = loc(p, "title");
   $("#d-desc").textContent = loc(p, "desc");
   $("#d-prompt").textContent = p.prompt;
+  const lk = !!p.locked;
+  $("#d-lock").hidden = !lk;
+  ["#d-steps", "#d-promptwrap", "#d-openrow"].forEach(sel => { $(sel).hidden = lk; });
   const tip = loc(p, "tips");
-  $("#d-tip-wrap").hidden = !tip; $("#d-tip").textContent = tip;
+  $("#d-tip-wrap").hidden = lk || !tip; $("#d-tip").textContent = tip;
   const on0 = state.favs.has(p.id); $("#d-fav").setAttribute("aria-label", t(on0 ? "fav.remove" : "fav.add"));
   $("#d-tools").innerHTML = `<span class="pill">${esc(catName(p.cat))}</span>` + (p.tools||[]).map(t => `<span class="pill accent">${icon("check","width:13px;height:13px")}${esc(t)}</span>`).join("");
   const on = state.favs.has(p.id);
@@ -1256,10 +1351,38 @@ function renderAdmin(){
     `<button class="chip text-only" data-adm-cat="" aria-pressed="${!state.admCat && !state.admPop}">${esc(t("home.all"))} <b>${all.length}</b></button>` +
     (popN ? `<button class="chip text-only" data-adm-pop="1" aria-pressed="${!!state.admPop}">★ ${esc(t("home.popular"))} <b>${popN}</b></button>` : "") +
     cats().map(c => `<button class="chip text-only" data-adm-cat="${esc(c)}" aria-pressed="${state.admCat === c}">${esc(catName(c))} <b>${counts[c] || 0}</b></button>`).join("");
+  // --- filter khusus review: status QC, penilaian hasil, penulis, dan kelengkapan isi ---
+  const byQc = k => all.filter(p => (p.qc || "") === k).length;
+  const byRs = k => all.filter(p => (p.result || "") === k).length;
+  const noDesc = all.filter(p => !(p.desc || "").trim()).length;
+  const noEn = all.filter(p => !(p.titleEn || "").trim()).length;
+  const enOnly = all.filter(p => p.enOnly).length;
+  const authors = [...new Set(all.map(p => p.createdBy).filter(Boolean))].sort();
+  const fchip = (key, val, label, n, cls) => n
+    ? `<button class="chip text-only${cls ? " " + cls : ""}" data-adm-f="${esc(key)}" data-adm-v="${esc(val)}" aria-pressed="${state[key] === val}">${esc(label)} <b>${n}</b></button>` : "";
+  $("#adm-filters").innerHTML = [
+    fchip("admQc", "lolos", "✓ Lolos QC", byQc("lolos")),
+    fchip("admQc", "review", "⏳ Perlu review", byQc("review")),
+    fchip("admQc", "gagal", "✕ Belum lolos", byQc("gagal")),
+    fchip("admQc", "-", "QC belum dinilai", byQc("")),
+    fchip("admResult", "cocok", "Hasil cocok", byRs("cocok")),
+    fchip("admResult", "kurang", "Hasil kurang", byRs("kurang")),
+    fchip("admFlag", "nodesc", "Tanpa deskripsi", noDesc),
+    fchip("admFlag", "noen", "Belum ada EN", noEn),
+    fchip("admFlag", "enonly", "English saja", enOnly),
+    authors.length > 1 ? authors.map(a =>
+      `<button class="chip text-only" data-adm-f="admBy" data-adm-v="${esc(a)}" aria-pressed="${state.admBy === a}">${esc(authorName(a))} <b>${all.filter(p => p.createdBy === a).length}</b></button>`).join("") : ""
+  ].filter(Boolean).join("");
   const q = (state.admQ || "").trim().toLowerCase();
+  const flagOk = p => state.admFlag === "nodesc" ? !(p.desc || "").trim()
+    : state.admFlag === "noen" ? !(p.titleEn || "").trim()
+    : state.admFlag === "enonly" ? !!p.enOnly : true;
   const list = all.filter(p => (!state.admCat || p.cat === state.admCat) && (!state.admPop || p.popular) &&
+    (!state.admQc || (state.admQc === "-" ? !(p.qc || "") : p.qc === state.admQc)) &&
+    (!state.admResult || p.result === state.admResult) &&
+    (!state.admBy || p.createdBy === state.admBy) && flagOk(p) &&
     (!q || [p.title, p.titleEn, p.cat, p.catEn, p.desc, p.prompt, p.tips].some(v => (v || "").toLowerCase().includes(q))));
-  const filtered = !!(q || state.admCat || state.admPop);
+  const filtered = !!(q || state.admCat || state.admPop || state.admQc || state.admResult || state.admBy || state.admFlag);
   $("#adm-count").textContent = filtered ? t("adm.countOf", {n: list.length, m: all.length}) : t("adm.countAll", {n: all.length, c: cats().length});
   $("#adm-reset").hidden = !filtered;
   $("#adm-q-clear").hidden = !q;
@@ -1268,7 +1391,11 @@ function renderAdmin(){
     <div class="li">
       <img src="${imgSrc(p)}" alt="">
       <div class="grow"><strong>${esc(loc(p, "title"))}</strong><small>${esc(catName(p.cat))}</small>
-        <div class="tags">${p.popular ? `<span class="pill accent">★ ${esc(t("home.popular"))}</span>` : ""}${(p.tools || []).map(x => `<span class="pill">${esc(x)}</span>`).join("")}${p.titleEn ? `<span class="pill ok">EN ✓</span>` : `<span class="pill warn">${esc(t("adm.noEn"))}</span>`}</div>
+        <div class="tags">${p.popular ? `<span class="pill accent">★ ${esc(t("home.popular"))}</span>` : ""}${(p.tools || []).map(x => `<span class="pill">${esc(x)}</span>`).join("")}${p.titleEn ? `<span class="pill ok">EN ✓</span>` : `<span class="pill warn">${esc(t("adm.noEn"))}</span>`}${p.enOnly ? `<span class="pill">EN saja</span>` : ""}${qcPill(p)}${resultPill(p)}${(p.desc || "").trim() ? "" : `<span class="pill warn">Tanpa deskripsi</span>`}</div>
+        <div class="row" style="gap:6px;margin-top:5px;flex-wrap:wrap">
+          <button type="button" class="qcbtn" data-qc="${esc(p.id)}" title="Ganti status QC">QC <b>${esc(QC_LABEL[p.qc || ""])}</b></button>
+          <button type="button" class="qcbtn" data-rs="${esc(p.id)}" title="Ganti penilaian hasil">Hasil <b>${esc(RS_LABEL[p.result || ""])}</b></button>
+        </div>
         ${authorLine(p)}</div>
       <div class="actions">
         <button class="sq" data-edit-prompt="${esc(p.id)}" aria-label="${esc(t("common.edit", {t: p.title}))}">${icon("edit")}</button>
@@ -1393,6 +1520,19 @@ $("#filter-btn").addEventListener("click", e => {
   if (!on){ state.tool = ""; $$("[data-tool]").forEach(b => b.setAttribute("aria-pressed", b.dataset.tool === "")); renderHome(); }
 });
 $("#see-all").addEventListener("click", () => $("#grid-title").scrollIntoView({behavior: reduce ? "auto" : "smooth", block:"start"}));
+
+/* ukuran thumbnail: 1 kolom = paling besar, 5 kolom = paling kecil. Pilihannya diingat per browser. */
+(() => {
+  const el = $("#grid-zoom"); if (!el) return;
+  const set = n => {
+    n = Math.min(5, Math.max(1, parseInt(n, 10) || 2));
+    el.value = n;
+    document.documentElement.style.setProperty("--cols", n);
+    store.set("rf_cols", n);
+  };
+  set(store.get("rf_cols", 2));
+  el.addEventListener("input", () => set(el.value));
+})();
 $("#d-back").addEventListener("click", () => go(state.backTo || "home", "lift", -1));
 $("#d-fav").addEventListener("click", () => toggleFav(state.detailId));
 
@@ -1550,7 +1690,55 @@ $("#adm-add").addEventListener("click", () => state.seg === "prompts" ? openProm
 /* toolbar kelola resep */
 $("#adm-q").addEventListener("input", () => { state.admQ = $("#adm-q").value; renderAdmin(); });
 $("#adm-q-clear").addEventListener("click", () => { state.admQ = ""; renderAdmin(); $("#adm-q").focus(); });
-$("#adm-reset").addEventListener("click", () => { state.admQ = ""; state.admCat = ""; state.admPop = false; renderAdmin(); });
+/* ---------- tempat sampah resep ---------- */
+async function loadTrash(){
+  const box = $("#trash-list");
+  box.innerHTML = `<div class="empty">Memuat…</div>`;
+  try {
+    const r = await api("trash");
+    state.trash = r.trash || [];
+    $("#trash-empty").hidden = !state.trash.length;
+    box.innerHTML = state.trash.length ? state.trash.map(x => `
+      <div class="li">
+        <img src="${imgSrc(x)}" alt="">
+        <div class="grow"><strong>${esc(x.title)}</strong><small>${esc(x.cat || "")}</small>
+          <div class="tags"><span class="pill">dihapus ${esc(fmtDate(x.deletedAt))}</span>${x.deletedBy ? `<span class="pill">oleh ${esc(authorName(x.deletedBy))}</span>` : ""}</div></div>
+        <div class="actions">
+          <button class="sq" data-restore="${esc(x.id)}" aria-label="Pulihkan ${esc(x.title)}">↩</button>
+          <button class="sq danger" data-purge="${esc(x.id)}" aria-label="Hapus permanen ${esc(x.title)}">${icon("trash")}</button>
+        </div>
+      </div>`).join("")
+      : `<div class="empty"><strong>Tempat sampah kosong</strong><span>Resep yang kamu hapus akan muncul di sini.</span></div>`;
+  } catch (ex) { box.innerHTML = `<div class="error">${esc(ex.message)}</div>`; }
+}
+$("#adm-trash").addEventListener("click", async () => { openSheet($("#sheet-trash")); loadTrash(); });
+$("#trash-list").addEventListener("click", async e => {
+  const rs = e.target.closest("[data-restore]"), pg = e.target.closest("[data-purge]");
+  if (rs) {
+    try {
+      const r = await api("trash_restore", {id: rs.dataset.restore});
+      state.prompts.push(r.prompt); renderAll(); loadTrash(); toast("Resep dipulihkan");
+    } catch (ex) { toast(ex.message, true); }
+    return;
+  }
+  if (pg) return armDelete(pg, async () => {
+    try { await api("trash_purge", {id: pg.dataset.purge}); loadTrash(); toast("Dihapus permanen"); }
+    catch (ex) { toast(ex.message, true); }
+  });
+});
+$("#trash-empty").addEventListener("click", function(){
+  armDelete(this, async () => {
+    try { const r = await api("trash_purge", {}); loadTrash(); toast(`${r.purged} resep dihapus permanen`); }
+    catch (ex) { toast(ex.message, true); }
+  });
+});
+
+const ADM_FILTERS = ["admQc", "admResult", "admBy", "admFlag"];
+$("#adm-reset").addEventListener("click", () => {
+  state.admQ = ""; state.admCat = ""; state.admPop = false;
+  ADM_FILTERS.forEach(k => { state[k] = ""; });
+  renderAdmin();
+});
 $("#adm-chips").addEventListener("click", e => {
   const c = e.target.closest("[data-adm-cat]"), p = e.target.closest("[data-adm-pop]");
   if (p){ state.admPop = !state.admPop; state.admCat = ""; }
@@ -1558,9 +1746,16 @@ $("#adm-chips").addEventListener("click", e => {
   else return;
   renderAdmin();
 });
+// Filter review saling lepas: menekan chip yang sama mematikannya lagi.
+$("#adm-filters").addEventListener("click", e => {
+  const b = e.target.closest("[data-adm-f]"); if (!b) return;
+  const k = b.dataset.admF, v = b.dataset.admV;
+  state[k] = state[k] === v ? "" : v;
+  renderAdmin();
+});
 
 /* ---------- prompt studio ---------- */
-const pf = {mode: store.get("rf_pf_mode", "link"), temp: null, file: null, origPrompt: null, source: null, testFile: null, genFile: null, testStatus: "ok", ocrFile: null};
+const pf = {mode: store.get("rf_pf_mode", "upload"), temp: null, file: null, origPrompt: null, source: null, testFile: null, genFile: null, testStatus: "ok", ocrFile: null};
 function studioStatus(html, kind){
   const el = $("#pf-ai-status");
   if (!html){ el.hidden = true; el.innerHTML = ""; return; }
@@ -1572,7 +1767,6 @@ function setMode(m){
   pf.mode = m; store.set("rf_pf_mode", m);
   $$("#pf-modes [data-mode]").forEach(b => b.setAttribute("aria-pressed", b.dataset.mode === m));
   const editing = !!state.editPrompt;
-  $("#pf-linkbox").hidden = m !== "link";
   $("#pf-ocrbox").hidden = m !== "image";
   $("#pf-ai-label").textContent = editing ? "Rapikan & lengkapi dengan Gemini" : "Isi otomatis dengan Gemini";
   lockTools(m === "link" && pf.source ? pf.source : null);
@@ -1666,29 +1860,6 @@ $("#pf-undo").addEventListener("click", () => {
   $("#pf-prompt").value = pf.origPrompt; pf.origPrompt = null; $("#pf-undo").hidden = true;
 });
 
-$("#pf-link-go").addEventListener("click", async () => {
-  const url = $("#pf-link").value.trim();
-  if (!/^https:\/\//i.test(url)){ studioStatus("Tempel link share yang diawali https:// (contoh: https://g.co/gemini/share/…).", "err"); return; }
-  const btn = $("#pf-link-go"); btn.disabled = true;
-  studioStatus("Gemini sedang membaca link dan mengambil gambar hasil… biasanya 20–60 detik.", "busy");
-  try {
-    const {recipe: r} = await api("ai_link", {url});
-    pf.source = r.tool || "Gemini";
-    applyRecipe(r);
-    const imgs = r.images || [];
-    const th = $("#pf-thumbs");
-    th.hidden = imgs.length < 2;
-    th.innerHTML = imgs.map((src, i) => `<button type="button" data-temp="${esc(src)}" aria-pressed="${i === 0}" aria-label="Pakai gambar ${i + 1}"><img src="${esc(src)}" alt=""></button>`).join("");
-    if (imgs.length) setMainImage(imgs[0], null, imgs[0]);
-    const notes = [
-      `Berhasil dibaca dari link ${esc(pf.source)}.`,
-      imgs.length ? `${imgs.length} gambar ditemukan${imgs.length > 1 ? ", pilih yang paling bagus" : ""}.` : "<b>Gambar hasil tidak bisa diambil</b>, tempel manual di area gambar (Ctrl+V).",
-      r.notes ? "Catatan AI: " + esc(r.notes) : ""
-    ].filter(Boolean).join(" ");
-    studioStatus(notes, "ok");
-  } catch (ex) { studioStatus(esc(ex.message), "err"); }
-  finally { btn.disabled = false; }
-});
 $("#pf-thumbs").addEventListener("click", e => {
   const b = e.target.closest("[data-temp]"); if (!b) return;
   $$("#pf-thumbs button").forEach(x => x.setAttribute("aria-pressed", x === b));
@@ -1728,7 +1899,7 @@ $("#pf-ocr-go").addEventListener("click", async () => {
   finally { btn.disabled = false; }
 });
 $$("#pf-modes [data-mode]").forEach(b => b.addEventListener("click", () => {
-  if (b.dataset.mode !== "link"){ pf.source = null; }
+  pf.source = null;
   setMode(b.dataset.mode);
 }));
 
@@ -1739,7 +1910,6 @@ function openPromptForm(id){
   $("#pf-ocr-preview").hidden = true; $("#pf-ocr-preview").removeAttribute("src"); $("#pf-ocr-ph").hidden = false;
   $("#pf-title").textContent = t(p ? "pf.edit" : "pf.add");
   $("#pf-modes").hidden = false;
-  $("#pf-link").value = "";
   $("#pf-name").value = p?.title || ""; $("#pf-desc").value = p?.desc || "";
   $("#pf-prompt").value = p?.prompt || ""; $("#pf-tips").value = p?.tips || "";
   $("#pf-name-en").value = p?.titleEn || ""; $("#pf-cat-en").value = p?.catEn || "";
@@ -1751,6 +1921,9 @@ function openPromptForm(id){
   $("#pf-gemini").checked = p ? (p.tools||[]).includes("Gemini") : true;
   $("#pf-gpt").checked = p ? (p.tools||[]).includes("ChatGPT") : true;
   $("#pf-pop").checked = !!p?.popular;
+  $("#pf-qc").value = p?.qc || "";
+  $("#pf-result").value = p?.result || "";
+  $("#pf-enonly").checked = !!p?.enOnly;
   $("#pf-thumbs").hidden = true; $("#pf-thumbs").innerHTML = "";
   $("#pf-undo").hidden = true;
   setMainImage(p ? imgSrc(p) : null, null, null);
@@ -1781,6 +1954,9 @@ $("#prompt-form").addEventListener("submit", async e => {
   fd.append("tips_en", $("#pf-tips-en").value);
   fd.append("tools", JSON.stringify([$("#pf-gemini").checked && "Gemini", $("#pf-gpt").checked && "ChatGPT"].filter(Boolean)));
   fd.append("popular", $("#pf-pop").checked ? "1" : "0");
+  fd.append("qc", $("#pf-qc").value);
+  fd.append("result", $("#pf-result").value);
+  fd.append("en_only", $("#pf-enonly").checked ? "1" : "0");
   if (pf.file) fd.append("image", pf.file);
   else if (pf.temp) fd.append("image_temp", pf.temp);
   const btn = $("#pf-save"); btn.disabled = true; btn.textContent = t("pf.saving");
@@ -1793,7 +1969,7 @@ $("#prompt-form").addEventListener("submit", async e => {
       state.editPrompt = r.prompt.id;
       Object.assign(pf, {file: null, temp: null});
       $("#pf-title").textContent = t("pf.edit");
-      $("#pf-modes").hidden = true; $("#pf-linkbox").hidden = true;
+      $("#pf-modes").hidden = true;
       setMode("upload");
       renderTestsArea();
       toast(t("pf.added") + ". Tambahkan hasil tes di bawah.");
@@ -1825,6 +2001,7 @@ function testCard(x){
       <div class="tact">
         <button type="button" class="ok" data-tst="ok" aria-pressed="${x.status === "ok"}">✓</button>
         <button type="button" class="fail" data-tst="fail" aria-pressed="${x.status === "fail"}">✗</button>
+        <button type="button" class="sq" data-tcover aria-label="Jadikan gambar contoh resep" title="Jadikan gambar contoh">${icon("image")}</button>
         <button type="button" class="sq danger" data-tdel aria-label="Hapus hasil tes">${icon("trash")}</button>
       </div>
     </div></div>`;
@@ -1875,6 +2052,18 @@ $("#pt-grid").addEventListener("click", async e => {
     const status = x.status === st.dataset.tst ? "note" : st.dataset.tst;
     try { await api("prompt_test_update", {id, status, note: x.note}); x.status = status; card.outerHTML = testCard(x); }
     catch (ex) { toast(ex.message, true); }
+    return;
+  }
+  const cov = e.target.closest("[data-tcover]");
+  if (cov){
+    try {
+      const r = await api("prompt_cover_from_test", {test_id: id});
+      const i = state.prompts.findIndex(v => v.id === r.prompt.id);
+      if (i >= 0) state.prompts[i] = r.prompt;
+      setMainImage(r.prompt.image, null, null);      // pratinjau di form ikut berganti
+      renderAll();
+      toast("Gambar contoh resep diganti");
+    } catch (ex) { toast(ex.message, true); }
     return;
   }
   const del = e.target.closest("[data-tdel]");
@@ -1980,10 +2169,22 @@ function armDelete(btn, run){
 $("#s-admin").addEventListener("click", e => {
   const avi = e.target.closest(".avatar img"); if (avi) return showLightbox(avi.getAttribute("src"));
   const ep = e.target.closest("[data-edit-prompt]"); if (ep) return openPromptForm(ep.dataset.editPrompt);
+  // Tombol status berputar: sekali tekan pindah ke nilai berikutnya, tanpa membuka form.
+  const qb = e.target.closest("[data-qc]"), rb = e.target.closest("[data-rs]");
+  if (qb || rb) {
+    const id = (qb || rb).dataset[qb ? "qc" : "rs"];
+    const cur = state.prompts.find(x => x.id === id); if (!cur) return;
+    const body = qb ? {id, qc: QC_NEXT[cur.qc || ""]} : {id, result: RS_NEXT[cur.result || ""]};
+    return api("prompt_review", body).then(r => {
+      const i = state.prompts.findIndex(x => x.id === id);
+      if (i >= 0) state.prompts[i] = r.prompt;
+      renderAdmin();
+    }).catch(ex => toast(ex.message, true));
+  }
   const em = e.target.closest("[data-edit-member]"); if (em) return openMemberForm(em.dataset.editMember);
   const dp = e.target.closest("[data-del-prompt]");
   if (dp) return armDelete(dp, async () => {
-    try { await api("prompt_delete", {id: dp.dataset.delPrompt}); state.prompts = state.prompts.filter(p => p.id !== dp.dataset.delPrompt); renderAll(); toast(t("adm.pDeleted")); }
+    try { await api("prompt_delete", {id: dp.dataset.delPrompt}); state.prompts = state.prompts.filter(p => p.id !== dp.dataset.delPrompt); renderAll(); toast("Resep dipindahkan ke tempat sampah"); }
     catch (ex) { toast(ex.message, true); }
   });
   const dm = e.target.closest("[data-del-member]");
@@ -2034,7 +2235,7 @@ window.RFAPP = {api, toast, esc, copyText, openSheet, closeSheet, isAdmin, fmtDa
 </script>
 <script src="admin-ext.js?v=6" defer></script>
 <script src="admin-ai.js?v=2" defer></script>
-<script src="admin-reports.js?v=2" defer></script>
+<script src="admin-reports.js?v=3" defer></script>
 <script src="admin-team.js?v=3" defer></script>
 <script src="admin-cover.js?v=1" defer></script>
 </body>
