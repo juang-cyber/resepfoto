@@ -32,30 +32,31 @@ app/            ← yang di-deploy ke document root website
   data/         seed-prompts.json, seed-en.json, pack2-prompts.json (database .sqlite TIDAK di repo)
   uploads/      hanya .htaccess (file upload TIDAK di repo)
 brand/          logo, ikon, og-image
-landing/        SUMBER DESAIN halaman iklan (mockup.html) + build-promo.mjs + img/ → baca landing/CLAUDE.md
-deploy/         rf-deploy.sh — skrip yang benar-benar dipakai cron di server
+landing/        index.html → di-deploy otomatis ke /promo (dibangkitkan dari mockup.html oleh
+                build-promo.mjs — JANGAN diedit tangan); mockup.html = sumber desain, tidak ikut
+                ter-deploy; img/ ikut ke /promo → baca landing/CLAUDE.md
+deploy/         rf-deploy.sh lama (versi SSH) — referensi saja, yang aktif adalah cron di cPanel
 ```
 `.gitignore` mengecualikan `app/config.php`, `app/data/*.sqlite*`, `app/data/*.log`, `app/uploads/*` (kecuali
 `.htaccess`), dan `.DS_Store`.
 
 ## Alur deploy (sudah otomatis)
-1. Edit file di `app/` (atau `landing/mockup.html` lalu bangun ulang `app/promo/`).
-2. `git add -A && git commit -m "..." && git push` ke branch `main`.
-3. Cron cPanel menjalankan `deploy/rf-deploy.sh` tiap 2 menit: `git fetch origin main` memakai deploy key
-   `~/.ssh/rf_github`, dan **kalau commit berubah**, menyalin **seluruh isi** `app/.` ke `~/resepfoto.oziera.co.id/`.
-   Skrip pakai `flock` supaya tidak tumpang tindih. Riwayat: `~/rf-deploy/deploy.log`.
-4. Verifikasi: `curl -s https://resepfoto.oziera.co.id/api.php?a=me` → lihat field `"v"` (sekarang `admin-6`).
+1. Edit file di `app/`. Untuk halaman iklan: edit `landing/mockup.html` lalu jalankan
+   `node landing/build-promo.mjs` yang menulis ulang `landing/index.html`.
+2. `git add -A && git commit -m "..." && git push` (branch `main`).
+3. Cron di hosting (tiap 5 menit) menarik `origin/main`, dan **hanya jika commit berubah dan `app/.autodeploy` ada**, menyalin `app/.` ke document root **dan** `landing/index.html` + `landing/img/` ke `promo/`. `config.php`, database, `uploads/` tidak pernah tersentuh; `landing/mockup.html` sengaja tidak ikut.
+4. Verifikasi: `curl -s https://resepfoto.oziera.co.id/api.php?a=me` → lihat field `"v"`; landing: `curl -sI https://resepfoto.oziera.co.id/promo/`.
 
-Karena skrip menyalin seluruh isi `app/`, subfolder seperti `app/promo/` ikut tayang **tanpa perlu mengubah cron**.
-`config.php`, database, dan `uploads/` tidak pernah tersentuh karena tidak ada di repo.
+Perintah cron sebenarnya ada di **cPanel → Cron Jobs**, bukan di `deploy/rf-deploy.sh` (itu sisa versi SSH lama
+yang menyebut 2 menit tanpa guard `.autodeploy` — jangan dipercaya sebagai sumber kebenaran).
 
 **Konvensi rilis:** tiap rilis naikkan penanda versi di route `me` (`'v' => 'admin-N'`) di `api.php`, dan naikkan `?v=`
 pada `<script src="admin-*.js?v=N">` di `index.html` untuk file JS yang berubah. HTML/JS sudah `Cache-Control:
 no-cache` lewat `.htaccess`, gambar di-cache 30 hari.
 
 ## Halaman iklan `/promo`
-Tayang di `resepfoto.oziera.co.id/promo`. **Sumber desainnya `landing/mockup.html`**, bukan `app/promo/index.html`.
-Halaman produksi dibangkitkan:
+Tayang di `resepfoto.oziera.co.id/promo`, disajikan dari **`landing/index.html`** yang disalin cron.
+**Sumber desainnya `landing/mockup.html`** — `landing/index.html` dibangkitkan, jangan diedit tangan:
 
 ```bash
 node landing/build-promo.mjs           # PRATINJAU — testimoni contoh, rating, dan label CONTOH tetap tampil
@@ -120,9 +121,13 @@ Tanpa token cocok, pesanan tetap tercatat tapi hanya `notifyAdmin()` yang jalan 
 Tabel: `prompts, members, attempts, settings, orders, webhook_log, ai_log, prompt_tests, events, lt_events, presence,
 ad_spend`.
 Kolom penting `members`: `username, name, code_hash, code_hint, plan, expires, active, email, phone, role, avatar`.
-Kunci `settings`: `admin_hash, admin_avatar, admin_email, mail_from, mayar_webhook_token, auto_without_token,
-gemini_api_key, gemini_model, gemini_image_model, cover_title, cover_sub, cover_title_en, cover_sub_en, cover_chip,
-cover_img1..3`.
+Kunci `settings`: `admin_hash, admin_avatar, admin_email, mail_from, mayar_webhook_token, auto_without_token, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass, fonnte_token, admin_wa, gemini_api_key, gemini_model, gemini_image_model, cover_title, cover_sub, cover_title_en, cover_sub_en, cover_chip, cover_img1..3`.
+
+**Email & WhatsApp.** `sendMail()` di `lib.php` memakai SMTP kalau `smtp_host` diisi, kalau tidak `mail()` dengan
+envelope sender (`-f`) supaya Return-Path sejajar dengan `From` — itu syarat SPF/DMARC lolos. Header wajib
+(`Date`, `Message-ID`, `MIME-Version`, body base64) dibuat di `mailHeaders()`; tanpa itu email dinilai spam
+walau SPF & DKIM sudah benar. `waSend()` mengirim lewat Fonnte (`fonnte_token`); `sendAccessWa()` dipanggil
+dari `fulfillOrder()` sesudah email, dan hasilnya disimpan di kolom `orders.wa_sent`.
 
 **Menambah resep massal — paket resep.** `seed-prompts.json` hanya jalan saat tabel `prompts` masih kosong, jadi
 database yang sudah dipakai tidak bisa diisi lewat situ. Gunakan **paket resep**: file `data/pack*-prompts.json`
@@ -139,15 +144,11 @@ paket **Standard** yang mendaftar sebelum itu tidak otomatis melihatnya.
 | publik | `me` (juga mengembalikan `cover` & `v`), `login`, `logout`, `recent_orders`, `lt` (tracking halaman iklan), `live` |
 | user | `prompts`, `track`, `avatar_save` (admin boleh isi `username` untuk member lain) |
 | admin | `prompt_save`, `prompt_delete`, `members`, `member_save` (FormData, boleh `avatar`/`clearAvatar`), `member_delete`, `cover_save`, `ai_link`, `ai_analyze`, `ai_ocr`, `prompt_tests`, `prompt_test_add/generate/update/delete` |
-| super | `admins`, `admin_save`, `admin_delete`, `admin_change_code`, `orders`, `order_action`, `settings_save`, `test_email`, `ai_settings`, `ai_settings_save`, `ai_test`, `report_users`, `report_ads`, `ad_spend_save` |
+| super | `admins`, `admin_save`, `admin_delete`, `admin_change_code`, `orders`, `order_action`, `settings_save`, `test_email`, `test_wa`, `ai_settings`, `ai_settings_save`, `ai_test`, `report_users`, `report_ads`, `ad_spend_save` |
 
 ## Fitur yang sudah ada (jangan dibuat ulang)
-Login & katalog resep (kategori, cari, favorit, populer), detail resep + salin prompt, tombol Buka Gemini/ChatGPT
-dengan deep-link app (Android `intent://` + fallback Play Store; iOS Universal Link + App Store), panduan & FAQ,
-profil (upload foto → editor crop 1:1 → simpan; klik foto → lightbox), bahasa & tema.
-Panel admin: Resep (toolbar cari + chip kategori + tag), studio resep 3 mode (link referensi / upload sendiri /
-prompt dari gambar—OCR) dan galeri tes internal; Member; Pesanan Mayar + email akses; AI Gemini; Pengguna & Iklan
-(laporan, UTM, biaya iklan, ROAS); Admin; Cover.
+Login & katalog resep (kategori, cari, favorit, populer), detail resep + salin prompt (tombol pil), tombol Buka Gemini/ChatGPT dengan deep-link app (Android `intent://` + fallback Play Store; iOS Universal Link + tautan App Store), panduan & FAQ, profil (foto: upload → **editor crop 1:1** → simpan; klik foto → lightbox), bahasa & tema.
+Panel admin: Resep (toolbar cari + chip kategori + tag), studio resep dengan 3 mode (link referensi / upload sendiri / **prompt dari gambar—OCR**) dan galeri tes internal; Member (foto, paket, masa aktif, kode akses); Pesanan Mayar + email akses + **WhatsApp otomatis via Fonnte** (pengaturan SMTP & Fonnte ada di tab Pesanan, lengkap dengan tombol kirim tes); AI Gemini; Pengguna & Iklan (laporan, UTM, biaya iklan, ROAS); Admin (akun admin/super admin, ganti kode akses admin utama); Cover (3 foto + teks halaman login).
 Halaman iklan `/promo` dengan pelacakan corong lengkap.
 
 ## Aturan kerja
@@ -222,16 +223,17 @@ di `/root/.claude/uploads/`.
 - **Ganti foto contoh resep p21–p66.** Foto itu berasal dari slide Instagram akun lain (watermark sudah dipotong,
   tapi sumbernya tetap karya orang lain dan beberapa menampilkan figur publik). Sebelum produk dijual, generate
   ulang lewat tab AI Gemini → tes generate, lalu ganti gambarnya per resep dari panel admin.
-  **Ini juga menyangkut halaman iklan** — lihat `landing/CLAUDE.md`.
-- Ekspor/impor resep lewat panel admin (impor massal sudah ada lewat paket resep di `data/pack*-prompts.json`,
-  tapi belum ada UI-nya).
+  **Ini juga menyangkut halaman iklan** — 16 di antaranya tampil di `/promo`, lihat `landing/CLAUDE.md`.
+- Ekspor/impor resep lewat panel admin (impor massal sudah ada lewat paket resep di `data/pack*-prompts.json`, tapi belum ada UI-nya).
 - Tes otomatis Playwright di CI (GitHub Actions) sebelum deploy. Repo ini **belum punya CI sama sekali**.
+- Isi bukti sosial asli di `landing/mockup.html` (`TESTIMONIALS`, `RATING`) lalu bangun ulang dengan `--live`.
 
 ## Checklist serah-terima ke pembeli
 1. Ganti kode akses admin utama (tab Admin → "Ganti kode akses admin utama").
 2. Hapus member contoh `demo` (tab Member).
 3. Isi API key Gemini (tab AI Gemini, key `AIza…` dari aistudio.google.com).
 4. Isi token webhook Mayar + email admin (tab Pesanan); daftarkan URL webhook di Mayar.
-5. Ganti foto & teks cover login (tab Cover).
-6. Halaman iklan: jalankan `node landing/build-promo.mjs --live` — lihat checklist di `landing/CLAUDE.md`.
-7. Pindahkan repo GitHub ke akun pembeli dan perbarui URL repo di cron hosting (lihat `CLAUDE.local.md`).
+5. Isi token Fonnte + nomor WhatsApp admin (tab Pesanan → WhatsApp otomatis), lalu tekan "Kirim WA tes".
+6. Ganti foto & teks cover login (tab Cover).
+7. Halaman iklan: jalankan `node landing/build-promo.mjs --live` — lihat checklist di `landing/CLAUDE.md`.
+8. Pindahkan repo GitHub ke akun pembeli dan perbarui URL repo di cron hosting (lihat `CLAUDE.local.md`).

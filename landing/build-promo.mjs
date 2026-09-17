@@ -1,4 +1,4 @@
-// Membuat app/promo/index.html dari landing/mockup.html.
+// Membuat landing/index.html (halaman /promo) dari landing/mockup.html.
 //
 // Mockup adalah sumber desain. Dua mode:
 //
@@ -11,9 +11,11 @@
 //   node landing/build-promo.mjs --live     PRODUKSI
 //     Sama, tapi semua data ilustrasi dibuang: testimoni karangan, rating, dan
 //     label CONTOH. Jalankan mode ini sebelum mengarahkan iklan ke halaman.
-import { readFileSync, writeFileSync, mkdirSync, rmSync, cpSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 
-const SRC = "landing/mockup.html", OUT_DIR = "app/promo", OUT = `${OUT_DIR}/index.html`;
+// Cron di server menyalin landing/index.html + landing/img/ ke <docroot>/promo/,
+// jadi keluarannya HARUS landing/index.html — bukan app/promo/.
+const SRC = "landing/mockup.html", OUT = "landing/index.html";
 const LIVE = process.argv.includes("--live");
 let s = readFileSync(SRC, "utf8");
 let n = 0;
@@ -112,9 +114,6 @@ document.addEventListener("click", e => {
 /* trk dipakai sebelum dideklarasikan pada openSheet; angkat deklarasinya */
 if (!/const trk = \(\(\) =>/.test(s)) throw new Error("blok trk hilang");
 
-mkdirSync(OUT_DIR, {recursive: true});
-rmSync(`${OUT_DIR}/img`, {recursive: true, force: true});
-cpSync("landing/img", `${OUT_DIR}/img`, {recursive: true});
-writeFileSync(OUT, s);
-console.log(`app/promo/index.html dibuat — mode ${LIVE ? "PRODUKSI" : "PRATINJAU"}, ${n} perubahan, ${(s.length/1024).toFixed(0)} KB`);
+writeFileSync(OUT, s);   // img/ sudah di landing/img/, ikut disalin cron apa adanya
+console.log(`landing/index.html dibuat — mode ${LIVE ? "PRODUKSI" : "PRATINJAU"}, ${n} perubahan, ${(s.length/1024).toFixed(0)} KB`);
 if (!LIVE) console.log('Testimoni, rating, dan label CONTOH masih tampil. Jalankan dengan --live sebelum dipasang di iklan.');

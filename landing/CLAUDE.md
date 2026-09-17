@@ -8,19 +8,20 @@ Desain dirawat di **`landing/mockup.html`**. Halaman yang tayang di **`resepfoto
 langsung — ia **dibangkitkan** dari mockup oleh `landing/build-promo.mjs`. Jadi alurnya selalu:
 
 ```
-landing/mockup.html  ──build-promo.mjs──▶  app/promo/index.html + app/promo/img/  ──rf-deploy.sh──▶  /promo
-     (sumber desain)                              (jangan diedit tangan)
+landing/mockup.html  ──build-promo.mjs──▶  landing/index.html  ──cron cPanel──▶  <docroot>/promo/
+     (sumber desain)                        (jangan diedit tangan)      + landing/img/
 ```
 
-Kalau kamu menemukan diri sedang mengedit `app/promo/index.html`, berhenti — edit mockup-nya lalu bangun ulang.
+Kalau kamu menemukan diri sedang mengedit `landing/index.html`, berhenti — edit mockup-nya lalu bangun ulang.
+Cron menyalin `landing/index.html` + `landing/img/` ke `promo/`; `mockup.html` sengaja **tidak** ikut.
 
 ## Isi folder
 | File | Fungsi |
 |---|---|
 | `mockup.html` | **Sumber desain** (≈128 KB, CSS & JS inline, tanpa framework). `MOCKUP = true` → pembayaran nonaktif, semua data berlabel ILUSTRASI. Dipublikasikan sebagai Artifact untuk presentasi |
-| `build-promo.mjs` | Membangkitkan `app/promo/`. Tanpa dependency, jalan dengan `node` biasa |
+| `build-promo.mjs` | Membangkitkan `index.html` dari `mockup.html`. Tanpa dependency, jalan dengan `node` biasa |
 | `img/` | 122 file: **100** gambar katalog resep (`pNN.jpg` / `rtl*.jpg`, 600×750 q78 mozjpeg, rata-rata 46 KB) + `rb1-6`/`ra1-6` pasangan before/after hero + `av1-5` avatar testimoni + `tr1-5` foto hasil testimoni |
-| `index.html` | **Versi lama, sudah tidak dipakai.** Digantikan `app/promo/`. Boleh dihapus kalau pemilik repo setuju |
+| `index.html` | **Halaman yang tayang di `/promo`.** Dibangkitkan oleh `build-promo.mjs` — jangan diedit tangan, perubahannya akan tertimpa build berikutnya |
 
 Artifact presentasi (privat, bisa dibagikan): https://claude.ai/artifact/QdRiZFRSZvidkHEguipAqw
 
@@ -30,9 +31,10 @@ node landing/build-promo.mjs           # PRATINJAU (default)
 node landing/build-promo.mjs --live    # PRODUKSI
 ```
 
-Keduanya menerapkan setelan produksi yang sama: `PREVIEW` & `MOCKUP` jadi `false`, judul produksi, **pembayaran
-Mayar aktif**, `TRACK_URL = "/api.php"` berikut blok pelacakan lengkap, notifikasi pesanan dari
-`api.php?a=recent_orders`, penghitung pengunjung dari `api.php?a=live`, dan `landing/img/` disalin ke `app/promo/img/`.
+Keduanya menulis **`landing/index.html`** dan menerapkan setelan produksi yang sama: `PREVIEW` & `MOCKUP` jadi
+`false`, judul produksi, **pembayaran Mayar aktif**, `TRACK_URL = "/api.php"` berikut blok pelacakan lengkap,
+notifikasi pesanan dari `api.php?a=recent_orders`, penghitung pengunjung dari `api.php?a=live`. Gambarnya tidak
+disalin ke mana-mana — `landing/img/` sudah ikut diangkut cron apa adanya.
 
 Bedanya cuma data ilustrasi:
 
@@ -42,7 +44,7 @@ Bedanya cuma data ilustrasi:
 | `RATING` (4,9 · 483 ulasan) | tetap tampil | jadi `null` |
 | Label pojok **CONTOH** | tetap tampil | markup, CSS, dan skripnya dibuang |
 
-**Yang sekarang ter-commit di `app/promo/` adalah mode pratinjau**, atas permintaan pemilik repo: pembayaran sudah
+**Yang sekarang ter-commit di `landing/index.html` adalah mode pratinjau**, atas permintaan pemilik repo: pembayaran sudah
 bisa dites sungguhan sementara halaman tetap jujur menyatakan dirinya contoh, dan belum dibagikan ke Meta.
 **Sebelum iklan diarahkan ke halaman ini, bangun ulang dengan `--live` lalu push.**
 
@@ -157,7 +159,8 @@ Sudah dibuktikan dengan uji lokal (lihat bagian Pengujian). Tidak ada perubahan 
 1. `node landing/build-promo.mjs --live` — **wajib**, ini yang membuang testimoni karangan, rating, dan label CONTOH.
 2. Cek `CHECKOUT` & `PLANS` cocok dengan produk di Mayar, termasuk **nama produknya**.
 3. Webhook Mayar terdaftar dan Webhook Token sudah diisi di Admin → Pesanan.
-4. Commit & push ke `main`; tunggu ±2 menit, halaman tayang di `/promo`.
+4. Commit & push ke `main`; tunggu ±5 menit, halaman tayang di `/promo`.
+   Verifikasi: `curl -sI https://resepfoto.oziera.co.id/promo/`.
 5. Tes: buka `/promo?utm_source=test&utm_campaign=cek`, klik CTA & checkout, pastikan angkanya muncul di
    **Admin → Iklan**.
 6. Tes beli sungguhan sekali dengan nominal terkecil; pastikan email akses sampai ke **inbox**, bukan spam.
@@ -168,7 +171,7 @@ Sudah dibuktikan dengan uji lokal (lihat bagian Pengujian). Tidak ada perubahan 
 node -e "const h=require('fs').readFileSync('landing/mockup.html','utf8');for(const b of h.match(/<script>([\s\S]*?)<\/script>/g)){const c=b.slice(8,-9);if(c.trim().length<50)continue;new Function(c)};console.log('OK')"
 
 # atau pisahkan dulu lalu node --check
-sed -n '/^<script>$/,/^<\/script>$/p' app/promo/index.html | sed '1d;$d' > /tmp/x.js && node --check /tmp/x.js
+sed -n '/^<script>$/,/^<\/script>$/p' landing/index.html | sed '1d;$d' > /tmp/x.js && node --check /tmp/x.js
 ```
 
 Alur pembayaran + email pernah diuji ujung ke ujung secara lokal: salinan `app/` terisolasi, database kosong,

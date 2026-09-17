@@ -65,10 +65,47 @@ function render(){
       <label class="check"><input type="checkbox" id="set-auto" ${s.autoWithoutToken ? "checked" : ""}>Aktifkan otomatis walau token belum diisi (tidak disarankan)</label>
       <div class="ord-actions">
         <button class="main" id="set-save">Simpan pengaturan</button>
-        <button id="set-test">Kirim email tes</button>
         ${s.hasToken ? `<button class="warn" id="set-clear">Hapus token</button>` : ""}
       </div>
     </div>
+
+    <details class="set-card" style="margin-top:12px"${s.smtpHost ? " open" : ""}>
+      <summary style="cursor:pointer;font-weight:700">Pengiriman email ${s.smtpHost ? `<span class="pill ok">via SMTP</span>` : `<span class="pill">via server</span>`}</summary>
+      <p class="muted" style="font-size:12px;margin:8px 0">Biarkan host SMTP kosong untuk memakai pengiriman bawaan server — sudah pakai envelope sender agar SPF &amp; DKIM cocok dan tidak masuk spam. Isi SMTP hanya kalau ingin lewat penyedia lain.</p>
+      <div class="two">
+        <div class="field"><label for="smtp-host">Host SMTP</label><input class="input" id="smtp-host" autocomplete="off" value="${esc(s.smtpHost || "")}" placeholder="kosongkan = pakai server"></div>
+        <div class="field"><label for="smtp-port">Port</label><input class="input" id="smtp-port" type="number" value="${esc(String(s.smtpPort || 587))}"></div>
+      </div>
+      <div class="two">
+        <div class="field"><label for="smtp-sec">Keamanan</label><select class="input" id="smtp-sec">${
+          [["tls", "STARTTLS (587)"], ["ssl", "SSL langsung (465)"], ["none", "Tanpa enkripsi"]]
+            .map(([v, l]) => `<option value="${v}"${s.smtpSecure === v ? " selected" : ""}>${l}</option>`).join("")
+        }</select></div>
+        <div class="field"><label for="smtp-user">Pengguna</label><input class="input" id="smtp-user" autocomplete="off" value="${esc(s.smtpUser || "")}" placeholder="no-reply@oziera.co.id"></div>
+      </div>
+      <div class="field"><label for="smtp-pass">Sandi SMTP</label><input class="input" id="smtp-pass" type="password" autocomplete="new-password" placeholder="${s.hasSmtpPass ? "•••••••• (tersimpan, isi untuk mengganti)" : "sandi mailbox"}"></div>
+      <div class="field"><label for="mail-to">Kirim email tes ke</label><input class="input" id="mail-to" type="email" placeholder="${esc(s.adminEmail || "kamu@email.com")}"></div>
+      <div class="ord-actions">
+        <button class="main" id="smtp-save">Simpan email</button>
+        <button id="set-test">Kirim email tes</button>
+        ${s.smtpHost ? `<button class="warn" id="smtp-clear">Kembali ke pengiriman server</button>` : ""}
+      </div>
+    </details>
+
+    <details class="set-card" style="margin-top:12px"${s.hasFonnte ? " open" : ""}>
+      <summary style="cursor:pointer;font-weight:700">WhatsApp otomatis ${s.hasFonnte ? `<span class="pill ok">Fonnte aktif</span>` : `<span class="pill warn">belum aktif</span>`}</summary>
+      <p class="muted" style="font-size:12px;margin:8px 0">Kalau token diisi, detail akses ikut dikirim ke WhatsApp pembeli begitu pembayaran lunas. Token perangkat ada di Fonnte → Device.</p>
+      <div class="field"><label for="wa-token">Token Fonnte</label><input class="input" id="wa-token" type="password" autocomplete="off" placeholder="${s.hasFonnte ? "•••••••• (tersimpan, isi untuk mengganti)" : "tempel token perangkat Fonnte"}"></div>
+      <div class="two">
+        <div class="field"><label for="wa-admin">WhatsApp admin</label><input class="input" id="wa-admin" value="${esc(s.adminWa || "")}" placeholder="0812xxxxxxxx"></div>
+        <div class="field"><label for="wa-to">Kirim WA tes ke</label><input class="input" id="wa-to" placeholder="${esc(s.adminWa || "0812xxxxxxxx")}"></div>
+      </div>
+      <div class="ord-actions">
+        <button class="main" id="wa-save">Simpan WhatsApp</button>
+        <button id="wa-test">Kirim WA tes</button>
+        ${s.hasFonnte ? `<button class="warn" id="wa-clear">Hapus token</button>` : ""}
+      </div>
+    </details>
 
     <div class="set-row" style="margin:6px 2px 10px"><h3 style="margin:0;font-size:15px">Pesanan ${pending ? `<span class="pill warn">${pending} perlu tindakan</span>` : ""}</h3><button class="sq" id="ord-refresh" aria-label="Muat ulang">↻</button></div>
     <div class="list" id="ord-list">
@@ -95,7 +132,7 @@ function card(o){
   if (o.state === "perlu_cek" || o.state === "belum_lunas") act.push(`<button class="warn" data-act="reject" data-id="${esc(o.id)}">Tolak</button>`);
   return `<div class="ord-card">
     <div class="ord-top"><div><strong>${esc(o.name || "(tanpa nama)")} · ${esc(o.plan)}</strong><small>${esc(o.email)}${o.phone ? " · " + esc(o.phone) : ""}</small></div><span class="ord-amt">${rp(o.amount)}</span></div>
-    <div class="row" style="gap:6px;flex-wrap:wrap"><span class="pill ${cls}">${label}</span>${o.verified ? `<span class="pill ok">Terverifikasi</span>` : ""}${o.username ? `<span class="pill">@${esc(o.username)}</span>` : ""}${o.state === "aktif" ? `<span class="pill ${o.emailed ? "ok" : "warn"}">${o.emailed ? "Email terkirim" : "Email belum terkirim"}</span>` : ""}<span class="pill">${esc(when(o.createdAt))}</span></div>
+    <div class="row" style="gap:6px;flex-wrap:wrap"><span class="pill ${cls}">${label}</span>${o.verified ? `<span class="pill ok">Terverifikasi</span>` : ""}${o.username ? `<span class="pill">@${esc(o.username)}</span>` : ""}${o.state === "aktif" ? `<span class="pill ${o.emailed ? "ok" : "warn"}">${o.emailed ? "Email terkirim" : "Email belum terkirim"}</span>` : ""}${o.state === "aktif" && o.phone ? `<span class="pill ${o.waSent ? "ok" : "warn"}">${o.waSent ? "WA terkirim" : "WA belum terkirim"}</span>` : ""}<span class="pill">${esc(when(o.createdAt))}</span></div>
     ${o.note ? `<small class="muted" style="font-size:12px">${esc(o.note)}</small>` : ""}
     ${o.state === "perlu_cek" ? `<small class="muted" style="font-size:12px">Cocokkan dulu dengan transaksi di dashboard Mayar sebelum mengaktifkan.</small>` : ""}
     <div class="ord-actions">${act.join("")}</div>
@@ -121,7 +158,31 @@ function bind(){
       toast("Pengaturan disimpan"); data = null; load();
     } catch (e) { toast(e.message, true); }
   };
-  $("#set-test").onclick = async () => { try { await api("test_email", {}); toast("Email tes terkirim"); } catch (e) { toast(e.message, true); } };
+  $("#smtp-save").onclick = async () => {
+    try {
+      await api("settings_save", {smtpHost: $("#smtp-host").value.trim(), smtpPort: Number($("#smtp-port").value) || 587,
+        smtpSecure: $("#smtp-sec").value, smtpUser: $("#smtp-user").value.trim(), smtpPass: $("#smtp-pass").value});
+      toast("Pengaturan email disimpan"); data = null; load();
+    } catch (e) { toast(e.message, true); }
+  };
+  const smtpClr = $("#smtp-clear");
+  if (smtpClr) smtpClr.onclick = async () => { try { await api("settings_save", {clearSmtp: true}); toast("Kembali ke pengiriman server"); data = null; load(); } catch (e) { toast(e.message, true); } };
+  $("#set-test").onclick = async () => {
+    try { const r = await api("test_email", {to: $("#mail-to").value.trim()}); toast("Email tes terkirim ke " + r.to); }
+    catch (e) { toast(e.message, true); }
+  };
+  $("#wa-save").onclick = async () => {
+    try {
+      await api("settings_save", {fonnteToken: $("#wa-token").value, adminWa: $("#wa-admin").value.trim()});
+      toast("Pengaturan WhatsApp disimpan"); data = null; load();
+    } catch (e) { toast(e.message, true); }
+  };
+  $("#wa-test").onclick = async () => {
+    try { const r = await api("test_wa", {to: $("#wa-to").value.trim()}); toast("WA tes terkirim ke " + r.to); }
+    catch (e) { toast(e.message, true); }
+  };
+  const waClr = $("#wa-clear");
+  if (waClr) waClr.onclick = async () => { try { await api("settings_save", {clearFonnte: true}); toast("Token Fonnte dihapus"); data = null; load(); } catch (e) { toast(e.message, true); } };
   const clr = $("#set-clear");
   if (clr) clr.onclick = async () => { try { await api("settings_save", {clearToken: true, adminEmail: $("#set-admin").value.trim(), mailFrom: $("#set-from").value.trim(), autoWithoutToken: $("#set-auto").checked}); toast("Token dihapus"); data = null; load(); } catch (e) { toast(e.message, true); } };
   $("#ord-list").onclick = async ev => {

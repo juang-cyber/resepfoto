@@ -55,6 +55,8 @@ function db(): PDO {
   if (!in_array('phone', $mcols, true)) $pdo->exec('ALTER TABLE members ADD COLUMN phone TEXT');
   if (!in_array('role', $mcols, true)) $pdo->exec("ALTER TABLE members ADD COLUMN role TEXT DEFAULT 'member'");
   if (!in_array('avatar', $mcols, true)) $pdo->exec('ALTER TABLE members ADD COLUMN avatar TEXT');
+  $ocols = array_column($pdo->query('PRAGMA table_info(orders)')->fetchAll(), 'name');
+  if (!in_array('wa_sent', $ocols, true)) $pdo->exec('ALTER TABLE orders ADD COLUMN wa_sent INTEGER DEFAULT 0');
   // kolom terjemahan Inggris
   if (!in_array('title_en', $cols, true)) {
     foreach (['cat_en', 'title_en', 'descr_en', 'tips_en'] as $c) $pdo->exec("ALTER TABLE prompts ADD COLUMN $c TEXT DEFAULT ''");
@@ -199,6 +201,7 @@ function publicOrder(array $o): array {
   return ['id' => $o['id'], 'state' => $o['state'], 'verified' => (bool)$o['verified'], 'status' => $o['status'], 'event' => $o['event'],
     'plan' => $o['plan'], 'product' => $o['product'], 'amount' => (int)$o['amount'], 'name' => $o['name'], 'email' => $o['email'],
     'phone' => $o['phone'], 'username' => $o['username'], 'code' => $o['code'], 'emailed' => (bool)$o['emailed'],
+    'waSent' => (bool)($o['wa_sent'] ?? 0),
     'note' => $o['note'], 'createdAt' => $o['created_at'], 'updatedAt' => $o['updated_at']];
 }
 function updateOrder(string $id, array $fields): void {
@@ -234,7 +237,7 @@ function fulfillOrder(string $id, bool $sendEmail = true): array {
       'last_login' => null, 'email' => $o['email'], 'phone' => $o['phone']]);
   }
   updateOrder($id, ['state' => 'aktif', 'username' => $username, 'code' => $code]);
-  if ($sendEmail) sendAccessEmail($id);
+  if ($sendEmail) { sendAccessEmail($id); sendAccessWa($id); }
   notifyAdmin($id);
   return findOrder($id);
 }
@@ -248,23 +251,156 @@ function accessMessage(array $o): string {
     . "Paket: {$o['plan']} (akses selamanya)\n\n"
     . "Simpan pesan ini ya. Selamat mencoba!";
 }
-function mailHeaders(): string {
+/* ---------- email ---------- */
+/** Alamat pengirim; harus di domain sendiri supaya SPF & DKIM cocok. */
+function mailFrom(): string {
   $from = setting('mail_from', 'no-reply@oziera.co.id');
-  if (!filter_var($from, FILTER_VALIDATE_EMAIL)) $from = 'no-reply@oziera.co.id';
-  return "From: ResepFoto <$from>\r\nReply-To: $from\r\nContent-Type: text/plain; charset=UTF-8\r\nX-Mailer: ResepFoto";
+  return filter_var($from, FILTER_VALIDATE_EMAIL) ? $from : 'no-reply@oziera.co.id';
+}
+function mailSubject(string $s): string { return '=?UTF-8?B?' . base64_encode($s) . '?='; }
+/**
+ * Header RFC 5322 lengkap. Tanpa MIME-Version, Date dan Message-ID penyaring
+ * spam memberi nilai buruk walaupun SPF & DKIM sudah benar.
+ */
+function mailHeaders(?string $from = null): string {
+  $from = $from ?: mailFrom();
+  $domain = ltrim((string)strrchr($from, '@'), '@') ?: 'oziera.co.id';
+  return "From: ResepFoto <$from>\r\n"
+    . "Reply-To: $from\r\n"
+    . 'Date: ' . date('r') . "\r\n"
+    . 'Message-ID: <' . bin2hex(random_bytes(12)) . '@' . $domain . ">\r\n"
+    . "MIME-Version: 1.0\r\n"
+    . "Content-Type: text/plain; charset=UTF-8\r\n"
+    . "Content-Transfer-Encoding: base64\r\n"
+    . "Auto-Submitted: auto-generated\r\n"
+    . 'X-Mailer: ResepFoto';
+}
+/**
+ * Kirim email. Pakai SMTP kalau smtp_host diisi di panel admin; kalau tidak,
+ * mail() dengan envelope sender (-f) supaya Return-Path sejajar dengan From —
+ * itu syarat SPF/DMARC lolos dan email tidak dianggap spam.
+ * Melempar RuntimeException berisi sebab yang aman ditampilkan ke admin.
+ */
+function sendMailOrFail(string $to, string $subject, string $body): void {
+  if (!filter_var($to, FILTER_VALIDATE_EMAIL)) throw new RuntimeException('Alamat tujuan tidak valid.');
+  $from = mailFrom();
+  if (setting('smtp_host') !== '') { smtpSend($to, $subject, $body, $from); return; }
+  $headers = mailHeaders($from);
+  $enc = chunk_split(base64_encode($body));
+  $subj = mailSubject($subject);
+  if (@mail($to, $subj, $enc, $headers, '-f' . $from)) return;
+  if (@mail($to, $subj, $enc, $headers)) return;          // sebagian host melarang parameter -f
+  throw new RuntimeException('Server menolak mengirim email (fungsi mail() gagal).');
+}
+function sendMail(string $to, string $subject, string $body): bool {
+  try { sendMailOrFail($to, $subject, $body); return true; } catch (Throwable $e) { return false; }
+}
+/** Klien SMTP minimal: AUTH LOGIN, STARTTLS (587) atau SSL langsung (465). */
+function smtpSend(string $to, string $subject, string $body, string $from): void {
+  $host = setting('smtp_host');
+  $port = (int)setting('smtp_port', '587'); if ($port <= 0) $port = 587;
+  $secure = strtolower(setting('smtp_secure', 'tls'));
+  $user = setting('smtp_user');
+  $pass = setting('smtp_pass');
+  $fp = @stream_socket_client(($secure === 'ssl' ? 'ssl://' : '') . $host . ':' . $port, $errno, $errstr, 20);
+  if (!$fp) throw new RuntimeException("SMTP: tidak bisa terhubung ke $host:$port ($errstr)");
+  stream_set_timeout($fp, 20);
+  $read = function () use ($fp) {
+    $out = '';
+    while (($line = fgets($fp, 515)) !== false) { $out .= $line; if (strlen($line) < 4 || $line[3] !== '-') break; }
+    return $out;
+  };
+  // $label dipakai supaya baris kredensial tidak ikut masuk ke pesan error
+  $cmd = function (string $c, string $expect, string $label = '') use ($fp, $read) {
+    if ($c !== '') fwrite($fp, $c . "\r\n");
+    $r = $read();
+    if (strncmp($r, $expect, strlen($expect)) !== 0) throw new RuntimeException('SMTP ' . ($label !== '' ? $label : trim($c)) . ': ' . trim($r));
+    return $r;
+  };
+  $ehlo = 'resepfoto.oziera.co.id';
+  $cmd('', '220', 'sambungan');
+  $cmd('EHLO ' . $ehlo, '250');
+  if ($secure === 'tls') {
+    $cmd('STARTTLS', '220');
+    if (!@stream_socket_enable_crypto($fp, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) { @fclose($fp); throw new RuntimeException('SMTP: STARTTLS gagal.'); }
+    $cmd('EHLO ' . $ehlo, '250');
+  }
+  if ($user !== '') {
+    $cmd('AUTH LOGIN', '334', 'AUTH');
+    $cmd(base64_encode($user), '334', 'AUTH pengguna');
+    $cmd(base64_encode($pass), '235', 'AUTH sandi');
+  }
+  $cmd('MAIL FROM:<' . $from . '>', '250');
+  $cmd('RCPT TO:<' . $to . '>', '250');
+  $cmd('DATA', '354');
+  $msg = mailHeaders($from) . "\r\nTo: <$to>\r\nSubject: " . mailSubject($subject) . "\r\n\r\n" . chunk_split(base64_encode($body));
+  fwrite($fp, preg_replace('/^\./m', '..', $msg) . "\r\n.\r\n");
+  $cmd('', '250', 'kirim');
+  @fwrite($fp, "QUIT\r\n");
+  @fclose($fp);
 }
 function sendAccessEmail(string $id): bool {
   $o = findOrder($id);
   if (!$o || !$o['email'] || !filter_var($o['email'], FILTER_VALIDATE_EMAIL) || !$o['code']) return false;
-  $ok = @mail($o['email'], '=?UTF-8?B?' . base64_encode('Akses ResepFoto kamu sudah aktif') . '?=', accessMessage($o), mailHeaders());
+  $ok = sendMail((string)$o['email'], 'Akses ResepFoto kamu sudah aktif', accessMessage($o));
   updateOrder($id, ['emailed' => $ok ? 1 : 0, 'note' => $ok ? 'Email akses terkirim.' : 'Email gagal dikirim server. Kirim manual via WA.']);
   return $ok;
 }
-function notifyAdmin(string $id): void {
-  $to = setting('admin_email');
+
+/* ---------- WhatsApp (Fonnte) ---------- */
+/** Ubah 08xx / +62xx menjadi format 62xx yang dipakai Fonnte. */
+function waNumber(string $phone): string {
+  $p = preg_replace('/[^0-9]/', '', $phone);
+  if ($p === '') return '';
+  if (strpos($p, '0') === 0) $p = '62' . substr($p, 1);
+  elseif (strpos($p, '62') !== 0) $p = '62' . $p;
+  return (strlen($p) >= 10 && strlen($p) <= 15) ? $p : '';
+}
+/** Kirim pesan WhatsApp lewat Fonnte. Melempar RuntimeException kalau gagal. */
+function waSendOrFail(string $phone, string $message): void {
+  $token = setting('fonnte_token');
+  if ($token === '') throw new RuntimeException('Token Fonnte belum diisi di panel.');
+  $target = waNumber($phone);
+  if ($target === '') throw new RuntimeException('Nomor WhatsApp tidak valid.');
+  $post = http_build_query(['target' => $target, 'message' => $message, 'countryCode' => '62']);
+  if (function_exists('curl_init')) {
+    $ch = curl_init('https://api.fonnte.com/send');
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 25, CURLOPT_CONNECTTIMEOUT => 12,
+      CURLOPT_POST => true, CURLOPT_POSTFIELDS => $post,
+      CURLOPT_HTTPHEADER => ['Authorization: ' . $token, 'Content-Type: application/x-www-form-urlencoded']]);
+    $res = curl_exec($ch); $err = curl_error($ch); curl_close($ch);
+    if ($res === false) throw new RuntimeException('Fonnte tidak bisa dihubungi: ' . $err);
+  } else {
+    $ctx = stream_context_create(['http' => ['method' => 'POST', 'timeout' => 25, 'ignore_errors' => true,
+      'header' => "Authorization: $token\r\nContent-Type: application/x-www-form-urlencoded\r\n", 'content' => $post]]);
+    $res = @file_get_contents('https://api.fonnte.com/send', false, $ctx);
+    if ($res === false) throw new RuntimeException('Fonnte tidak bisa dihubungi.');
+  }
+  $j = json_decode((string)$res, true);
+  if (!is_array($j) || empty($j['status'])) {
+    $reason = is_array($j) ? (string)($j['reason'] ?? $j['detail'] ?? '') : '';
+    throw new RuntimeException('Fonnte menolak: ' . ($reason !== '' ? $reason : mb_substr((string)$res, 0, 120)));
+  }
+}
+function waSend(string $phone, string $message): bool {
+  try { waSendOrFail($phone, $message); return true; } catch (Throwable $e) { return false; }
+}
+/** Kirim detail akses ke WhatsApp pembeli (kalau nomor & token ada). */
+function sendAccessWa(string $id): bool {
   $o = findOrder($id);
-  if (!$o || !filter_var($to, FILTER_VALIDATE_EMAIL)) return;
+  if (!$o || !$o['phone'] || !$o['code'] || setting('fonnte_token') === '') return false;
+  $ok = waSend((string)$o['phone'], accessMessage($o));
+  updateOrder($id, ['wa_sent' => $ok ? 1 : 0]);
+  return $ok;
+}
+
+function notifyAdmin(string $id): void {
+  $o = findOrder($id);
+  if (!$o) return;
   $body = "Penjualan baru ResepFoto\n\nPaket: {$o['plan']}\nNominal: Rp " . number_format((int)$o['amount'], 0, ',', '.')
     . "\nNama: {$o['name']}\nEmail: {$o['email']}\nHP: {$o['phone']}\nUsername: {$o['username']}\nStatus: {$o['state']}";
-  @mail($to, '=?UTF-8?B?' . base64_encode('Penjualan baru: ResepFoto ' . $o['plan']) . '?=', $body, mailHeaders());
+  $to = setting('admin_email');
+  if (filter_var($to, FILTER_VALIDATE_EMAIL)) sendMail($to, 'Penjualan baru: ResepFoto ' . $o['plan'], $body);
+  $wa = setting('admin_wa');
+  if ($wa !== '' && setting('fonnte_token') !== '') waSend($wa, $body);
 }
