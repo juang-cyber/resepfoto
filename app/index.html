@@ -267,20 +267,25 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 .open-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .open-row a{display:flex;align-items:center;justify-content:center;gap:8px;height:46px;border-radius:14px;border:1.5px solid var(--line);font-weight:700;font-size:13px;color:var(--ink);text-decoration:none}
 .open-row a:hover{border-color:var(--accent);color:var(--accent)}
-.dock{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:center;padding:10px 20px calc(16px + env(safe-area-inset-bottom,0px));background:linear-gradient(180deg,transparent,var(--surface) 34%);z-index:5}
-.dock .btn{width:auto;min-width:170px;height:46px;padding:0 26px;border-radius:999px;font-size:14px;box-shadow:0 10px 24px -10px var(--accent)}
+.app-install{font-size:12px;text-align:center;margin:-8px 0 0}
+.app-install a{color:var(--accent);font-weight:700;text-decoration:none}
+.dock{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:center;padding:10px 20px calc(16px + env(safe-area-inset-bottom,0px));background:transparent;pointer-events:none;z-index:5}
+.dock .btn{pointer-events:auto;width:auto;min-width:170px;height:46px;padding:0 26px;border-radius:999px;font-size:14px;box-shadow:0 12px 28px -8px rgba(18,36,84,.45),0 0 0 4px var(--surface)}
 .mini-row{display:flex;gap:12px;overflow-x:auto;margin:0 -20px;padding:0 20px 4px;scrollbar-width:none}
 .mini-row .card{width:130px;flex:none}
 
 /* ---------- TABBAR ---------- */
-.tabbar{position:absolute;left:14px;right:14px;bottom:14px;height:58px;border-radius:20px;background:var(--surface);border:1px solid var(--line);
+.tabbar{position:absolute;left:22px;right:22px;bottom:16px;height:58px;border-radius:20px;background:var(--surface);border:1px solid var(--line);
   box-shadow:0 18px 40px -18px rgba(18,36,84,.35);display:flex;justify-content:space-around;align-items:center;z-index:10;padding:0 8px calc(env(safe-area-inset-bottom,0px));transition:transform .45s cubic-bezier(.2,.8,.2,1), opacity .3s}
 .tabbar.away{transform:translateY(120%);opacity:0;pointer-events:none}
+@media (min-width:900px){
+  .app.wide .tabbar{left:50%;right:auto;width:min(520px,calc(100% - 44px));transform:translateX(-50%)}
+  .app.wide .tabbar.away{transform:translate(-50%,120%)}
+}
 .tab{display:grid;justify-items:center;gap:2px;font-size:10px;font-weight:700;color:var(--muted);min-width:52px;padding:5px 4px;border-radius:14px;transition:color .2s,transform .2s}
 .tab .ico{width:22px;height:22px;transition:transform .25s cubic-bezier(.2,.8,.2,1)}
 .tab[aria-current="page"]{color:var(--accent)}
 .tab[aria-current="page"] .ico{transform:translateY(-1px) scale(1.08)}
-.tab .dotline{display:none}
 
 /* ---------- LIST SCREENS ---------- */
 .list{display:grid;gap:10px;grid-template-columns:minmax(0,1fr)}
@@ -318,6 +323,24 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 .seg button{flex:1 0 auto;height:40px;padding:0 14px;border-radius:11px;font-weight:700;font-size:13px;color:var(--muted);white-space:nowrap}
 .seg button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 4px 12px -6px rgba(18,36,84,.3)}
 .seg button[hidden]{display:none}
+.adm-tools{display:grid;gap:10px;margin-top:14px}
+.adm-tools[hidden]{display:none}
+.adm-search{display:flex;align-items:center;gap:10px;height:46px;border-radius:16px;background:var(--surface-2);padding:0 14px;border:1.5px solid transparent;color:var(--muted);transition:border-color .2s}
+.adm-search:focus-within{border-color:var(--accent);color:var(--accent)}
+.adm-search .ico{width:18px;height:18px;flex:none}
+.adm-search input{flex:1;min-width:0;border:0;background:transparent;font:inherit;font-size:14px;color:var(--ink);outline:0}
+.adm-search input::placeholder{color:var(--muted)}
+.adm-search button{flex:none;width:26px;height:26px;border-radius:50%;background:var(--line);color:var(--ink);font-size:12px;display:grid;place-items:center}
+.adm-search button[hidden]{display:none}
+.adm-chips{display:flex;gap:6px;overflow-x:auto;margin:0 -20px;padding:2px 20px 4px;scrollbar-width:none}
+.adm-chips::-webkit-scrollbar{display:none}
+.adm-chips .chip{height:36px;padding:0 13px;font-size:12.5px;gap:6px}
+.adm-chips .chip b{font-weight:800;opacity:.65;font-size:11px}
+.adm-chips .chip[aria-pressed="true"] b{opacity:.9}
+.adm-meta{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);padding:0 2px}
+.adm-meta .link{font-size:12px}
+.li .tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}
+.li .tags .pill{font-size:10.5px;padding:2px 7px}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .stat{padding:14px 12px;border-radius:18px;background:var(--surface-2)}
 .stat b{display:block;font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
@@ -530,9 +553,10 @@ input[type=checkbox]:disabled + *{opacity:.6}
         </div>
         <div class="tip" id="d-tip-wrap"><svg class="ico"><use href="#i-bulb"/></svg><p id="d-tip"></p></div>
         <div class="open-row">
-          <a href="https://gemini.google.com/app" target="_blank" rel="noopener"><span data-i18n="detail.openGemini">Buka Gemini</span> <svg class="ico" style="width:15px;height:15px"><use href="#i-ext"/></svg></a>
-          <a href="https://chatgpt.com/" target="_blank" rel="noopener"><span data-i18n="detail.openGpt">Buka ChatGPT</span> <svg class="ico" style="width:15px;height:15px"><use href="#i-ext"/></svg></a>
+          <a href="https://gemini.google.com/app" data-app="gemini" target="_blank" rel="noopener"><span data-i18n="detail.openGemini">Buka Gemini</span> <svg class="ico" style="width:15px;height:15px"><use href="#i-ext"/></svg></a>
+          <a href="https://chatgpt.com/" data-app="gpt" target="_blank" rel="noopener"><span data-i18n="detail.openGpt">Buka ChatGPT</span> <svg class="ico" style="width:15px;height:15px"><use href="#i-ext"/></svg></a>
         </div>
+        <p class="muted app-install" id="app-install" hidden><span data-i18n="detail.noApp">Belum punya aplikasinya?</span> <a href="https://apps.apple.com/app/id6477489729" target="_blank" rel="noopener">Gemini</a> · <a href="https://apps.apple.com/app/id6448311069" target="_blank" rel="noopener">ChatGPT</a> <span data-i18n="detail.onStore">di App Store</span></p>
         <div>
           <h3 class="h-md" style="margin-bottom:12px" data-i18n="detail.similar">Resep serupa</h3>
           <div class="mini-row" id="d-similar"></div>
@@ -570,7 +594,7 @@ input[type=checkbox]:disabled + *{opacity:.6}
       <div class="eyebrow" data-i18n="nav.account">Akun</div>
       <h1 class="h-lg" style="margin:4px 0 18px" data-i18n="acc.title">Profil kamu</h1>
       <div class="profile-card">
-        <div class="row" style="position:relative"><div class="av-wrap"><div class="avatar" id="a-avatar">R</div><button type="button" class="av-cam" id="a-avatar-btn" aria-label="Ubah foto profil"><svg class="ico"><use href="#i-image"/></svg></button><input id="a-avatar-file" type="file" accept="image/*" hidden></div><div><strong id="a-name" style="font-size:18px"></strong><div style="opacity:.8;font-size:13px" id="a-user"></div></div></div>
+        <div class="row" style="position:relative"><div class="av-wrap"><div class="avatar" id="a-avatar">R</div><button type="button" class="av-cam" id="a-avatar-btn" data-i18n-aria="avatar.change" aria-label="Ubah foto profil"><svg class="ico"><use href="#i-image"/></svg></button><input id="a-avatar-file" type="file" accept="image/*" hidden></div><div><strong id="a-name" style="font-size:18px"></strong><div style="opacity:.8;font-size:13px" id="a-user"></div></div></div>
         <dl class="kv">
           <dt data-i18n="acc.plan">Paket</dt><dd id="a-plan"></dd>
           <dt data-i18n="acc.until">Berlaku sampai</dt><dd id="a-exp"></dd>
@@ -608,17 +632,22 @@ input[type=checkbox]:disabled + *{opacity:.6}
         <button role="tab" aria-selected="false" data-seg="members" id="seg-members">Member</button>
       </div>
 
-      <div class="list" id="adm-prompts" style="margin-top:14px"></div>
+      <div class="adm-tools" id="adm-tools">
+        <label class="adm-search" for="adm-q"><svg class="ico"><use href="#i-search"/></svg><input id="adm-q" type="search" autocomplete="off" data-i18n-ph="adm.searchPh" placeholder="Cari judul, kategori, atau isi prompt…"><button type="button" id="adm-q-clear" hidden aria-label="Bersihkan">✕</button></label>
+        <div class="adm-chips" id="adm-chips"></div>
+        <div class="adm-meta"><span id="adm-count"></span><button type="button" class="link" id="adm-reset" hidden data-i18n="adm.resetFilter">Reset filter</button></div>
+      </div>
+      <div class="list" id="adm-prompts" style="margin-top:12px"></div>
       <div class="list" id="adm-members" style="margin-top:14px" hidden></div>
     </section>
   </div>
 
   <nav class="tabbar away" id="tabbar" data-i18n-aria="nav.aria" aria-label="Navigasi utama">
-    <button class="tab" data-tab="home" aria-current="page"><svg class="ico"><use href="#i-home"/></svg><span data-i18n="nav.home">Beranda</span><span class="dotline"></span></button>
-    <button class="tab" data-tab="fav"><svg class="ico"><use href="#i-heart"/></svg><span data-i18n="nav.fav">Favorit</span><span class="dotline"></span></button>
-    <button class="tab" data-tab="guide"><svg class="ico"><use href="#i-book"/></svg><span data-i18n="nav.guide">Panduan</span><span class="dotline"></span></button>
-    <button class="tab" data-tab="admin" id="tab-admin" hidden><svg class="ico"><use href="#i-shield"/></svg>Admin<span class="dotline"></span></button>
-    <button class="tab" data-tab="account"><svg class="ico"><use href="#i-user"/></svg><span data-i18n="nav.account">Akun</span><span class="dotline"></span></button>
+    <button class="tab" data-tab="home" aria-current="page"><svg class="ico"><use href="#i-home"/></svg><span data-i18n="nav.home">Beranda</span></button>
+    <button class="tab" data-tab="fav"><svg class="ico"><use href="#i-heart"/></svg><span data-i18n="nav.fav">Favorit</span></button>
+    <button class="tab" data-tab="guide"><svg class="ico"><use href="#i-book"/></svg><span data-i18n="nav.guide">Panduan</span></button>
+    <button class="tab" data-tab="admin" id="tab-admin" hidden><svg class="ico"><use href="#i-shield"/></svg>Admin</button>
+    <button class="tab" data-tab="account"><svg class="ico"><use href="#i-user"/></svg><span data-i18n="nav.account">Akun</span></button>
   </nav>
 
   <div class="scrim" id="scrim" hidden></div>
@@ -797,11 +826,11 @@ input[type=checkbox]:disabled + *{opacity:.6}
   <div id="crop-back" hidden></div>
   <div class="sheet" id="sheet-crop" hidden role="dialog" aria-modal="true" aria-label="Sesuaikan foto">
     <div class="grab"></div>
-    <div class="row between" style="margin-bottom:12px"><h2 class="h-md">Sesuaikan foto</h2><button type="button" class="btn btn-ghost btn-sm" id="crop-cancel">Batal</button></div>
+    <div class="row between" style="margin-bottom:12px"><h2 class="h-md" data-i18n="crop.title">Sesuaikan foto</h2><button type="button" class="btn btn-ghost btn-sm" id="crop-cancel" data-i18n="common.cancel">Batal</button></div>
     <div class="crop-stage" id="crop-stage"><img id="crop-img" alt="" draggable="false"><div class="crop-ring"></div></div>
     <div class="crop-zoom"><svg class="ico" style="width:15px;height:15px"><use href="#i-image"/></svg><input type="range" id="crop-zoom" min="1" max="3" step="0.01" value="1" aria-label="Zoom"></div>
-    <button type="button" class="btn btn-primary btn-block" id="crop-apply">Pakai foto</button>
-    <p class="muted" style="font-size:12px;text-align:center;margin:8px 0 0">Geser untuk atur posisi, tarik slider untuk zoom. Foto dipotong 1:1.</p>
+    <button type="button" class="btn btn-primary btn-block" id="crop-apply" data-i18n="crop.apply">Pakai foto</button>
+    <p class="muted" style="font-size:12px;text-align:center;margin:8px 0 0" data-i18n="crop.hint">Geser untuk atur posisi, tarik slider untuk zoom. Foto dipotong 1:1.</p>
   </div>
 </main>
 
@@ -813,7 +842,7 @@ const state = {
   cat: "", q: "", tool: "",
   current: "login", detailId: null, backTo: "home",
   favs: new Set(), seg: "prompts",
-  editPrompt: null, editMember: null, pendingImage: null, lastMsg: ""
+  editPrompt: null, editMember: null, pendingImage: null, lastMsg: "", admQ: "", admCat: "", admPop: false
 };
 const $ = (s, r=document) => r.querySelector(s);
 const $$ = (s, r=document) => [...r.querySelectorAll(s)];
@@ -873,10 +902,14 @@ const I18N = {
     "date.forever":"Selamanya", "plan.Bulanan":"Bulanan", "plan.Tahunan":"Tahunan",
     "err.net":"Tidak bisa terhubung ke server. Periksa internet lalu coba lagi.", "err.generic":"Terjadi kesalahan.",
     "session.ended":"Sesi berakhir. Silakan masuk lagi.",
-    "common.close":"Tutup", "common.done":"Selesai", "common.optional":"opsional", "common.edit":"Ubah {t}", "common.del":"Hapus {t}", "common.confirm":"Hapus?",
+    "common.close":"Tutup", "common.cancel":"Batal", "common.done":"Selesai", "common.optional":"opsional", "common.edit":"Ubah {t}", "common.del":"Hapus {t}", "common.confirm":"Hapus?",
     "adm.eyebrow":"Panel admin", "adm.title":"Kelola ResepFoto", "adm.add":"Tambah",
     "adm.stRecipes":"Resep", "adm.stActive":"Member aktif", "adm.stExpired":"Kedaluwarsa",
     "adm.emptyPT":"Belum ada resep", "adm.emptyPP":"Ketuk + untuk menambah resep pertama.",
+    "adm.searchPh":"Cari judul, kategori, atau isi prompt…", "adm.resetFilter":"Reset filter", "adm.countOf":"{n} dari {m} resep", "adm.countAll":"{n} resep · {c} kategori",
+    "adm.noEn":"Belum ada EN", "adm.noMatchT":"Tidak ada yang cocok", "adm.noMatchP":"Coba kata lain atau reset filter.",
+    "detail.noApp":"Belum punya aplikasinya?", "detail.onStore":"di App Store", "crop.title":"Sesuaikan foto", "crop.apply":"Pakai foto", "crop.hint":"Geser untuk atur posisi, tarik slider untuk zoom. Foto dipotong 1:1.",
+    "avatar.updated":"Foto profil diperbarui", "avatar.tooBig":"Foto terlalu besar. Maksimal 8 MB.", "avatar.change":"Ubah foto profil", "lb.close":"Tutup",
     "adm.emptyMT":"Belum ada member", "adm.emptyMP":"Ketuk + untuk menambah pembeli pertama.",
     "adm.code":"kode", "st.ok":"Aktif", "st.expired":"Kedaluwarsa", "st.off":"Nonaktif",
     "adm.pDeleted":"Resep dihapus", "adm.mDeleted":"Member dihapus",
@@ -934,10 +967,14 @@ const I18N = {
     "date.forever":"Forever", "plan.Bulanan":"Monthly", "plan.Tahunan":"Yearly",
     "err.net":"Can't reach the server. Check your connection and try again.", "err.generic":"Something went wrong.",
     "session.ended":"Your session has ended. Please sign in again.",
-    "common.close":"Close", "common.done":"Done", "common.optional":"optional", "common.edit":"Edit {t}", "common.del":"Delete {t}", "common.confirm":"Delete?",
+    "common.close":"Close", "common.cancel":"Cancel", "common.done":"Done", "common.optional":"optional", "common.edit":"Edit {t}", "common.del":"Delete {t}", "common.confirm":"Delete?",
     "adm.eyebrow":"Admin panel", "adm.title":"Manage ResepFoto", "adm.add":"Add",
     "adm.stRecipes":"Recipes", "adm.stActive":"Active members", "adm.stExpired":"Expired",
     "adm.emptyPT":"No recipes yet", "adm.emptyPP":"Tap + to add the first recipe.",
+    "adm.searchPh":"Search title, category, or prompt text…", "adm.resetFilter":"Reset filters", "adm.countOf":"{n} of {m} recipes", "adm.countAll":"{n} recipes · {c} categories",
+    "adm.noEn":"No EN yet", "adm.noMatchT":"Nothing matches", "adm.noMatchP":"Try another word or reset the filters.",
+    "detail.noApp":"Don't have the app?", "detail.onStore":"on the App Store", "crop.title":"Adjust photo", "crop.apply":"Use photo", "crop.hint":"Drag to reposition, use the slider to zoom. The photo is cropped 1:1.",
+    "avatar.updated":"Profile photo updated", "avatar.tooBig":"Photo is too large. Max 8 MB.", "avatar.change":"Change profile photo", "lb.close":"Close",
     "adm.emptyMT":"No members yet", "adm.emptyMP":"Tap + to add the first buyer.",
     "adm.code":"code", "st.ok":"Active", "st.expired":"Expired", "st.off":"Inactive",
     "adm.pDeleted":"Recipe deleted", "adm.mDeleted":"Member deleted",
@@ -1185,15 +1222,36 @@ function renderAdmin(){
   $("#st-prompts").textContent = state.prompts.length;
   $("#st-active").textContent = ms.filter(m => m.status === "ok").length;
   $("#st-expired").textContent = ms.filter(m => m.status === "expired").length;
-  $("#adm-prompts").innerHTML = sorted().map(p => `
+  // --- Resep: filter kategori, pencarian, paling laris ---
+  const all = sorted();
+  if (state.admCat && !cats().includes(state.admCat)) state.admCat = "";
+  const counts = {}; all.forEach(p => { counts[p.cat] = (counts[p.cat] || 0) + 1; });
+  const popN = all.filter(p => p.popular).length;
+  $("#adm-chips").innerHTML =
+    `<button class="chip text-only" data-adm-cat="" aria-pressed="${!state.admCat && !state.admPop}">${esc(t("home.all"))} <b>${all.length}</b></button>` +
+    (popN ? `<button class="chip text-only" data-adm-pop="1" aria-pressed="${!!state.admPop}">★ ${esc(t("home.popular"))} <b>${popN}</b></button>` : "") +
+    cats().map(c => `<button class="chip text-only" data-adm-cat="${esc(c)}" aria-pressed="${state.admCat === c}">${esc(catName(c))} <b>${counts[c] || 0}</b></button>`).join("");
+  const q = (state.admQ || "").trim().toLowerCase();
+  const list = all.filter(p => (!state.admCat || p.cat === state.admCat) && (!state.admPop || p.popular) &&
+    (!q || [p.title, p.titleEn, p.cat, p.catEn, p.desc, p.prompt, p.tips].some(v => (v || "").toLowerCase().includes(q))));
+  const filtered = !!(q || state.admCat || state.admPop);
+  $("#adm-count").textContent = filtered ? t("adm.countOf", {n: list.length, m: all.length}) : t("adm.countAll", {n: all.length, c: cats().length});
+  $("#adm-reset").hidden = !filtered;
+  $("#adm-q-clear").hidden = !q;
+  if ($("#adm-q").value !== (state.admQ || "")) $("#adm-q").value = state.admQ || "";
+  $("#adm-prompts").innerHTML = list.map(p => `
     <div class="li">
       <img src="${imgSrc(p)}" alt="">
-      <div class="grow"><strong>${esc(loc(p, "title"))}</strong><small>${esc(catName(p.cat))}${p.popular ? " · " + esc(t("home.popular")) : ""}${p.titleEn ? " · EN ✓" : ""}</small></div>
+      <div class="grow"><strong>${esc(loc(p, "title"))}</strong><small>${esc(catName(p.cat))}</small>
+        <div class="tags">${p.popular ? `<span class="pill accent">★ ${esc(t("home.popular"))}</span>` : ""}${(p.tools || []).map(x => `<span class="pill">${esc(x)}</span>`).join("")}${p.titleEn ? `<span class="pill ok">EN ✓</span>` : `<span class="pill warn">${esc(t("adm.noEn"))}</span>`}</div></div>
       <div class="actions">
         <button class="sq" data-edit-prompt="${esc(p.id)}" aria-label="${esc(t("common.edit", {t: p.title}))}">${icon("edit")}</button>
         <button class="sq danger" data-del-prompt="${esc(p.id)}" aria-label="${esc(t("common.del", {t: p.title}))}">${icon("trash")}</button>
       </div>
-    </div>`).join("") || `<div class="empty">${icon("image")}<strong>${esc(t("adm.emptyPT"))}</strong><span>${esc(t("adm.emptyPP"))}</span></div>`;
+    </div>`).join("") || (all.length
+      ? `<div class="empty">${icon("search")}<strong>${esc(t("adm.noMatchT"))}</strong><span>${esc(t("adm.noMatchP"))}</span></div>`
+      : `<div class="empty">${icon("image")}<strong>${esc(t("adm.emptyPT"))}</strong><span>${esc(t("adm.emptyPP"))}</span></div>`);
+  $("#adm-tools").hidden = state.seg !== "prompts";
   const label = {ok:["ok",t("st.ok")], expired:["warn",t("st.expired")], off:["bad",t("st.off")]};
   $("#adm-members").innerHTML = ms.map(m => { const [c, lbl] = label[m.status] || label.off;
     return `<div class="li">
@@ -1249,14 +1307,14 @@ $("#a-avatar-btn").addEventListener("click", () => $("#a-avatar-file").click());
 $("#a-avatar-file").addEventListener("change", async () => {
   const f = $("#a-avatar-file").files[0]; $("#a-avatar-file").value = "";
   if (!f || !/^image\/(jpeg|png|webp)$/.test(f.type)){ toast(t("pf.fileType"), true); return; }
-  if (f.size > 8 * 1024 * 1024){ toast("Foto terlalu besar. Maksimal 8 MB.", true); return; }
+  if (f.size > 8 * 1024 * 1024){ toast(t("avatar.tooBig"), true); return; }
   const blob = await openCropper(f); if (!blob) return;
   const btn = $("#a-avatar-btn"); btn.setAttribute("aria-busy", "true");
   const fd = new FormData(); fd.append("avatar", new File([blob], "avatar.jpg", {type: "image/jpeg"}));
   try {
     const r = await api("avatar_save", fd, true);
     if (state.user){ state.user.avatar = r.avatar; paintAvatar($("#a-avatar"), state.user); paintAvatar($("#h-avatar"), state.user); }
-    toast("Foto profil diperbarui");
+    toast(t("avatar.updated"));
   } catch (ex) { toast(ex.message, true); }
   finally { btn.removeAttribute("aria-busy"); }
 });
@@ -1386,7 +1444,7 @@ function showLightbox(src){
   let el = $("#lightbox");
   if (!el){
     el = document.createElement("div"); el.id = "lightbox"; el.className = "lightbox";
-    el.innerHTML = `<img alt=""><button type="button" class="lb-close" aria-label="Tutup">✕</button>`;
+    el.innerHTML = `<img alt=""><button type="button" class="lb-close" aria-label="${esc(t("lb.close"))}">✕</button>`;
     document.body.appendChild(el);
     el.addEventListener("click", () => el.classList.remove("show"));
   }
@@ -1463,6 +1521,17 @@ $("#crop-back").addEventListener("click", () => { resolveCrop(null); closeCrop()
 
 $$("[data-seg]").forEach(b => b.addEventListener("click", () => { state.seg = b.dataset.seg; renderAdmin(); }));
 $("#adm-add").addEventListener("click", () => state.seg === "prompts" ? openPromptForm(null) : openMemberForm(null));
+/* toolbar kelola resep */
+$("#adm-q").addEventListener("input", () => { state.admQ = $("#adm-q").value; renderAdmin(); });
+$("#adm-q-clear").addEventListener("click", () => { state.admQ = ""; renderAdmin(); $("#adm-q").focus(); });
+$("#adm-reset").addEventListener("click", () => { state.admQ = ""; state.admCat = ""; state.admPop = false; renderAdmin(); });
+$("#adm-chips").addEventListener("click", e => {
+  const c = e.target.closest("[data-adm-cat]"), p = e.target.closest("[data-adm-pop]");
+  if (p){ state.admPop = !state.admPop; state.admCat = ""; }
+  else if (c){ state.admCat = c.dataset.admCat === state.admCat ? "" : c.dataset.admCat; state.admPop = false; }
+  else return;
+  renderAdmin();
+});
 
 /* ---------- prompt studio ---------- */
 const pf = {mode: store.get("rf_pf_mode", "link"), temp: null, file: null, origPrompt: null, source: null, testFile: null, genFile: null, testStatus: "ok", ocrFile: null};
@@ -1799,7 +1868,7 @@ const memAv = {file: null, clear: false};
 $("#mf-av-file").addEventListener("change", async () => {
   const f = $("#mf-av-file").files[0]; $("#mf-av-file").value = "";
   if (!f || !/^image\/(jpeg|png|webp)$/.test(f.type)){ toast(t("pf.fileType"), true); return; }
-  if (f.size > 8 * 1024 * 1024){ toast("Foto terlalu besar. Maksimal 8 MB.", true); return; }
+  if (f.size > 8 * 1024 * 1024){ toast(t("avatar.tooBig"), true); return; }
   const blob = await openCropper(f); if (!blob) return;
   memAv.file = new File([blob], "avatar.jpg", {type: "image/jpeg"}); memAv.clear = false;
   $("#mf-av").innerHTML = `<img src="${URL.createObjectURL(blob)}" alt="">`;
@@ -1898,6 +1967,27 @@ $("#s-admin").addEventListener("click", e => {
   });
 });
 
+/* ------------ tombol Buka Gemini / ChatGPT: buka aplikasi kalau ada ------------ */
+function setupAppLinks(){
+  const ua = navigator.userAgent || "";
+  const isAndroid = /Android/i.test(ua);
+  const isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const apps = {
+    gemini: {web: "https://gemini.google.com/app", host: "gemini.google.com/app", pkg: "com.google.android.apps.bard"},
+    gpt:    {web: "https://chatgpt.com/",          host: "chatgpt.com/",          pkg: "com.openai.chatgpt"}
+  };
+  $$("[data-app]").forEach(a => {
+    const app = apps[a.dataset.app]; if (!app) return;
+    if (isAndroid){
+      // intent:// → buka aplikasi kalau terpasang, kalau tidak lempar ke Play Store
+      a.href = `intent://${app.host}#Intent;scheme=https;package=${app.pkg};S.browser_fallback_url=${encodeURIComponent("https://play.google.com/store/apps/details?id=" + app.pkg)};end`;
+      a.removeAttribute("target");
+    } else a.href = app.web; // iOS: universal link (aplikasi kalau ada, kalau tidak versi web) · desktop: web
+  });
+  const inst = $("#app-install"); if (inst) inst.hidden = !isIOS;
+}
+setupAppLinks();
+
 /* ------------ boot ------------ */
 (async () => {
   try {
@@ -1919,7 +2009,7 @@ window.RFAPP = {api, toast, esc, copyText, openSheet, closeSheet, isAdmin, fmtDa
 <script src="admin-ext.js?v=4" defer></script>
 <script src="admin-ai.js?v=2" defer></script>
 <script src="admin-reports.js?v=2" defer></script>
-<script src="admin-team.js?v=2" defer></script>
+<script src="admin-team.js?v=3" defer></script>
 <script src="admin-cover.js?v=1" defer></script>
 </body>
 </html>
