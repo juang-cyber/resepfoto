@@ -33,8 +33,9 @@ node landing/build-promo.mjs --live    # PRODUKSI
 
 Keduanya menulis **`landing/index.html`** dan menerapkan setelan produksi yang sama: `PREVIEW` & `MOCKUP` jadi
 `false`, judul produksi, **pembayaran Mayar aktif**, `TRACK_URL = "/api.php"` berikut blok pelacakan lengkap,
-notifikasi pesanan dari `api.php?a=recent_orders`, penghitung pengunjung dari `api.php?a=live`. Gambarnya tidak
-disalin ke mana-mana — `landing/img/` sudah ikut diangkut cron apa adanya.
+notifikasi pesanan **dan aktivitas keranjang** dari `api.php?a=recent_orders`, penghitung pengunjung dari
+`api.php?a=live&page=promo`. Gambarnya tidak disalin ke mana-mana — `landing/img/` sudah ikut diangkut cron apa
+adanya.
 
 Bedanya cuma data ilustrasi:
 
@@ -44,9 +45,11 @@ Bedanya cuma data ilustrasi:
 | `RATING` (4,9 · 483 ulasan) | tetap tampil | jadi `null` |
 | Label pojok **CONTOH** | tetap tampil | markup, CSS, dan skripnya dibuang |
 
-**Yang sekarang ter-commit di `landing/index.html` adalah mode pratinjau**, atas permintaan pemilik repo: pembayaran sudah
-bisa dites sungguhan sementara halaman tetap jujur menyatakan dirinya contoh, dan belum dibagikan ke Meta.
-**Sebelum iklan diarahkan ke halaman ini, bangun ulang dengan `--live` lalu push.**
+**Yang sekarang ter-commit di `landing/index.html` adalah mode `--live`** (17 September 2026, atas permintaan
+pemilik repo: "ini versi contoh masih melekat"). Akibatnya di `/promo` sekarang **tidak ada** label pojok CONTOH,
+**tidak ada** testimoni, dan **tidak ada** rating — bagian `#testimoni` disembunyikan seluruhnya sampai ada ulasan
+asli yang sudah diizinkan pembelinya. Yang tampil hanyalah angka pengunjung dan notifikasi aktivitas dari data asli.
+Kalau butuh versi berlabel contoh lagi untuk presentasi, bangun ulang tanpa `--live`.
 
 ## Pengaturan di `mockup.html` (blok `/* ---- ubah di sini ---- */`, sekitar baris 831)
 | Konstanta | Nilai sekarang | Arti |
@@ -57,8 +60,8 @@ bisa dites sungguhan sementara halaman tetap jujur menyatakan dirinya contoh, da
 | `MOCKUP` | `true` | Pembayaran nonaktif + banner "versi presentasi". Di-`false`-kan oleh skrip build |
 | `TESTIMONIALS` | 5 kartu ILUSTRASI | Dibuang oleh `--live` |
 | `RATING` | `{avg: 4.9, count: 483}` ILUSTRASI | Dibuang oleh `--live` |
-| `ORDER_FEED_URL` | `""` | Diisi `/api.php?a=recent_orders` oleh skrip build |
-| `LIVE_VIEWERS` | `null` | Diganti panggilan `api.php?a=live` asli oleh skrip build |
+| `ORDER_FEED_URL` | `""` | Diisi `/api.php?a=recent_orders` oleh skrip build (pesanan + keranjang) |
+| `LIVE_VIEWERS` | `null` | Diganti panggilan `api.php?a=live&page=promo` asli oleh skrip build |
 | `EXAMPLES` | 6 pasang `rbN`/`raN` | Before/after hero, dari foto member asli |
 | `RECIPES` | 100 resep | Katalog asli, hasil sinkron dari `api.php?a=prompts` |
 | `BESTSELLERS` | 14 id | Resep bertanda `popular`; urutannya **diacak Fisher-Yates tiap halaman dibuka** |
@@ -76,8 +79,15 @@ bisa dites sungguhan sementara halaman tetap jujur menyatakan dirinya contoh, da
   benar, jangan diisi angka palsu supaya "tidak kosong".
 - Testimoni dengan foto/nama pembeli: harus ada izin tertulis sebelum dipasang. Nama disamarkan dengan pola
   huruf terakhir nama depan jadi `*`, nama belakang jadi `****` — mis. `Andik* ****`.
-- Notifikasi pesanan memakai `recent_orders` (pesanan asli 14 hari, nama disamarkan). Penghitung "sedang melihat"
-  memakai `presence` asli dan hanya muncul bila ≥ 5 orang aktif atau ≥ 50 pengunjung/24 jam.
+- Notifikasi memakai `recent_orders`, isinya dua sumber asli yang digabung dan diurutkan dari yang terbaru:
+  **pesanan** dari tabel `orders` (14 hari, nama disamarkan → "B****** membeli Paket Premium") dan **keranjang**
+  dari `lt_events` (24 jam, satu baris per pengunjung, benar-benar anonim → "Seseorang memasukkan Paket Premium ke
+  keranjang"). Peristiwa `pay` dibedakan jadi "menuju pembayaran". Tidak ada nama, kota, atau identitas apa pun
+  yang dikarang untuk baris keranjang — memang tidak ada datanya, jadi bunyinya "Seseorang".
+- Penghitung "sedang melihat" memakai `presence` asli lewat `api.php?a=live&page=promo`: tampil apa adanya bila
+  ≥ 2 orang aktif dalam 60 detik, kalau tidak jatuh ke jumlah pengunjung 24 jam bila ≥ 2. Ambangnya 2 dan bukan 1
+  karena angka 1 itu pengunjung yang sedang membaca sendiri. **Angkanya tidak pernah dibulatkan naik atau diberi
+  angka minimum** — kalau sepi, pil-nya disembunyikan.
 
 ## ⚠️ Hak cipta gambar katalog — belum beres, menyangkut iklan berbayar
 `CLAUDE.md` di root mencatat bahwa **foto contoh resep `p21`–`p66` berasal dari slide Instagram akun lain**
@@ -159,12 +169,14 @@ Sudah dibuktikan dengan uji lokal (lihat bagian Pengujian). Tidak ada perubahan 
 
 ## Go-live checklist
 1. `node landing/build-promo.mjs --live` — **wajib**, ini yang membuang testimoni karangan, rating, dan label CONTOH.
+   Sudah dijalankan untuk build yang ter-commit sekarang; ulangi tiap kali `mockup.html` diubah.
 2. Cek `CHECKOUT` & `PLANS` cocok dengan produk di Mayar, termasuk **nama produknya**.
 3. Webhook Mayar terdaftar dan Webhook Token sudah diisi di Admin → Pesanan.
 4. Commit & push ke `main`; tunggu ±5 menit, halaman tayang di `/promo`.
    Verifikasi: `curl -sI https://resepfoto.oziera.co.id/promo/`.
 5. Tes: buka `/promo?utm_source=test&utm_campaign=cek`, klik CTA & checkout, pastikan angkanya muncul di
-   **Admin → Iklan**.
+   **Admin → Iklan**. Klik checkout juga membuat kartu "Seseorang memasukkan Paket … ke keranjang" muncul di
+   kunjungan berikutnya — itu peristiwamu sendiri, bukan karangan.
 6. Tes beli sungguhan sekali dengan nominal terkecil; pastikan email akses sampai ke **inbox**, bukan spam.
 
 ## Pengujian

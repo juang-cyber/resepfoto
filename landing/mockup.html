@@ -483,6 +483,7 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
 .opop .st{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;margin-top:3px}
 .opop .st.paid{color:var(--mint)}
 .opop .st.wait{color:#B7700A}
+.opop .st.cart{color:var(--blue)}
 .opop .ago{color:var(--muted);font-size:11.5px}
 .opop .cl{position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:var(--muted)}
 .opop .cl svg{width:13px;height:13px}
@@ -1327,10 +1328,13 @@ const tList = TESTIMONIALS.length ? TESTIMONIALS.map(t => MOCKUP ? {...t, demo:t
   const box = $("#opop"); let queue = [], closedAt = 0;
   const ago = iso => { const m = Math.max(1, Math.round((Date.now() - new Date(iso)) / 60000)); return m < 60 ? m + " menit lalu" : m < 1440 ? Math.round(m/60) + " jam lalu" : Math.round(m/1440) + " hari lalu"; };
   const show = o => {
-    $("#op-name").innerHTML = escH(o.name) + (o.demo ? " " + demoTag : "");
-    $("#op-what").textContent = (o.paid ? " membeli " : " memesan ") + "Paket " + o.plan;
-    const st = $("#op-st"); st.className = "st " + (o.paid ? "paid" : "wait");
-    st.textContent = o.paid ? "✓ Sudah membayar" : "⏳ Menunggu pembayaran";
+    const paket = "Paket " + o.plan;
+    $("#op-name").innerHTML = escH(o.cart ? "Seseorang" : o.name) + (o.demo ? " " + demoTag : "");
+    $("#op-what").textContent = o.cart ? (o.pay ? " menuju pembayaran " + paket : " memasukkan " + paket + " ke keranjang")
+      : (o.paid ? " membeli " : " memesan ") + paket;
+    const st = $("#op-st"); st.className = "st " + (o.cart ? "cart" : o.paid ? "paid" : "wait");
+    st.textContent = o.cart ? (o.pay ? "💳 Menuju pembayaran" : "🛒 Sedang checkout")
+      : o.paid ? "✓ Sudah membayar" : "⏳ Menunggu pembayaran";
     $("#op-ago").textContent = o.demo ? (MOCKUP ? "· " + (2 + Math.floor(Math.random() * 12)) + " menit lalu" : "") : "· " + ago(o.at);
     box.classList.add("show");
     setTimeout(() => box.classList.remove("show"), 5000);
@@ -1342,7 +1346,8 @@ const tList = TESTIMONIALS.length ? TESTIMONIALS.map(t => MOCKUP ? {...t, demo:t
   };
   if (MOCKUP){
     const N = ["A****","B*****","C****","D****","E***","F*****","G****","H*****","I***","J****","K*****","L****","M*****","N****","P*****","R****","S*****","T****","W****","Y*****"];
-    const all = N.map((name, i) => ({name, plan: i % 3 === 1 ? "Standard" : "Premium", paid: Math.random() > .35, demo:true}));
+    const all = N.map((name, i) => ({name, plan: i % 3 === 1 ? "Standard" : "Premium", paid: Math.random() > .35, demo:true}))
+      .concat([0, 1, 2, 3].map(i => ({cart:true, plan: i % 2 ? "Standard" : "Premium", pay: i > 1, demo:true})));
     const refill = () => { queue = all.slice().sort(() => Math.random() - .5); };
     refill();
     const loop = () => {
@@ -1353,15 +1358,21 @@ const tList = TESTIMONIALS.length ? TESTIMONIALS.map(t => MOCKUP ? {...t, demo:t
     return;
   }
   if (ORDER_FEED_URL){
+    // Semuanya data ASLI: pesanan dari tabel orders, keranjang dari pengunjung yang benar-benar membuka checkout.
     const load = () => fetch(ORDER_FEED_URL, {credentials:"omit"}).then(r => r.json()).then(d => {
-      if (d && d.ok && Array.isArray(d.orders)) queue = d.orders.map(o => ({name:o.name, plan:o.plan, paid:o.paid, at:o.at}));
+      if (!d || !d.ok) return;
+      const buy = Array.isArray(d.orders) ? d.orders.map(o => ({name:o.name, plan:o.plan, paid:o.paid, at:o.at})) : [];
+      const cart = Array.isArray(d.cart) ? d.cart.map(c => ({cart:true, plan:c.plan, pay:c.pay, at:c.at})) : [];
+      queue = buy.concat(cart).sort((a, b) => new Date(b.at) - new Date(a.at));
     }).catch(() => {});
     load(); setInterval(load, 120000);
     setTimeout(tick, 8000);
   } else if (PREVIEW){
     const demo = () => [
       {name:"B***", plan:"Premium", paid:true, demo:true},
+      {cart:true, plan:"Premium", demo:true},
       {name:"S***", plan:"Standard", paid:false, demo:true},
+      {cart:true, plan:"Standard", pay:true, demo:true},
       {name:"R***", plan:"Premium", paid:false, demo:true}
     ];
     queue = demo();

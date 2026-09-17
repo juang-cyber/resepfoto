@@ -244,7 +244,7 @@ if ($method === 'POST' && !in_array($a, ['lt'], true) && !hash_equals($_SESSION[
 try {
   switch ($a) {
     case 'me':
-      out(['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => currentUser(), 'cover' => coverConfig(), 'v' => 'admin-10']);
+      out(['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => currentUser(), 'cover' => coverConfig(), 'v' => 'admin-11']);
 
     case 'cover_save': {
       requireAdmin();
@@ -362,8 +362,11 @@ try {
     }
 
     case 'recent_orders': {
-      // publik: pesanan asli 14 hari terakhir, nama disamarkan (untuk notifikasi di landing page)
-      $st = db()->prepare("SELECT name, plan, state, created_at FROM orders WHERE created_at >= ? AND state IN ('aktif','lunas','perlu_cek','belum_lunas') ORDER BY created_at DESC LIMIT 20");
+      // publik: aktivitas ASLI untuk notifikasi di halaman iklan — tidak boleh dikarang.
+      //   orders = pesanan Mayar 14 hari terakhir, nama disamarkan
+      //   cart   = pengunjung yang benar-benar membuka checkout 24 jam terakhir, anonim (dari lt_events)
+      $pdo = db();
+      $st = $pdo->prepare("SELECT name, plan, state, created_at FROM orders WHERE created_at >= ? AND state IN ('aktif','lunas','perlu_cek','belum_lunas') ORDER BY created_at DESC LIMIT 20");
       $st->execute([gmdate('c', time() - 14 * 86400)]);
       $list = [];
       foreach ($st->fetchAll() as $r) {
@@ -372,8 +375,20 @@ try {
         $masked = mb_strtoupper(mb_substr($first, 0, 1)) . str_repeat('*', max(3, min(6, mb_strlen($first) - 1)));
         $list[] = ['name' => $masked, 'plan' => (string)$r['plan'], 'paid' => $r['state'] !== 'belum_lunas', 'at' => (string)$r['created_at']];
       }
+      // keranjang: satu baris per pengunjung, peristiwa checkout/pay terakhir miliknya.
+      // Kolom telanjang di query agregat SQLite mengambil baris milik MAX(id) — id dipakai, bukan ts,
+      // karena ts hanya beresolusi detik sehingga dua peristiwa bisa seri dan barisnya jadi acak.
+      $page = cleanTag($_GET['page'] ?? 'promo', 30);
+      $cs = $pdo->prepare("SELECT vid, MAX(id) AS mid, ts, plan, type FROM lt_events WHERE type IN ('checkout','pay') AND ts >= ? AND page = ? GROUP BY vid ORDER BY mid DESC LIMIT 12");
+      $cs->execute([gmdate('c', time() - 86400), $page]);
+      $cart = [];
+      foreach ($cs->fetchAll() as $r) {
+        $plan = ucfirst(strtolower((string)$r['plan']));
+        if ($plan !== 'Standard' && $plan !== 'Premium') continue;   // tanpa paket yang jelas, tidak ditampilkan
+        $cart[] = ['plan' => $plan, 'pay' => $r['type'] === 'pay', 'at' => (string)$r['ts']];
+      }
       header('Cache-Control: public, max-age=60');
-      out(['ok' => true, 'orders' => $list]);
+      out(['ok' => true, 'orders' => $list, 'cart' => $cart]);
     }
 
     case 'members': {
@@ -808,8 +823,13 @@ try {
     case 'live': {
       header('Cache-Control: public, max-age=15');
       $pdo = db();
-      $now = $pdo->prepare('SELECT COUNT(*) FROM presence WHERE ts >= ?'); $now->execute([time() - 60]);
-      $d = $pdo->prepare("SELECT COUNT(DISTINCT vid) FROM lt_events WHERE type = 'view' AND ts >= ?"); $d->execute([gmdate('c', time() - 86400)]);
+      $page = cleanTag($_GET['page'] ?? '', 30);          // kosong = semua halaman
+      $f = $page !== '' ? ' AND page = ?' : '';
+      $arg = $page !== '' ? [$page] : [];
+      $now = $pdo->prepare('SELECT COUNT(*) FROM presence WHERE ts >= ?' . $f);
+      $now->execute(array_merge([time() - 60], $arg));
+      $d = $pdo->prepare("SELECT COUNT(DISTINCT vid) FROM lt_events WHERE type = 'view' AND ts >= ?" . $f);
+      $d->execute(array_merge([gmdate('c', time() - 86400)], $arg));
       out(['ok' => true, 'now' => (int)$now->fetchColumn(), 'day' => (int)$d->fetchColumn()]);
     }
 

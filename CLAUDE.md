@@ -62,9 +62,10 @@ node landing/build-promo.mjs           # PRATINJAU — testimoni contoh, rating,
 node landing/build-promo.mjs --live    # PRODUKSI — ketiganya dibuang; WAJIB sebelum dipasang di iklan
 ```
 
-Yang ter-commit sekarang adalah **mode pratinjau**: pembayaran Mayar hidup sungguhan supaya bisa dites, tapi halaman
-tetap berlabel contoh dan belum dibagikan ke Meta. Detail lengkap, aturan bukti sosial, dan checklist go-live ada di
-**`landing/CLAUDE.md`** — baca itu sebelum menyentuh apa pun soal iklan.
+Yang ter-commit sekarang adalah **mode `--live`** (17 Sep 2026): tidak ada lagi label CONTOH, testimoni contoh,
+maupun rating contoh. Yang tampil hanya angka pengunjung aktif dan notifikasi aktivitas (pesanan + keranjang) dari
+data asli; bagian testimoni disembunyikan sampai ada ulasan asli. Detail lengkap, aturan bukti sosial, dan checklist
+go-live ada di **`landing/CLAUDE.md`** — baca itu sebelum menyentuh apa pun soal iklan.
 
 ## Pembayaran Mayar
 Alur: pembeli klik paket di `/promo` → checkout Mayar → Mayar POST ke `app/webhook-mayar.php` → `fulfillOrder()`
@@ -154,7 +155,7 @@ paket **Standard** yang mendaftar sebelum itu tidak otomatis melihatnya.
 ## Endpoint `api.php?a=…` (auth)
 | Level | Endpoint |
 |---|---|
-| publik | `me` (juga mengembalikan `cover` & `v`), `login`, `logout`, `recent_orders`, `lt` (tracking halaman iklan), `live` |
+| publik | `me` (juga mengembalikan `cover` & `v`), `login`, `logout`, `recent_orders` (pesanan asli + aktivitas keranjang asli, keduanya anonim), `lt` (tracking halaman iklan), `live` (`?page=` opsional) |
 | user | `prompts`, `track`, `avatar_save` (admin boleh isi `username` untuk member lain) |
 | admin | `prompt_save`, `prompt_delete`, `members`, `member_save` (FormData, boleh `avatar`/`clearAvatar`), `member_delete`, `cover_save`, `ai_link`, `ai_analyze`, `ai_ocr`, `prompt_tests`, `prompt_test_add/generate/update/delete` |
 | super | `admins`, `admin_save`, `admin_delete`, `admin_change_code`, `orders`, `order_action`, `settings_save`, `test_email`, `test_wa`, `ai_settings`, `ai_settings_save`, `ai_test`, `report_users`, `report_ads`, `ad_spend_save` |
@@ -162,7 +163,8 @@ paket **Standard** yang mendaftar sebelum itu tidak otomatis melihatnya.
 ## Fitur yang sudah ada (jangan dibuat ulang)
 Login & katalog resep (kategori, cari, favorit, populer), detail resep + salin prompt (tombol pil), tombol Buka Gemini/ChatGPT dengan deep-link app (Android `intent://` + fallback Play Store; iOS Universal Link + tautan App Store), panduan & FAQ, profil (foto: upload → **editor crop 1:1** → simpan; klik foto → lightbox), bahasa & tema.
 Panel admin: Resep (toolbar cari + chip kategori + tag), studio resep dengan 3 mode (link referensi / upload sendiri / **prompt dari gambar—OCR**) dan galeri tes internal; Member (foto, paket, masa aktif, kode akses); Pesanan Mayar + email akses + **WhatsApp otomatis via Fonnte** (pengaturan SMTP & Fonnte ada di tab Pesanan, lengkap dengan tombol kirim tes); AI Gemini; Pengguna & Iklan (laporan, UTM, biaya iklan, ROAS); Admin (akun admin/super admin, ganti kode akses admin utama); Cover (3 foto + teks halaman login).
-Halaman iklan `/promo` dengan pelacakan corong lengkap.
+Halaman iklan `/promo` dengan pelacakan corong lengkap, penghitung pengunjung aktif, dan notifikasi aktivitas
+(pesanan + keranjang) — **semuanya dari data asli**, lihat `landing/CLAUDE.md` bagian bukti sosial.
 
 ## Aturan kerja
 1. **Escape semua data dinamis** di HTML dengan `esc()`; teks pakai `textContent`. Jangan pernah `innerHTML` nilai
