@@ -31,25 +31,29 @@ node landing/build-promo.mjs           # PRATINJAU (default)
 node landing/build-promo.mjs --live    # PRODUKSI
 ```
 
-Keduanya menulis **`landing/index.html`** dan menerapkan setelan produksi yang sama: `PREVIEW` & `MOCKUP` jadi
-`false`, judul produksi, **pembayaran Mayar aktif**, `TRACK_URL = "/api.php"` berikut blok pelacakan lengkap,
-notifikasi pesanan **dan aktivitas keranjang** dari `api.php?a=recent_orders`, penghitung pengunjung dari
-`api.php?a=live&page=promo`. Gambarnya tidak disalin ke mana-mana — `landing/img/` sudah ikut diangkut cron apa
-adanya.
+Keduanya menulis **`landing/index.html`** dan menerapkan setelan produksi yang sama: `MOCKUP` jadi `false`, judul
+produksi, **pembayaran Mayar aktif**, `TRACK_URL = "/api.php"` berikut blok pelacakan lengkap. `PREVIEW` hanya
+dimatikan oleh `--live` — di build pratinjau ia tetap `true`, karena itulah yang menyalakan kartu CONTOH.
+Gambarnya tidak disalin ke mana-mana — `landing/img/` sudah ikut diangkut cron apa adanya.
 
-Bedanya cuma data ilustrasi:
+Bedanya **semua bukti sosial**. Pratinjau = halaman DEMO yang terang-terangan mengaku contoh; `--live` = halaman
+asli yang hanya boleh memakai data sungguhan:
 
 | | Pratinjau (default) | `--live` |
 |---|---|---|
-| `TESTIMONIALS` (5 kartu contoh) | tetap tampil | dikosongkan, bagiannya disembunyikan |
-| `RATING` (4,9 · 483 ulasan) | tetap tampil | jadi `null` |
+| Notifikasi pesanan | 10 nama CONTOH (`DEMO_NAMES`), tiap kartu berchip **CONTOH** | data asli `api.php?a=recent_orders` (pesanan + keranjang) |
+| Penghitung pengunjung | tetap **"45 orang sedang melihat halaman ini"**, berchip CONTOH | angka asli `api.php?a=live&page=promo`, ambang 2/2 |
+| `TESTIMONIALS` (5 kartu contoh) | tetap tampil, berchip CONTOH | dikosongkan, bagiannya disembunyikan |
+| `RATING` (4,9 · 483 ulasan) | tetap tampil, berchip CONTOH | jadi `null` |
 | Label pojok **CONTOH** | tetap tampil | markup, CSS, dan skripnya dibuang |
 
-**Yang sekarang ter-commit di `landing/index.html` adalah mode `--live`** (17 September 2026, atas permintaan
-pemilik repo: "ini versi contoh masih melekat"). Akibatnya di `/promo` sekarang **tidak ada** label pojok CONTOH,
-**tidak ada** testimoni, dan **tidak ada** rating — bagian `#testimoni` disembunyikan seluruhnya sampai ada ulasan
-asli yang sudah diizinkan pembelinya. Yang tampil hanyalah angka pengunjung dan notifikasi aktivitas dari data asli.
-Kalau butuh versi berlabel contoh lagi untuk presentasi, bangun ulang tanpa `--live`.
+**Yang sekarang ter-commit di `landing/index.html` adalah mode pratinjau** (17 September 2026, atas permintaan
+pemilik repo — mereka ingin halaman terlihat ramai untuk demo). Jadi `/promo` saat ini adalah **halaman demo**:
+angkanya karangan, namanya karangan, dan halaman itu menyatakannya sendiri lewat chip CONTOH di tiap satuan data
+plus label pojok CONTOH. Pembayaran Mayar tetap hidup sungguhan supaya bisa dites.
+
+> **Sebelum iklan Meta diarahkan ke halaman ini, WAJIB `node landing/build-promo.mjs --live` lalu push.**
+> Tanpa itu, halaman berbayar akan memasang nama pembeli dan jumlah penonton yang tidak pernah ada.
 
 ## Pengaturan di `mockup.html` (blok `/* ---- ubah di sini ---- */`, sekitar baris 831)
 | Konstanta | Nilai sekarang | Arti |
@@ -72,9 +76,13 @@ Kalau butuh versi berlabel contoh lagi untuk presentasi, bangun ulang tanpa `--l
 ## Aturan bukti sosial (WAJIB — jangan dilanggar)
 - **Jangan pernah mengarang** testimoni, rating, jumlah pembeli, notifikasi pesanan, atau jumlah "sedang melihat".
   Semua itu hanya boleh diisi dari **data asli**.
-- Data ilustrasi hanya boleh hidup di `mockup.html` dan di build **pratinjau**, dan wajib tetap **berlabel jelas**
-  (banner "versi presentasi" + label pojok CONTOH). Itu sebabnya mode pratinjau ada: supaya halaman contoh tidak
-  pernah menyamar jadi halaman asli.
+- Data ilustrasi hanya boleh hidup di `mockup.html` dan di build **pratinjau**, dan wajib tetap **berlabel jelas**:
+  label pojok CONTOH untuk halamannya, plus chip `demoTag` ("CONTOH") yang menempel di **tiap satuan data karangan**
+  — nama di notifikasi, angka pengunjung, kartu testimoni, dan rating. Itu sebabnya mode pratinjau ada: supaya
+  halaman contoh tidak pernah menyamar jadi halaman asli.
+- Nama karangan hidup di satu tempat saja, konstanta `DEMO_NAMES` (10 nama bergaya `And** *****`), dan angka
+  pengunjung karangan dipatok **45**. Keduanya hanya dirender di cabang `MOCKUP` atau `PREVIEW`, jadi tidak pernah
+  ikut ke build `--live`.
 - Build `--live` mengosongkan ketiganya. Bagian yang datanya kosong **otomatis disembunyikan** — itu perilaku yang
   benar, jangan diisi angka palsu supaya "tidak kosong".
 - Testimoni dengan foto/nama pembeli: harus ada izin tertulis sebelum dipasang. Nama disamarkan dengan pola
@@ -168,15 +176,18 @@ return $amount >= 90000 ? 'Premium' : 'Standard';   // hanya cadangan
 Sudah dibuktikan dengan uji lokal (lihat bagian Pengujian). Tidak ada perubahan kode yang diperlukan.
 
 ## Go-live checklist
-1. `node landing/build-promo.mjs --live` — **wajib**, ini yang membuang testimoni karangan, rating, dan label CONTOH.
-   Sudah dijalankan untuk build yang ter-commit sekarang; ulangi tiap kali `mockup.html` diubah.
+1. `node landing/build-promo.mjs --live` — **wajib dan BELUM dijalankan untuk build yang ter-commit sekarang.**
+   Yang ter-commit adalah build pratinjau (halaman demo). Perintah inilah yang membuang 10 nama karangan, angka
+   "45 orang sedang melihat", testimoni karangan, rating karangan, dan label CONTOH, lalu menggantinya dengan data
+   asli. Ulangi tiap kali `mockup.html` diubah.
 2. Cek `CHECKOUT` & `PLANS` cocok dengan produk di Mayar, termasuk **nama produknya**.
 3. Webhook Mayar terdaftar dan Webhook Token sudah diisi di Admin → Pesanan.
 4. Commit & push ke `main`; tunggu ±5 menit, halaman tayang di `/promo`.
    Verifikasi: `curl -sI https://resepfoto.oziera.co.id/promo/`.
 5. Tes: buka `/promo?utm_source=test&utm_campaign=cek`, klik CTA & checkout, pastikan angkanya muncul di
-   **Admin → Iklan**. Klik checkout juga membuat kartu "Seseorang memasukkan Paket … ke keranjang" muncul di
-   kunjungan berikutnya — itu peristiwamu sendiri, bukan karangan.
+   **Admin → Iklan**. Pelacakan jalan di kedua mode. Di build `--live`, klik checkout juga membuat kartu
+   "Seseorang memasukkan Paket … ke keranjang" muncul di kunjungan berikutnya — itu peristiwamu sendiri, bukan
+   karangan. Di build pratinjau kartunya tetap nama CONTOH, jadi jangan dipakai untuk memverifikasi umpan asli.
 6. Tes beli sungguhan sekali dengan nominal terkecil; pastikan email akses sampai ke **inbox**, bukan spam.
 
 ## Pengujian

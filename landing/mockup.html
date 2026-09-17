@@ -414,6 +414,7 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
 .corner-tag{position:fixed;bottom:calc(14px + env(safe-area-inset-bottom,0px));right:12px;z-index:90;pointer-events:none;line-height:0}
 .corner-tag img{display:block;width:104px;height:auto;filter:drop-shadow(0 6px 14px rgba(0,0,0,.4))}
 .corner-tag.txt{background:#3A2A00;color:#FFE58A;font-size:10px;line-height:1;font-weight:800;letter-spacing:.1em;padding:4px 6px;border-radius:6px;box-shadow:0 4px 12px -4px rgba(0,0,0,.35)}
+.dtag{display:inline-block;background:#3A2A00;color:#FFE58A;font-size:9px;line-height:1;font-weight:800;letter-spacing:.09em;padding:3px 5px;border-radius:5px;vertical-align:middle;margin-right:4px}
 @media (min-width:560px){.corner-tag{bottom:24px;right:24px}}
 .confetti{position:fixed;inset:0;pointer-events:none;z-index:70}
 
@@ -1233,7 +1234,10 @@ function confetti(){
 /* ---- bukti sosial ---- */
 const starSvg = n => `<span class="stars" aria-label="${n} dari 5 bintang">${Array.from({length:5},(_,i)=>`<svg viewBox="0 0 24 24" style="opacity:${i<n?1:.25}"><use href="#i-star"/></svg>`).join("")}</span>`;
 const escH = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const demoTag = "";
+const demoTag = '<span class="dtag">CONTOH</span>';   // menempel di tiap data karangan (mockup & pratinjau)
+// Nama CONTOH untuk notifikasi — BUKAN pembeli sungguhan, dan tidak pernah ikut ke build --live.
+const DEMO_NAMES = ["And** *****", "Rin** ****", "Bag** *****", "Sit** ****", "Fah** *****",
+                    "Nov** ****", "Yud** *****", "Ind** ****", "Rez** *****", "Wul** ****"];
 const SAMPLE_T = [
   {photo:"img/p22.jpg", title:"Judul testimoni #1"},
   {photo:"img/p46.jpg", title:"Judul testimoni #2"},
@@ -1248,8 +1252,8 @@ const tList = TESTIMONIALS.length ? TESTIMONIALS.map(t => MOCKUP ? {...t, demo:t
   const r = RATING && RATING.count > 0 ? RATING : null;
   const hr = $("#hero-rating"), sc = $("#t-score");
   if (r){
-    hr.innerHTML = `${MOCKUP ? demoTag : ""}${starSvg(Math.round(r.avg))}<b>${r.avg.toFixed(1).replace(".", ",")}</b><span>dari ${r.count.toLocaleString("id-ID")} ulasan</span>`;
-    sc.innerHTML = `<span class="big">${r.avg.toFixed(1).replace(".", ",")}</span><span>${starSvg(Math.round(r.avg))} ${MOCKUP ? demoTag : ""}</span><small>Rata-rata dari ${r.count.toLocaleString("id-ID")} ulasan pembeli</small>`;
+    hr.innerHTML = `${MOCKUP || PREVIEW ? demoTag : ""}${starSvg(Math.round(r.avg))}<b>${r.avg.toFixed(1).replace(".", ",")}</b><span>dari ${r.count.toLocaleString("id-ID")} ulasan</span>`;
+    sc.innerHTML = `<span class="big">${r.avg.toFixed(1).replace(".", ",")}</span><span>${starSvg(Math.round(r.avg))} ${MOCKUP || PREVIEW ? demoTag : ""}</span><small>Rata-rata dari ${r.count.toLocaleString("id-ID")} ulasan pembeli</small>`;
     hr.hidden = false; sc.hidden = false;
   } else if (PREVIEW){
     hr.innerHTML = `${demoTag}${starSvg(5)}<b>–</b><span>dari … ulasan</span>`;
@@ -1262,17 +1266,19 @@ const tList = TESTIMONIALS.length ? TESTIMONIALS.map(t => MOCKUP ? {...t, demo:t
 (() => {
   const el = $("#t-sub");
   if (MOCKUP){ el.textContent = "Ribuan pengguna sudah merasakan hasil luar biasa dengan ResepFoto."; el.hidden = false; }
-  else if (RATING && RATING.count > 0){ el.textContent = RATING.count.toLocaleString("id-ID") + " pembeli sudah memberi ulasan untuk ResepFoto."; el.hidden = false; }
+  else if (RATING && RATING.count > 0){
+    const txt = RATING.count.toLocaleString("id-ID") + " pembeli sudah memberi ulasan untuk ResepFoto.";
+    if (PREVIEW) el.innerHTML = demoTag + " " + escH(txt); else el.textContent = txt;
+    el.hidden = false;
+  }
 })();
 
 // viewers
 (() => {
   const el = $("#live-pill");
   if (MOCKUP){
-    let n = 57; const pool = [57, 67, 51, 62, 54, 59, 64, 49, 58, 66];
-    const upd = () => { $("#live-text").innerHTML = `${demoTag} ${n} orang sedang melihat halaman ini`; };
-    upd(); el.hidden = false;
-    setInterval(() => { n = pool[Math.floor(Math.random() * pool.length)]; upd(); }, 7000);
+    $("#live-text").innerHTML = `${demoTag} 45 orang sedang melihat halaman ini`;
+    el.hidden = false;
     return;
   }
   if (typeof LIVE_VIEWERS === "number" && LIVE_VIEWERS > 1){ $("#live-text").textContent = LIVE_VIEWERS + " orang sedang melihat halaman ini"; el.hidden = false; }
@@ -1335,7 +1341,7 @@ const tList = TESTIMONIALS.length ? TESTIMONIALS.map(t => MOCKUP ? {...t, demo:t
     const st = $("#op-st"); st.className = "st " + (o.cart ? "cart" : o.paid ? "paid" : "wait");
     st.textContent = o.cart ? (o.pay ? "💳 Menuju pembayaran" : "🛒 Sedang checkout")
       : o.paid ? "✓ Sudah membayar" : "⏳ Menunggu pembayaran";
-    $("#op-ago").textContent = o.demo ? (MOCKUP ? "· " + (2 + Math.floor(Math.random() * 12)) + " menit lalu" : "") : "· " + ago(o.at);
+    $("#op-ago").textContent = o.demo ? "· " + (2 + Math.floor(Math.random() * 12)) + " menit lalu" : "· " + ago(o.at);
     box.classList.add("show");
     setTimeout(() => box.classList.remove("show"), 5000);
   };
@@ -1345,8 +1351,7 @@ const tList = TESTIMONIALS.length ? TESTIMONIALS.map(t => MOCKUP ? {...t, demo:t
     setTimeout(tick, 15000 + Math.random() * 25000);
   };
   if (MOCKUP){
-    const N = ["A****","B*****","C****","D****","E***","F*****","G****","H*****","I***","J****","K*****","L****","M*****","N****","P*****","R****","S*****","T****","W****","Y*****"];
-    const all = N.map((name, i) => ({name, plan: i % 3 === 1 ? "Standard" : "Premium", paid: Math.random() > .35, demo:true}))
+    const all = DEMO_NAMES.map((name, i) => ({name, plan: i % 3 === 1 ? "Standard" : "Premium", paid: i % 4 !== 1, demo:true}))
       .concat([0, 1, 2, 3].map(i => ({cart:true, plan: i % 2 ? "Standard" : "Premium", pay: i > 1, demo:true})));
     const refill = () => { queue = all.slice().sort(() => Math.random() - .5); };
     refill();
@@ -1368,13 +1373,9 @@ const tList = TESTIMONIALS.length ? TESTIMONIALS.map(t => MOCKUP ? {...t, demo:t
     load(); setInterval(load, 120000);
     setTimeout(tick, 8000);
   } else if (PREVIEW){
-    const demo = () => [
-      {name:"B***", plan:"Premium", paid:true, demo:true},
-      {cart:true, plan:"Premium", demo:true},
-      {name:"S***", plan:"Standard", paid:false, demo:true},
-      {cart:true, plan:"Standard", pay:true, demo:true},
-      {name:"R***", plan:"Premium", paid:false, demo:true}
-    ];
+    const demo = () => DEMO_NAMES.map((name, i) => ({name, plan: i % 3 === 1 ? "Standard" : "Premium", paid: i % 4 !== 1, demo:true}))
+      .concat([{cart:true, plan:"Premium", demo:true}, {cart:true, plan:"Standard", pay:true, demo:true}])
+      .sort(() => Math.random() - .5);
     queue = demo();
     setInterval(() => { if (!queue.length) queue = demo(); }, 20000);
     setTimeout(tick, 6000);
