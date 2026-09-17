@@ -32,31 +32,9 @@ css.textContent = `
 `;
 document.head.appendChild(css);
 
-// tab + container
-const seg = $(".seg");
-const tab = document.createElement("button");
-tab.setAttribute("role", "tab"); tab.setAttribute("aria-selected", "false");
-tab.id = "seg-orders"; tab.textContent = "Pesanan";
-seg.appendChild(tab);
-const box = document.createElement("div");
-box.id = "adm-orders"; box.hidden = true; box.style.marginTop = "14px";
-$("#adm-members").after(box);
-
-let open = false, data = null, busy = false;
-function show(on){
-  open = on;
-  box.hidden = !on;
-  $("#adm-add").style.visibility = on ? "hidden" : "";
-  if (on){
-    $("#adm-prompts").hidden = true; $("#adm-members").hidden = true;
-    $$("[data-seg]").forEach(b => b.setAttribute("aria-selected", "false"));
-    tab.setAttribute("aria-selected", "true");
-    load();
-  } else tab.setAttribute("aria-selected", "false");
-}
-tab.addEventListener("click", () => show(true));
-$$("[data-seg]").forEach(b => b.addEventListener("click", () => show(false)));
-window.addEventListener("rf:admin-render", () => { if (open) setTimeout(() => { if (!open) return; $("#adm-prompts").hidden = true; $("#adm-members").hidden = true; }, 0); });
+// tab + container (lewat registry tab admin di index.html)
+let data = null, busy = false;
+const box = APP.addAdminTab({id: "orders", label: "Pesanan", onShow: () => load()});
 
 async function load(){
   if (busy) return; busy = true;

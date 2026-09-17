@@ -33,6 +33,15 @@ function db(): PDO {
     username TEXT, code TEXT, emailed INTEGER DEFAULT 0, note TEXT, raw TEXT, created_at TEXT, updated_at TEXT)');
   $pdo->exec('CREATE TABLE IF NOT EXISTS webhook_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT, ip TEXT, event TEXT, verified INTEGER, headers TEXT, note TEXT)');
+  $pdo->exec('CREATE TABLE IF NOT EXISTS ai_log (id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT, action TEXT, model TEXT, ok INTEGER, tokens_in INTEGER, tokens_out INTEGER, ms INTEGER, note TEXT)');
+  $pdo->exec('CREATE TABLE IF NOT EXISTS prompt_tests (id INTEGER PRIMARY KEY AUTOINCREMENT, prompt_id TEXT, image TEXT, input_image TEXT, source TEXT, model TEXT, tool TEXT, status TEXT, note TEXT, created_at TEXT)');
+  $pdo->exec('CREATE INDEX IF NOT EXISTS ix_tests_prompt ON prompt_tests(prompt_id)');
+  $pdo->exec('CREATE TABLE IF NOT EXISTS events (id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT, username TEXT, type TEXT, prompt_id TEXT)');
+  $pdo->exec('CREATE INDEX IF NOT EXISTS ix_events_ts ON events(ts)');
+  $pdo->exec('CREATE TABLE IF NOT EXISTS lt_events (id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT, day TEXT, vid TEXT, sid TEXT, type TEXT, plan TEXT, src TEXT, med TEXT, camp TEXT, content TEXT, ref TEXT, device TEXT, page TEXT)');
+  $pdo->exec('CREATE INDEX IF NOT EXISTS ix_lt_day ON lt_events(day)');
+  $pdo->exec('CREATE TABLE IF NOT EXISTS presence (vid TEXT PRIMARY KEY, ts INTEGER, page TEXT)');
+  $pdo->exec('CREATE TABLE IF NOT EXISTS ad_spend (day TEXT, campaign TEXT, amount INTEGER, note TEXT, PRIMARY KEY (day, campaign))');
   // migrasi kolom baru
   $cols = array_column($pdo->query('PRAGMA table_info(prompts)')->fetchAll(), 'name');
   if (!in_array('created_at', $cols, true)) {

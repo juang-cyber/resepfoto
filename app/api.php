@@ -5,6 +5,8 @@
  */
 declare(strict_types=1);
 require __DIR__ . '/lib.php';
+define('RF_API', true);
+require __DIR__ . '/ai.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
@@ -117,11 +119,77 @@ function saveImage(array $f): string {
   return "uploads/$name.$ext";
 }
 
+function cropTo45(string $src, string $dst): bool {
+  $info = @getimagesize($src);
+  if (!$info || !function_exists('imagecreatetruecolor')) return false;
+  $im = @imagecreatefromstring((string)file_get_contents($src));
+  if (!$im) return false;
+  [$w, $h] = [$info[0], $info[1]]; $W = 960; $H = 1200;
+  $scale = max($W / $w, $H / $h); $cw = (int)round($W / $scale); $ch = (int)round($H / $scale);
+  $out = imagecreatetruecolor($W, $H);
+  imagecopyresampled($out, $im, 0, 0, (int)(($w - $cw) / 2), (int)(($h - $ch) / 2), $W, $H, $cw, $ch);
+  $ok = imagejpeg($out, $dst, 82);
+  imagedestroy($im); imagedestroy($out);
+  return $ok;
+}
+function finalizeTempImage(string $temp): string {
+  $name = 'uploads/' . bin2hex(random_bytes(8)) . '.jpg';
+  if (!cropTo45(__DIR__ . '/' . $temp, __DIR__ . '/' . $name)) {
+    if (!@rename(__DIR__ . '/' . $temp, __DIR__ . '/' . $name)) fail('Gambar tidak bisa disimpan di server.', 500);
+  }
+  @unlink(__DIR__ . '/' . $temp);
+  return $name;
+}
+/** simpan file upload apa adanya (dikecilkan maks 1600px) untuk hasil tes internal */
+function saveTestImage(array $f, string $prefix = 't_'): string {
+  if (($f['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) fail('Upload gambar gagal. Coba file lain.');
+  if ($f['size'] > 12 * 1024 * 1024) fail('Gambar terlalu besar. Maksimal 12 MB.');
+  $info = @getimagesize($f['tmp_name']);
+  if (!$info || !in_array($info[2], [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_WEBP], true)) fail('File harus gambar JPG, PNG, atau WEBP.');
+  return saveBytesImage((string)file_get_contents($f['tmp_name']), $prefix);
+}
+function saveBytesImage(string $bytes, string $prefix = 't_'): string {
+  $dir = __DIR__ . '/uploads';
+  if (!is_dir($dir)) mkdir($dir, 0755, true);
+  $name = 'uploads/' . $prefix . bin2hex(random_bytes(8)) . '.jpg';
+  $im = @imagecreatefromstring($bytes);
+  if (!$im) fail('Gambar tidak bisa dibaca.');
+  $w = imagesx($im); $h = imagesy($im); $max = 1600;
+  if ($w > $max || $h > $max) {
+    $s = $max / max($w, $h); $nw = (int)round($w * $s); $nh = (int)round($h * $s);
+    $o = imagecreatetruecolor($nw, $nh);
+    imagecopyresampled($o, $im, 0, 0, 0, 0, $nw, $nh, $w, $h);
+    imagedestroy($im); $im = $o;
+  }
+  imagejpeg($im, __DIR__ . '/' . $name, 85);
+  imagedestroy($im);
+  return $name;
+}
+function publicTest(array $t): array {
+  return ['id' => (int)$t['id'], 'promptId' => $t['prompt_id'], 'image' => $t['image'], 'input' => (string)$t['input_image'],
+    'source' => $t['source'], 'model' => (string)$t['model'], 'tool' => (string)$t['tool'], 'status' => (string)$t['status'],
+    'note' => (string)$t['note'], 'createdAt' => $t['created_at']];
+}
+function jktDay(string $iso): string {
+  try { return (new DateTime($iso))->setTimezone(new DateTimeZone('Asia/Jakarta'))->format('Y-m-d'); } catch (Throwable $e) { return substr($iso, 0, 10); }
+}
+function dayRange(int $days): array {
+  $out = []; $d = new DateTime('now', new DateTimeZone('Asia/Jakarta'));
+  for ($i = $days - 1; $i >= 0; $i--) { $x = clone $d; $x->modify("-$i day"); $out[] = $x->format('Y-m-d'); }
+  return $out;
+}
+function deviceOf(string $ua): string {
+  if (preg_match('/iPad|Tablet/i', $ua)) return 'tablet';
+  if (preg_match('/Mobi|Android|iPhone/i', $ua)) return 'mobile';
+  return 'desktop';
+}
+function cleanTag($v, int $max = 80): string { return mb_substr(trim(preg_replace('/[\x00-\x1F<>]/u', '', (string)$v)), 0, $max); }
+
 /* ---------------- routes ---------------- */
 $a = (string)($_GET['a'] ?? '');
 $method = $_SERVER['REQUEST_METHOD'];
 if (empty($_SESSION['csrf'])) $_SESSION['csrf'] = bin2hex(random_bytes(16));
-if ($method === 'POST' && !hash_equals($_SESSION['csrf'], (string)($_SERVER['HTTP_X_CSRF'] ?? ''))) fail('Halaman kedaluwarsa. Muat ulang halaman lalu coba lagi.', 419);
+if ($method === 'POST' && !in_array($a, ['lt'], true) && !hash_equals($_SESSION['csrf'], (string)($_SERVER['HTTP_X_CSRF'] ?? ''))) fail('Halaman kedaluwarsa. Muat ulang halaman lalu coba lagi.', 419);
 
 try {
   switch ($a) {
@@ -151,6 +219,7 @@ try {
         if ($s === 'off') fail('Akses akun ini sedang nonaktif. Hubungi admin untuk mengaktifkan lagi.');
         if ($s === 'expired') fail('Akses kamu sudah berakhir. Perpanjang paket untuk lanjut.');
         $pdo->prepare('UPDATE members SET last_login = ? WHERE username = ?')->execute([gmdate('c'), $user]);
+        $pdo->prepare('INSERT INTO events (ts, username, type, prompt_id) VALUES (?,?,?,?)')->execute([gmdate('c'), $user, 'login', null]);
       }
       session_regenerate_id(true);
       $_SESSION['user'] = ['role' => $role, 'username' => $user];
@@ -182,9 +251,16 @@ try {
       $old = null;
       if ($id !== '') { $st = $pdo->prepare('SELECT * FROM prompts WHERE id = ?'); $st->execute([$id]); $old = $st->fetch() ?: null; }
       $hasFile = isset($_FILES['image']) && ($_FILES['image']['error'] ?? 4) !== UPLOAD_ERR_NO_FILE;
-      $missing = array_filter([$title === '' ? 'judul' : '', $cat === '' ? 'kategori' : '', $prompt === '' ? 'prompt' : '', (!$old && !$hasFile) ? 'gambar contoh' : '']);
+      $tempImg = (string)($in['image_temp'] ?? '');
+      if (!preg_match('#^uploads/tmp_[a-f0-9]{16}\.jpg$#', $tempImg) || !is_file(__DIR__ . '/' . $tempImg)) $tempImg = '';
+      $missing = array_filter([$title === '' ? 'judul' : '', $cat === '' ? 'kategori' : '', $prompt === '' ? 'prompt' : '', (!$old && !$hasFile && $tempImg === '') ? 'gambar contoh' : '']);
       if ($missing) fail('Lengkapi dulu: ' . implode(', ', $missing) . '.');
       $image = $old['image'] ?? '';
+      if (!$hasFile && $tempImg !== '') {
+        $new = finalizeTempImage($tempImg);
+        if ($old && strpos((string)$old['image'], 'uploads/') === 0) @unlink(__DIR__ . '/' . $old['image']);
+        $image = $new;
+      }
       if ($hasFile) {
         $new = saveImage($_FILES['image']);
         if ($old && strpos((string)$old['image'], 'uploads/') === 0) @unlink(__DIR__ . '/' . $old['image']);
@@ -209,6 +285,9 @@ try {
       $st = $pdo->prepare('SELECT image FROM prompts WHERE id = ?'); $st->execute([$id]);
       $img = (string)$st->fetchColumn();
       $pdo->prepare('DELETE FROM prompts WHERE id = ?')->execute([$id]);
+      $ts = $pdo->prepare('SELECT image, input_image FROM prompt_tests WHERE prompt_id = ?'); $ts->execute([$id]);
+      foreach ($ts->fetchAll() as $t) foreach ([$t['image'], $t['input_image']] as $f) if ($f && strpos((string)$f, 'uploads/') === 0) @unlink(__DIR__ . '/' . $f);
+      $pdo->prepare('DELETE FROM prompt_tests WHERE prompt_id = ?')->execute([$id]);
       if (strpos($img, 'uploads/') === 0) @unlink(__DIR__ . '/' . $img);
       out(['ok' => true]);
     }
@@ -335,9 +414,339 @@ try {
       out(['ok' => true]);
     }
 
+    /* ---------- AI (Gemini) ---------- */
+    case 'ai_settings': {
+      requireAdmin();
+      $key = aiKey();
+      $since = gmdate('c', time() - 30 * 86400);
+      $st = db()->prepare('SELECT COUNT(*) AS calls, SUM(ok) AS ok, SUM(tokens_in) AS tin, SUM(tokens_out) AS tout, AVG(ms) AS ms FROM ai_log WHERE ts >= ?');
+      $st->execute([$since]); $u = $st->fetch();
+      $by = db()->prepare('SELECT action, COUNT(*) AS n FROM ai_log WHERE ts >= ? GROUP BY action'); $by->execute([$since]);
+      $log = db()->query('SELECT ts, action, model, ok, tokens_in, tokens_out, ms, note FROM ai_log ORDER BY id DESC LIMIT 25')->fetchAll();
+      out(['ok' => true, 'settings' => [
+        'hasKey' => $key !== '', 'keyHint' => $key !== '' ? substr($key, -4) : '',
+        'model' => aiModel(), 'imageModel' => aiImageModel(),
+        'defaultModel' => AI_DEFAULT_MODEL, 'defaultImageModel' => AI_DEFAULT_IMAGE_MODEL,
+        'curl' => function_exists('curl_init'), 'gd' => function_exists('imagecreatefromstring'),
+      ], 'usage' => ['calls' => (int)$u['calls'], 'ok' => (int)$u['ok'], 'tokensIn' => (int)$u['tin'], 'tokensOut' => (int)$u['tout'],
+        'avgMs' => (int)$u['ms'], 'byAction' => array_column($by->fetchAll(), 'n', 'action')],
+        'log' => $log, 'categories' => existingCategories()]);
+    }
+
+    case 'ai_settings_save': {
+      requireAdmin();
+      $in = input();
+      $k = trim((string)($in['apiKey'] ?? ''));
+      if ($k !== '') {
+        if (!preg_match('/^[A-Za-z0-9_\-]{20,120}$/', $k)) fail('Format API key tidak valid.');
+        setSetting('gemini_api_key', $k);
+      }
+      if (!empty($in['clearKey'])) setSetting('gemini_api_key', '');
+      $m = str($in, 'model', 60); $im = str($in, 'imageModel', 60);
+      foreach ([$m, $im] as $x) if ($x !== '' && !preg_match('/^[a-z0-9][a-z0-9.\-]{2,59}$/', $x)) fail('Nama model tidak valid.');
+      setSetting('gemini_model', $m);
+      setSetting('gemini_image_model', $im);
+      out(['ok' => true]);
+    }
+
+    case 'ai_test': {
+      requireAdmin();
+      $r = geminiCall('test', [['text' => 'Balas persis dengan satu kata: SIAP']]);
+      out(['ok' => true, 'reply' => mb_substr(trim($r['text']), 0, 60), 'ms' => $r['ms'], 'model' => $r['model']]);
+    }
+
+    case 'ai_link': {
+      requireAdmin();
+      @set_time_limit(180);
+      $rec = recipeFromLink(str(input(), 'url', 500));
+      out(['ok' => true, 'recipe' => $rec]);
+    }
+
+    case 'ai_analyze': {
+      requireAdmin();
+      @set_time_limit(120);
+      $in = input();
+      $prompt = str($in, 'prompt', 6000);
+      if ($prompt === '') fail('Tempel prompt dulu.');
+      $path = null;
+      if (isset($_FILES['image']) && ($_FILES['image']['error'] ?? 4) === UPLOAD_ERR_OK) {
+        if ($_FILES['image']['size'] > 12 * 1024 * 1024) fail('Gambar terlalu besar. Maksimal 12 MB.');
+        if (!@getimagesize($_FILES['image']['tmp_name'])) fail('File harus gambar JPG, PNG, atau WEBP.');
+        $path = $_FILES['image']['tmp_name'];
+      } else {
+        $t = (string)($in['image_temp'] ?? '');
+        if (preg_match('#^uploads/(tmp_[a-f0-9]{16}\.jpg|[a-f0-9]{16}\.jpg)$#', $t) && is_file(__DIR__ . '/' . $t)) $path = __DIR__ . '/' . $t;
+      }
+      out(['ok' => true, 'recipe' => recipeFromUpload($prompt, $path)]);
+    }
+
+    /* ---------- hasil tes internal ---------- */
+    case 'prompt_tests': {
+      requireAdmin();
+      $st = db()->prepare('SELECT * FROM prompt_tests WHERE prompt_id = ? ORDER BY id DESC');
+      $st->execute([str($_GET, 'id', 40)]);
+      out(['ok' => true, 'tests' => array_map('publicTest', $st->fetchAll())]);
+    }
+
+    case 'prompt_test_add': {
+      requireAdmin();
+      $in = input(); $pid = str($in, 'prompt_id', 40);
+      $chk = db()->prepare('SELECT COUNT(*) FROM prompts WHERE id = ?'); $chk->execute([$pid]);
+      if (!(int)$chk->fetchColumn()) fail('Simpan resep dulu sebelum menambah hasil tes.');
+      if (!isset($_FILES['image'])) fail('Pilih atau tempel gambar hasil tes.');
+      $img = saveTestImage($_FILES['image']);
+      $status = in_array($in['status'] ?? '', ['ok', 'fail', 'note'], true) ? $in['status'] : 'note';
+      db()->prepare('INSERT INTO prompt_tests (prompt_id, image, input_image, source, model, tool, status, note, created_at) VALUES (?,?,?,?,?,?,?,?,?)')
+        ->execute([$pid, $img, '', 'upload', str($in, 'model', 60), str($in, 'tool', 20), $status, str($in, 'note', 400), gmdate('c')]);
+      $id = (int)db()->lastInsertId();
+      $st = db()->prepare('SELECT * FROM prompt_tests WHERE id = ?'); $st->execute([$id]);
+      out(['ok' => true, 'test' => publicTest($st->fetch())]);
+    }
+
+    case 'prompt_test_generate': {
+      requireAdmin();
+      @set_time_limit(200);
+      $in = input(); $pid = str($in, 'prompt_id', 40);
+      $st = db()->prepare('SELECT prompt FROM prompts WHERE id = ?'); $st->execute([$pid]);
+      $prompt = (string)$st->fetchColumn();
+      if ($prompt === '') fail('Simpan resep dulu sebelum tes generate.');
+      if (!isset($_FILES['input'])) fail('Pilih atau tempel foto input untuk dites.');
+      $input = saveTestImage($_FILES['input'], 'in_');
+      try { $res = generateTestImage($prompt, __DIR__ . '/' . $input); }
+      catch (Throwable $e) { @unlink(__DIR__ . '/' . $input); throw $e; }
+      $img = saveBytesImage(base64_decode($res['images'][0]['data']));
+      db()->prepare('INSERT INTO prompt_tests (prompt_id, image, input_image, source, model, tool, status, note, created_at) VALUES (?,?,?,?,?,?,?,?,?)')
+        ->execute([$pid, $img, $input, 'gemini', $res['model'], 'Gemini API', 'note', mb_substr(trim($res['text']), 0, 300), gmdate('c')]);
+      $id = (int)db()->lastInsertId();
+      $st = db()->prepare('SELECT * FROM prompt_tests WHERE id = ?'); $st->execute([$id]);
+      out(['ok' => true, 'test' => publicTest($st->fetch()), 'ms' => $res['ms']]);
+    }
+
+    case 'prompt_test_update': {
+      requireAdmin();
+      $in = input();
+      $status = in_array($in['status'] ?? '', ['ok', 'fail', 'note'], true) ? $in['status'] : 'note';
+      db()->prepare('UPDATE prompt_tests SET status = ?, note = ? WHERE id = ?')->execute([$status, str($in, 'note', 400), (int)($in['id'] ?? 0)]);
+      out(['ok' => true]);
+    }
+
+    case 'prompt_test_delete': {
+      requireAdmin();
+      $id = (int)(input()['id'] ?? 0);
+      $st = db()->prepare('SELECT image, input_image FROM prompt_tests WHERE id = ?'); $st->execute([$id]);
+      if ($t = $st->fetch()) foreach ([$t['image'], $t['input_image']] as $f) if ($f && strpos((string)$f, 'uploads/') === 0) @unlink(__DIR__ . '/' . $f);
+      db()->prepare('DELETE FROM prompt_tests WHERE id = ?')->execute([$id]);
+      out(['ok' => true]);
+    }
+
+    /* ---------- tracking ---------- */
+    case 'track': {
+      $u = requireUser();
+      $in = input();
+      $type = (string)($in['type'] ?? '');
+      if (!in_array($type, ['open', 'copy', 'fav'], true)) fail('Aksi tidak dikenal.');
+      if ($u['role'] === 'admin') out(['ok' => true, 'skipped' => true]);
+      db()->prepare('INSERT INTO events (ts, username, type, prompt_id) VALUES (?,?,?,?)')
+        ->execute([gmdate('c'), $u['username'], $type, preg_replace('/[^a-z0-9_-]/i', '', str($in, 'id', 40))]);
+      out(['ok' => true]);
+    }
+
+    case 'lt': {
+      header('Access-Control-Allow-Origin: ' . siteUrl());
+      if ($method !== 'POST') fail('Metode salah.', 405);
+      $ua = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
+      if ($ua === '' || preg_match('/bot|crawl|spider|facebookexternalhit|preview|headless/i', $ua)) out(['ok' => true]);
+      $j = json_decode((string)file_get_contents('php://input'), true);
+      if (!is_array($j)) fail('Data tidak valid.');
+      $vid = (string)($j['vid'] ?? '');
+      if (!preg_match('/^[a-z0-9]{8,32}$/', $vid)) fail('Data tidak valid.');
+      $type = (string)($j['type'] ?? '');
+      $page = cleanTag($j['page'] ?? 'landing', 30);
+      $pdo = db();
+      if ($type === 'ping') {
+        $pdo->prepare('INSERT OR REPLACE INTO presence (vid, ts, page) VALUES (?,?,?)')->execute([$vid, time(), $page]);
+        if (random_int(1, 50) === 1) $pdo->prepare('DELETE FROM presence WHERE ts < ?')->execute([time() - 3600]);
+        out(['ok' => true]);
+      }
+      if (!in_array($type, ['view', 'cta', 'checkout', 'pay'], true)) fail('Data tidak valid.');
+      $day = (new DateTime('now', new DateTimeZone('Asia/Jakarta')))->format('Y-m-d');
+      $cnt = $pdo->prepare('SELECT COUNT(*) FROM lt_events WHERE vid = ? AND day = ?'); $cnt->execute([$vid, $day]);
+      if ((int)$cnt->fetchColumn() > 300) out(['ok' => true]);
+      $ref = cleanTag($j['ref'] ?? '', 200);
+      $refHost = $ref !== '' ? strtolower((string)parse_url($ref, PHP_URL_HOST)) : '';
+      $src = strtolower(cleanTag($j['src'] ?? '', 60));
+      if ($src === '' && !empty($j['fbclid'])) $src = 'facebook';
+      if ($src === '' && $refHost !== '' && $refHost !== strtolower((string)parse_url(siteUrl(), PHP_URL_HOST))) $src = preg_replace('/^(www\.|m\.|l\.|lm\.)/', '', $refHost);
+      if ($src === '') $src = 'direct';
+      $pdo->prepare('INSERT INTO lt_events (ts, day, vid, sid, type, plan, src, med, camp, content, ref, device, page) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)')
+        ->execute([gmdate('c'), $day, $vid, cleanTag($j['sid'] ?? '', 32), $type, cleanTag($j['plan'] ?? '', 20), $src,
+          strtolower(cleanTag($j['med'] ?? '', 60)), cleanTag($j['camp'] ?? '', 80), cleanTag($j['content'] ?? '', 80), $refHost, deviceOf($ua), $page]);
+      if ($type === 'view') $pdo->prepare('INSERT OR REPLACE INTO presence (vid, ts, page) VALUES (?,?,?)')->execute([$vid, time(), $page]);
+      out(['ok' => true]);
+    }
+
+    case 'live': {
+      header('Cache-Control: public, max-age=15');
+      $pdo = db();
+      $now = $pdo->prepare('SELECT COUNT(*) FROM presence WHERE ts >= ?'); $now->execute([time() - 60]);
+      $d = $pdo->prepare("SELECT COUNT(DISTINCT vid) FROM lt_events WHERE type = 'view' AND ts >= ?"); $d->execute([gmdate('c', time() - 86400)]);
+      out(['ok' => true, 'now' => (int)$now->fetchColumn(), 'day' => (int)$d->fetchColumn()]);
+    }
+
+    /* ---------- laporan ---------- */
+    case 'report_users': {
+      requireAdmin();
+      $pdo = db();
+      $days = dayRange(30); $from = $days[0];
+      $members = $pdo->query('SELECT * FROM members')->fetchAll();
+      $status = ['ok' => 0, 'expired' => 0, 'off' => 0]; $plans = []; $newPer = array_fill_keys($days, 0);
+      foreach ($members as $m) {
+        $s = memberStatus($m); $status[$s] = ($status[$s] ?? 0) + 1;
+        $plans[$m['plan']] = ($plans[$m['plan']] ?? 0) + 1;
+        $d = jktDay((string)$m['created_at']); if (isset($newPer[$d])) $newPer[$d]++;
+      }
+      $since30 = gmdate('c', strtotime($from . ' 00:00:00 Asia/Jakarta'));
+      $ev = $pdo->prepare('SELECT ts, username, type, prompt_id FROM events WHERE ts >= ?'); $ev->execute([$since30]);
+      $per = []; foreach ($days as $d) $per[$d] = ['login' => 0, 'open' => 0, 'copy' => 0, 'users' => []];
+      $active = ['d1' => [], 'd7' => [], 'd30' => []]; $top = []; $byUser = [];
+      $t1 = time() - 86400; $t7 = time() - 7 * 86400;
+      foreach ($ev->fetchAll() as $e) {
+        $d = jktDay($e['ts']); $t = strtotime($e['ts']);
+        if (isset($per[$d])) { if (isset($per[$d][$e['type']])) $per[$d][$e['type']]++; $per[$d]['users'][$e['username']] = 1; }
+        $active['d30'][$e['username']] = 1; if ($t >= $t7) $active['d7'][$e['username']] = 1; if ($t >= $t1) $active['d1'][$e['username']] = 1;
+        if ($e['prompt_id']) { $top[$e['prompt_id']][$e['type']] = ($top[$e['prompt_id']][$e['type']] ?? 0) + 1; }
+        if ($e['type'] === 'copy') $byUser[$e['username']] = ($byUser[$e['username']] ?? 0) + 1;
+      }
+      $prompts = $pdo->query('SELECT id, title, cat, image, title_en, created_at FROM prompts')->fetchAll();
+      $pmap = []; foreach ($prompts as $p) $pmap[$p['id']] = $p;
+      $topList = [];
+      foreach ($top as $pid => $c) if (isset($pmap[$pid])) $topList[] = ['id' => $pid, 'title' => $pmap[$pid]['title'], 'cat' => $pmap[$pid]['cat'], 'image' => $pmap[$pid]['image'],
+        'copy' => $c['copy'] ?? 0, 'open' => $c['open'] ?? 0, 'fav' => $c['fav'] ?? 0];
+      usort($topList, fn($a, $b) => [$b['copy'], $b['open']] <=> [$a['copy'], $a['open']]);
+      $unused = count(array_filter($prompts, fn($p) => empty($top[$p['id']]['copy'])));
+      arsort($byUser);
+      $orders = $pdo->query('SELECT plan, amount, state, created_at FROM orders')->fetchAll();
+      $ord = ['paid' => 0, 'revenue' => 0, 'pending' => 0, 'rejected' => 0, 'byPlan' => [], 'revenue30' => 0, 'paid30' => 0];
+      foreach ($orders as $o) {
+        $paid = in_array($o['state'], ['aktif', 'lunas'], true);
+        if ($paid) { $ord['paid']++; $ord['revenue'] += (int)$o['amount']; $ord['byPlan'][$o['plan']] = ($ord['byPlan'][$o['plan']] ?? 0) + 1;
+          if ($o['created_at'] >= $since30) { $ord['paid30']++; $ord['revenue30'] += (int)$o['amount']; } }
+        elseif ($o['state'] === 'ditolak') $ord['rejected']++; else $ord['pending']++;
+      }
+      $recent = $pdo->query("SELECT e.ts, e.username, e.type, e.prompt_id, m.name FROM events e LEFT JOIN members m ON m.username = e.username ORDER BY e.id DESC LIMIT 15")->fetchAll();
+      foreach ($recent as &$r) $r['title'] = $r['prompt_id'] && isset($pmap[$r['prompt_id']]) ? $pmap[$r['prompt_id']]['title'] : '';
+      unset($r);
+      $tests = (int)$pdo->query('SELECT COUNT(*) FROM prompt_tests')->fetchColumn();
+      $testedPrompts = (int)$pdo->query('SELECT COUNT(DISTINCT prompt_id) FROM prompt_tests')->fetchColumn();
+      $aiCalls = $pdo->prepare('SELECT COUNT(*) FROM ai_log WHERE ts >= ?'); $aiCalls->execute([$since30]);
+      $daily = [];
+      foreach ($per as $d => $v) $daily[] = ['day' => $d, 'new' => $newPer[$d], 'login' => $v['login'], 'open' => $v['open'], 'copy' => $v['copy'], 'active' => count($v['users'])];
+      $lastLogin = 0; foreach ($members as $m) if (!empty($m['last_login']) && strtotime($m['last_login']) >= $t7) $lastLogin++;
+      out(['ok' => true,
+        'members' => ['total' => count($members), 'status' => $status, 'plans' => $plans, 'new30' => array_sum($newPer), 'loggedIn7' => $lastLogin],
+        'active' => ['d1' => count($active['d1']), 'd7' => count($active['d7']), 'd30' => count($active['d30'])],
+        'daily' => $daily, 'top' => array_slice($topList, 0, 10),
+        'topUsers' => array_map(fn($u, $n) => ['username' => $u, 'copies' => $n], array_slice(array_keys($byUser), 0, 5), array_slice(array_values($byUser), 0, 5)),
+        'orders' => $ord,
+        'app' => ['prompts' => count($prompts), 'categories' => count(array_unique(array_column($prompts, 'cat'))),
+          'withEn' => count(array_filter($prompts, fn($p) => (string)$p['title_en'] !== '')), 'unused30' => $unused,
+          'tests' => $tests, 'testedPrompts' => $testedPrompts, 'aiCalls30' => (int)$aiCalls->fetchColumn(),
+          'newPrompts30' => count(array_filter($prompts, fn($p) => (string)$p['created_at'] >= $since30))],
+        'recent' => $recent]);
+    }
+
+    case 'report_ads': {
+      requireAdmin();
+      $pdo = db();
+      $n = (int)($_GET['days'] ?? 30); if (!in_array($n, [1, 7, 30, 90], true)) $n = 30;
+      $days = dayRange($n); $from = $days[0]; $to = end($days);
+      $st = $pdo->prepare('SELECT day, vid, type, plan, src, med, camp, device, ref FROM lt_events WHERE day >= ? AND day <= ?');
+      $st->execute([$from, $to]);
+      $rows = $st->fetchAll();
+      $daily = []; foreach ($days as $d) $daily[$d] = ['view' => [], 'cta' => [], 'checkout' => [], 'pay' => [], 'orders' => 0, 'revenue' => 0, 'spend' => 0];
+      $tot = ['views' => 0, 'view' => [], 'cta' => [], 'checkout' => [], 'pay' => []];
+      $camps = []; $srcs = []; $devices = []; $refs = []; $planClicks = [];
+      foreach ($rows as $r) {
+        $t = $r['type']; $v = $r['vid'];
+        if ($t === 'view') $tot['views']++;
+        $tot[$t][$v] = 1;
+        if (isset($daily[$r['day']][$t])) $daily[$r['day']][$t][$v] = 1;
+        $ck = ($r['camp'] !== '' ? $r['camp'] : '(tanpa kampanye)') . '|' . $r['src'];
+        if (!isset($camps[$ck])) $camps[$ck] = ['camp' => $r['camp'] !== '' ? $r['camp'] : '(tanpa kampanye)', 'src' => $r['src'], 'med' => $r['med'], 'view' => [], 'cta' => [], 'checkout' => [], 'pay' => []];
+        $camps[$ck][$t][$v] = 1;
+        $srcs[$r['src']][$t][$v] = 1;
+        if ($t === 'view') { $devices[$r['device']][$v] = 1; if ($r['ref'] !== '') $refs[$r['ref']][$v] = 1; }
+        if (($t === 'pay' || $t === 'checkout') && $r['plan'] !== '') $planClicks[$r['plan']][$t][$v] = 1;
+      }
+      $sinceIso = gmdate('c', strtotime($from . ' 00:00:00 Asia/Jakarta'));
+      $os = $pdo->prepare('SELECT plan, amount, state, created_at FROM orders WHERE created_at >= ?'); $os->execute([$sinceIso]);
+      $orders = ['paid' => 0, 'revenue' => 0, 'pending' => 0, 'byPlan' => []];
+      foreach ($os->fetchAll() as $o) {
+        $d = jktDay($o['created_at']);
+        if (in_array($o['state'], ['aktif', 'lunas'], true)) {
+          $orders['paid']++; $orders['revenue'] += (int)$o['amount'];
+          $orders['byPlan'][$o['plan']] = ($orders['byPlan'][$o['plan']] ?? 0) + 1;
+          if (isset($daily[$d])) { $daily[$d]['orders']++; $daily[$d]['revenue'] += (int)$o['amount']; }
+        } elseif ($o['state'] !== 'ditolak') $orders['pending']++;
+      }
+      $sp = $pdo->prepare('SELECT day, campaign, amount, note FROM ad_spend WHERE day >= ? AND day <= ? ORDER BY day DESC, campaign');
+      $sp->execute([$from, $to]);
+      $spendRows = $sp->fetchAll(); $spend = 0; $spendByCamp = [];
+      foreach ($spendRows as $s) {
+        $spend += (int)$s['amount'];
+        $spendByCamp[$s['campaign']] = ($spendByCamp[$s['campaign']] ?? 0) + (int)$s['amount'];
+        if (isset($daily[$s['day']])) $daily[$s['day']]['spend'] += (int)$s['amount'];
+      }
+      $cnt = fn($a) => count($a);
+      $campList = [];
+      foreach ($camps as $c) {
+        $sp1 = $spendByCamp[$c['camp']] ?? 0;
+        $campList[] = ['camp' => $c['camp'], 'src' => $c['src'], 'med' => $c['med'], 'visitors' => $cnt($c['view']), 'cta' => $cnt($c['cta']),
+          'checkout' => $cnt($c['checkout']), 'pay' => $cnt($c['pay']), 'spend' => $sp1];
+      }
+      foreach ($spendByCamp as $name => $amt) {
+        $found = false; foreach ($campList as $c) if ($c['camp'] === $name) $found = true;
+        if (!$found) $campList[] = ['camp' => $name, 'src' => '-', 'med' => '', 'visitors' => 0, 'cta' => 0, 'checkout' => 0, 'pay' => 0, 'spend' => $amt];
+      }
+      usort($campList, fn($a, $b) => [$b['visitors'], $b['spend']] <=> [$a['visitors'], $a['spend']]);
+      $srcList = []; foreach ($srcs as $k => $v) $srcList[] = ['src' => $k, 'visitors' => $cnt($v['view'] ?? []), 'pay' => $cnt($v['pay'] ?? [])];
+      usort($srcList, fn($a, $b) => $b['visitors'] <=> $a['visitors']);
+      $devList = []; foreach ($devices as $k => $v) $devList[$k] = $cnt($v);
+      $refList = []; foreach ($refs as $k => $v) $refList[] = ['ref' => $k, 'visitors' => $cnt($v)];
+      usort($refList, fn($a, $b) => $b['visitors'] <=> $a['visitors']);
+      $plansOut = []; foreach ($planClicks as $k => $v) $plansOut[$k] = ['checkout' => $cnt($v['checkout'] ?? []), 'pay' => $cnt($v['pay'] ?? [])];
+      $dailyOut = []; foreach ($daily as $d => $v) $dailyOut[] = ['day' => $d, 'visitors' => $cnt($v['view']), 'checkout' => $cnt($v['checkout']),
+        'pay' => $cnt($v['pay']), 'orders' => $v['orders'], 'revenue' => $v['revenue'], 'spend' => $v['spend']];
+      $now = $pdo->prepare('SELECT COUNT(*) FROM presence WHERE ts >= ?'); $now->execute([time() - 60]);
+      $visitors = $cnt($tot['view']);
+      out(['ok' => true, 'days' => $n, 'from' => $from, 'to' => $to, 'liveNow' => (int)$now->fetchColumn(),
+        'totals' => ['views' => $tot['views'], 'visitors' => $visitors, 'cta' => $cnt($tot['cta']), 'checkout' => $cnt($tot['checkout']), 'pay' => $cnt($tot['pay']),
+          'orders' => $orders['paid'], 'pending' => $orders['pending'], 'revenue' => $orders['revenue'], 'spend' => $spend,
+          'roas' => $spend > 0 ? round($orders['revenue'] / $spend, 2) : null, 'cpa' => $orders['paid'] > 0 && $spend > 0 ? (int)round($spend / $orders['paid']) : null,
+          'cpv' => $visitors > 0 && $spend > 0 ? (int)round($spend / $visitors) : null, 'conv' => $visitors > 0 ? round($orders['paid'] / $visitors * 100, 2) : null],
+        'ordersByPlan' => $orders['byPlan'], 'planClicks' => $plansOut,
+        'daily' => $dailyOut, 'campaigns' => $campList, 'sources' => $srcList, 'devices' => $devList, 'refs' => array_slice($refList, 0, 8),
+        'spendRows' => $spendRows, 'tracking' => (int)$pdo->query('SELECT COUNT(*) FROM lt_events')->fetchColumn() > 0]);
+    }
+
+    case 'ad_spend_save': {
+      requireAdmin();
+      $in = input();
+      $day = str($in, 'day', 10);
+      if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $day)) fail('Format tanggal tidak valid.');
+      $camp = cleanTag($in['campaign'] ?? '', 80);
+      if ($camp === '') $camp = '(tanpa kampanye)';
+      $amt = (int)preg_replace('/\D/', '', (string)($in['amount'] ?? '0'));
+      if ($amt <= 0) db()->prepare('DELETE FROM ad_spend WHERE day = ? AND campaign = ?')->execute([$day, $camp]);
+      else db()->prepare('INSERT OR REPLACE INTO ad_spend (day, campaign, amount, note) VALUES (?,?,?,?)')->execute([$day, $camp, $amt, str($in, 'note', 120)]);
+      out(['ok' => true]);
+    }
+
     default:
       fail('Endpoint tidak dikenal.', 404);
   }
+} catch (RfError $e) {
+  fail($e->getMessage(), 422);
 } catch (Throwable $e) {
   error_log('[resepfoto] ' . $e->getMessage());
   fail('Terjadi kesalahan di server. Coba lagi sebentar lagi.', 500);

@@ -688,7 +688,6 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
     <button class="btn btn-main btn-block" data-buy="premium">Ambil Premium Sekarang</button>
     <p class="honest"><svg class="ico"><use href="#i-info"/></svg>Resep prompt untuk Gemini/ChatGPT · Garansi Puas 7 Hari</p>
   </section>
-  <div class="mock-banner" id="preview-banner" role="note">CONTOH</div>
   <footer>© 2026 ResepFoto · resepfoto.oziera.co.id<br>Gemini dan ChatGPT adalah merek milik pemiliknya masing-masing dan tidak berafiliasi dengan ResepFoto.</footer>
 </div>
 
@@ -721,7 +720,7 @@ const CHECKOUT = {              // link pembayaran Mayar
   premium: "https://kitlab.myr.id/pl/resepfoto-premium"
 };
 /* ---- bukti sosial: isi dengan data ASLI ----
-   PREVIEW = true  → tampil contoh berlabel "CONTOH" supaya kamu bisa lihat desainnya.
+   PREVIEW = true  → tampilkan data pratinjau desain.
    PREVIEW = false → hanya data asli di bawah yang tampil; bagian yang kosong otomatis disembunyikan. */
 const PREVIEW = true;
 // Testimoni asli (sudah izin). photo = foto hasil/foto pembeli, avatar = foto profil (opsional).
@@ -734,6 +733,9 @@ const RATING = null;
 const ORDER_FEED_URL = "";      // contoh: "/api.php?a=recent_orders"
 // Jumlah pengunjung aktif dari sistem analitik asli (angka), atau null untuk disembunyikan.
 const LIVE_VIEWERS = null;
+// Pelacakan kunjungan & klik untuk Admin → Iklan (aktif setelah landing page ada di resepfoto.oziera.co.id).
+// Isi "/api.php" saat di-deploy. Kosong = tidak melacak. Penanda "sedang melihat" juga memakai data ini (angka asli).
+const TRACK_URL = "";
 
 const PLANS = { standard: {name: "Standard", price: 50000}, premium: {name: "Premium", price: 99000} };
 
@@ -955,6 +957,7 @@ function syncSummary(){
 $$('input[name="plan"]').forEach(i => i.addEventListener("change", () => { setPlan(i.value, true); }));
 function openSheet(p){
   if (p) setPlan(p);
+  trk("checkout", {plan: p || plan});
   $("#scrim").hidden = false; $("#sheet").hidden = false;
   requestAnimationFrame(() => { $("#scrim").classList.add("show"); $("#sheet").classList.add("show"); });
   setTimeout(() => $("#co-send").focus({preventScroll: true}), 400);
@@ -971,6 +974,7 @@ $("#sheet").addEventListener("touchstart", e => { if ($("#sheet").scrollTop <= 0
 $("#sheet").addEventListener("touchend", e => { if (sy !== null && e.changedTouches[0].clientY - sy > 90) closeSheet(); sy = null; });
 $("#co-send").addEventListener("click", () => {
   const url = CHECKOUT[plan];
+  trk("pay", {plan});
   confetti();
   toast("Membuka halaman pembayaran " + PLANS[plan].name + "…");
   setTimeout(() => { const w = window.open(url, "_blank", "noopener"); if (!w) location.href = url; }, reduce ? 0 : 450);
@@ -997,7 +1001,7 @@ function confetti(){
 }
 
 /* ---- bukti sosial ---- */
-if (!PREVIEW) $("#preview-banner").remove();
+
 const starSvg = n => `<span class="stars" aria-label="${n} dari 5 bintang">${Array.from({length:5},(_,i)=>`<svg viewBox="0 0 24 24" style="opacity:${i<n?1:.25}"><use href="#i-star"/></svg>`).join("")}</span>`;
 const escH = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const demoTag = "";
@@ -1028,6 +1032,16 @@ const tList = TESTIMONIALS.length ? TESTIMONIALS.slice().sort((a,b) => (b.stars|
 // viewers
 (() => {
   const el = $("#live-pill");
+  if (TRACK_URL){
+    const upd = () => fetch(TRACK_URL + "?a=live", {credentials: "omit"}).then(r => r.json()).then(d => {
+      if (!d || !d.ok) return;
+      if (d.now >= 5){ $("#live-text").textContent = d.now.toLocaleString("id-ID") + " orang sedang melihat halaman ini"; el.hidden = false; }
+      else if (d.day >= 50){ $("#live-text").textContent = d.day.toLocaleString("id-ID") + " orang mengunjungi halaman ini dalam 24 jam terakhir"; el.hidden = false; }
+      else el.hidden = true;
+    }).catch(() => {});
+    upd(); setInterval(upd, 30000);
+    return;
+  }
   if (typeof LIVE_VIEWERS === "number" && LIVE_VIEWERS > 1){ $("#live-text").textContent = LIVE_VIEWERS + " orang sedang melihat halaman ini"; el.hidden = false; }
   else if (PREVIEW){ $("#live-text").innerHTML = `${demoTag} … orang sedang melihat halaman ini`; el.hidden = false; }
 })();
@@ -1103,6 +1117,33 @@ const tList = TESTIMONIALS.length ? TESTIMONIALS.slice().sort((a,b) => (b.stars|
     setTimeout(tick, 6000);
   }
 })();
+
+/* ---- pelacakan (Admin → Iklan) ---- */
+const trk = (() => {
+  if (!TRACK_URL) return () => {};
+  const rnd = () => Array.from(crypto.getRandomValues(new Uint8Array(8)), b => b.toString(36).padStart(2, "0")).join("").slice(0, 16);
+  let vid = store.get("rf_vid", null); if (!/^[a-z0-9]{8,32}$/.test(vid || "")) { vid = rnd(); store.set("rf_vid", vid); }
+  let sid; try { sid = sessionStorage.getItem("rf_sid") || rnd(); sessionStorage.setItem("rf_sid", sid); } catch { sid = rnd(); }
+  const q = new URLSearchParams(location.search);
+  let utm = store.get("rf_utm", {});
+  if (q.get("utm_source") || q.get("utm_campaign") || q.get("fbclid")){
+    utm = {src: q.get("utm_source") || "", med: q.get("utm_medium") || "", camp: q.get("utm_campaign") || "", content: q.get("utm_content") || "", fbclid: q.get("fbclid") ? 1 : 0, at: Date.now()};
+    store.set("rf_utm", utm);
+  } else if (utm.at && Date.now() - utm.at > 7 * 864e5) utm = {};
+  const url = TRACK_URL + "?a=lt";
+  const send = (type, extra = {}) => {
+    const body = JSON.stringify({type, vid, sid, page: "landing", ref: document.referrer, ...utm, ...extra});
+    try { if (navigator.sendBeacon && navigator.sendBeacon(url, new Blob([body], {type: "text/plain"}))) return; } catch {}
+    fetch(url, {method: "POST", body, keepalive: true, credentials: "omit", headers: {"Content-Type": "text/plain"}}).catch(() => {});
+  };
+  send("view");
+  setInterval(() => { if (!document.hidden) send("ping"); }, 20000);
+  return send;
+})();
+document.addEventListener("click", e => {
+  const b = e.target.closest('a[href="#harga"],[data-goplan],[data-buy]');
+  if (b) trk("cta", {plan: b.dataset.buy || b.dataset.goplan || ""});
+}, true);
 
 /* ---- init ---- */
 setPlan(plan);

@@ -8,7 +8,7 @@ RewriteCond %{HTTP:X-Forwarded-Proto} !https
 RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 </IfModule>
 
-<FilesMatch "^(config\.php|lib\.php|.*\.(sqlite|sqlite-wal|sqlite-shm|json|part|md|log))$">
+<FilesMatch "^(config\.php|lib\.php|ai\.php|.*\.(sqlite|sqlite-wal|sqlite-shm|json|part|md|log))$">
   <IfModule mod_authz_core.c>
     Require all denied
   </IfModule>

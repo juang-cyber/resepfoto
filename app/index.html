@@ -262,7 +262,7 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 .tab .dotline{width:5px;height:5px;border-radius:50%;background:transparent}
 
 /* ---------- LIST SCREENS ---------- */
-.list{display:grid;gap:10px}
+.list{display:grid;gap:10px;grid-template-columns:minmax(0,1fr)}
 .li{display:flex;align-items:center;gap:12px;padding:10px;border-radius:18px;background:var(--surface-2);text-align:left;color:var(--ink);width:100%}
 .li img{width:60px;height:72px;border-radius:12px;object-fit:cover;flex:none}
 .li .grow{flex:1;min-width:0}
@@ -291,8 +291,10 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 .kv dt{opacity:.75}
 .kv dd{margin:0;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
 .setting{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-radius:16px;background:var(--surface-2);font-weight:600;width:100%;color:var(--ink)}
-.seg{display:flex;background:var(--surface-2);border-radius:14px;padding:4px;gap:4px}
-.seg button{flex:1;height:40px;border-radius:11px;font-weight:700;font-size:13px;color:var(--muted)}
+.seg{display:flex;background:var(--surface-2);border-radius:14px;padding:4px;gap:4px;overflow-x:auto;scrollbar-width:none}
+.seg::-webkit-scrollbar{display:none}
+@media (min-width:900px){.app{transition:max-width .25s ease}.app.wide{max-width:880px}}
+.seg button{flex:1 0 auto;height:40px;padding:0 14px;border-radius:11px;font-weight:700;font-size:13px;color:var(--muted);white-space:nowrap}
 .seg button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 4px 12px -6px rgba(18,36,84,.3)}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .stat{padding:14px 12px;border-radius:18px;background:var(--surface-2)}
@@ -322,6 +324,59 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 .toast.show{transform:translate(-50%,0);visibility:visible;transition-delay:0s}
 .toast .ico{color:var(--ok)}
 
+/* ---------- prompt studio ---------- */
+.sheet-tall{max-height:96%}
+@media (min-width:900px){.app.wide .sheet{left:50%;right:auto;width:min(760px,100%);transform:translate(-50%,105%)}.app.wide .sheet.show{transform:translate(-50%,0)}}
+.pf-modes{margin-bottom:12px}
+.pf-modes button{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.pf-modes[hidden]{display:none}
+.studio-box{border:1px solid var(--line);border-radius:18px;padding:12px;display:grid;gap:10px;margin-bottom:12px;background:var(--surface)}
+.studio-box[hidden]{display:none}
+.studio-label{font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:6px}
+.studio-box .studio-label{margin-bottom:0}
+.ai-status{border-radius:14px;padding:10px 12px;font-size:13px;margin-bottom:12px;background:var(--accent-soft);color:var(--ink);display:flex;gap:10px;align-items:flex-start}
+.ai-status.err{background:var(--bad-soft);color:var(--bad)}
+.ai-status.ok{background:var(--ok-soft)}
+.ai-status .spin{width:16px;height:16px;border-radius:50%;border:2px solid var(--accent);border-top-color:transparent;animation:spin .8s linear infinite;flex:none;margin-top:1px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.drop{position:relative;border:1.5px dashed var(--line);border-radius:18px;background:var(--surface-2);min-height:180px;display:grid;place-items:center;overflow:hidden;cursor:pointer;outline:none;transition:border-color 160ms,box-shadow 160ms}
+.drop.drop-sm{min-height:130px}
+.drop:focus,.drop.focus{border-color:var(--accent);border-style:solid;box-shadow:0 0 0 3px var(--accent-soft)}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop img{width:100%;max-height:340px;object-fit:contain;display:block;background:var(--surface-2)}
+.drop-sm img{max-height:220px}
+.drop-empty{display:grid;justify-items:center;gap:4px;padding:22px 12px 56px;text-align:center;color:var(--muted);font-size:12.5px}
+.drop-empty .ico{width:28px;height:28px}
+.drop-empty strong{color:var(--ink);font-size:14px}
+.drop img:not([hidden]) + .drop-empty{display:none}
+.drop-bar{position:absolute;left:8px;right:8px;bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.drop-bar .btn{background:var(--surface);box-shadow:0 2px 8px -4px rgba(17,24,41,.3)}
+.drop-ready{font-size:11.5px;font-weight:700;color:var(--accent);background:var(--surface);padding:4px 8px;border-radius:8px;opacity:0;transition:opacity 160ms}
+.drop:focus .drop-ready,.drop.focus .drop-ready{opacity:1}
+.thumbs{display:flex;gap:8px;overflow-x:auto;margin-top:8px;padding-bottom:2px}
+.thumbs button{flex:none;width:64px;height:80px;border-radius:12px;overflow:hidden;border:2px solid transparent;padding:0}
+.thumbs button[aria-pressed="true"]{border-color:var(--accent)}
+.thumbs img{width:100%;height:100%;object-fit:cover}
+.btn-ai{background:linear-gradient(135deg,#2856D8,#5C8BFF);color:#fff}
+.btn-ai:disabled,.btn:disabled{opacity:.55;cursor:progress}
+input[type=checkbox]:disabled + *{opacity:.6}
+.check:has(input:disabled){opacity:.75}
+.tests{margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
+.tests-tools{margin-top:12px;align-items:start}
+@media (max-width:700px){.tests-tools{grid-template-columns:1fr}}
+#pt-status button{font-size:12px}
+.test-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:4px}
+.test{border-radius:16px;overflow:hidden;background:var(--surface-2);display:grid}
+.test .timg{position:relative;aspect-ratio:4/5;background:var(--line)}
+.test .timg img{width:100%;height:100%;object-fit:cover;display:block}
+.test .timg .inp{position:absolute;left:6px;bottom:6px;width:38px;height:48px;border-radius:8px;border:2px solid #fff;object-fit:cover}
+.test .tbody{padding:8px 10px 10px;display:grid;gap:6px;font-size:12px}
+.test .tbody p{margin:0;color:var(--ink-2);overflow-wrap:anywhere}
+.test .tact{display:flex;gap:4px}
+.test .tact button{flex:1;height:30px;border-radius:9px;background:var(--surface);border:1px solid var(--line);font-size:11.5px;font-weight:700;color:var(--ink-2)}
+.test .tact button[aria-pressed="true"].ok{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.test .tact button[aria-pressed="true"].fail{background:var(--bad-soft);color:var(--bad);border-color:transparent}
+.test .tact .sq{width:30px;height:30px;flex:none}
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation:none!important;transition-duration:.01ms!important}
   .pop-card{transform:none}
@@ -358,6 +413,9 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
   <symbol id="i-moon" viewBox="0 0 24 24"><path d="M19 14.5A7.5 7.5 0 0 1 9.5 5a7.5 7.5 0 1 0 9.5 9.5z"/></symbol>
   <symbol id="i-image" viewBox="0 0 24 24"><rect x="4" y="4.5" width="16" height="15" rx="3"/><circle cx="9.5" cy="10" r="1.8"/><path d="M5 17l4.5-4 3.5 3 2.5-2 3.5 3"/></symbol>
   <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="3.5"/><path d="M10.5 12.5L19 4M16 7l2.5 2.5M14 9l2 2"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1.2 1.2M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
   <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.4 3.6 5.2 3.6 8.5s-1.2 6.1-3.6 8.5c-2.4-2.4-3.6-5.2-3.6-8.5S9.6 5.9 12 3.5z"/></symbol>
 </svg>
 
@@ -543,27 +601,64 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 
   <div class="scrim" id="scrim" hidden></div>
 
-  <!-- prompt form sheet -->
-  <div class="sheet" id="sheet-prompt" hidden role="dialog" aria-modal="true" aria-labelledby="pf-title">
+  <!-- prompt studio sheet -->
+  <div class="sheet sheet-tall" id="sheet-prompt" hidden role="dialog" aria-modal="true" aria-labelledby="pf-title">
     <div class="grab"></div>
-    <div class="row between" style="margin-bottom:14px"><h2 class="h-md" id="pf-title"></h2><button class="btn btn-ghost btn-sm" data-close data-i18n="common.close">Tutup</button></div>
+    <div class="row between" style="margin-bottom:12px"><h2 class="h-md" id="pf-title"></h2><button class="btn btn-ghost btn-sm" data-close data-i18n="common.close">Tutup</button></div>
+
+    <div class="lang wide pf-modes" id="pf-modes" role="tablist" aria-label="Cara menambah resep">
+      <button type="button" data-mode="link"><svg class="ico" style="width:16px;height:16px"><use href="#i-link"/></svg>Link referensi</button>
+      <button type="button" data-mode="upload"><svg class="ico" style="width:16px;height:16px"><use href="#i-image"/></svg>Upload sendiri</button>
+    </div>
+
+    <div class="studio-box" id="pf-linkbox">
+      <label class="studio-label" for="pf-link">Link share Gemini atau ChatGPT</label>
+      <div class="row" style="gap:8px">
+        <input class="input" id="pf-link" type="url" inputmode="url" placeholder="https://g.co/gemini/share/…" autocomplete="off">
+        <button type="button" class="btn btn-primary" id="pf-link-go" style="flex:none"><svg class="ico"><use href="#i-spark"/></svg>Ambil</button>
+      </div>
+      <small class="muted">Gemini membaca percakapan di link, lalu mengisi prompt, judul, kategori, deskripsi, tips, versi English, dan mengambil gambar hasilnya. Alat AI otomatis mengikuti sumber link.</small>
+    </div>
+
+    <div class="ai-status" id="pf-ai-status" hidden></div>
+
     <form class="form" id="prompt-form" novalidate>
-      <div class="img-drop">
-        <img id="pf-preview" alt="" hidden><div class="ph0" id="pf-ph"></div>
-        <div style="display:grid;gap:6px">
-          <strong style="font-size:13px" data-i18n="pf.img">Gambar contoh hasil</strong>
-          <label class="btn btn-ghost btn-sm" for="pf-file"><svg class="ico" style="width:16px;height:16px"><use href="#i-image"/></svg><span data-i18n="pf.pick">Pilih gambar</span></label>
+      <div>
+        <div class="studio-label">Gambar contoh hasil</div>
+        <div class="drop" id="pf-drop" tabindex="0" role="button" aria-label="Area gambar contoh: klik lalu Ctrl+V untuk menempel, atau pilih file">
+          <img id="pf-preview" alt="" hidden>
+          <div class="drop-empty" id="pf-ph">
+            <svg class="ico"><use href="#i-image"/></svg>
+            <strong>Klik di sini lalu tekan Ctrl+V</strong>
+            <span>atau tarik gambar ke sini</span>
+          </div>
+          <div class="drop-bar">
+            <span class="drop-ready">Siap tempel · Ctrl+V</span>
+            <label class="btn btn-ghost btn-sm" for="pf-file"><svg class="ico" style="width:16px;height:16px"><use href="#i-plus"/></svg>Pilih file</label>
+          </div>
           <input id="pf-file" type="file" accept="image/*" hidden>
-          <small class="muted" id="pf-file-note"></small>
+        </div>
+        <div class="thumbs" id="pf-thumbs" hidden></div>
+        <small class="muted" id="pf-file-note"></small>
+      </div>
+
+      <div class="field">
+        <label for="pf-prompt">Prompt</label>
+        <textarea class="input" id="pf-prompt" rows="7" placeholder="Tempel prompt di sini…"></textarea>
+        <div class="row between" style="gap:8px;flex-wrap:wrap">
+          <button type="button" class="btn btn-ai btn-sm" id="pf-ai"><svg class="ico" style="width:16px;height:16px"><use href="#i-spark"/></svg><span id="pf-ai-label">Isi otomatis dengan Gemini</span></button>
+          <button type="button" class="link" id="pf-undo" hidden>Kembalikan prompt asli</button>
         </div>
       </div>
+
       <div class="field"><label for="pf-name" data-i18n="pf.name">Judul resep</label><input class="input" id="pf-name" data-i18n-ph="pf.namePh" placeholder="contoh: Wisuda Lempar Toga" maxlength="60"></div>
-      <div class="two">
-        <div class="field"><label for="pf-cat" data-i18n="pf.cat">Kategori</label><select class="input" id="pf-cat"></select></div>
-        <div class="field"><label for="pf-newcat" data-i18n="pf.newcat">Kategori baru</label><input class="input" id="pf-newcat" data-i18n-ph="common.optional" placeholder="opsional"></div>
+      <div class="field">
+        <label for="pf-cat" data-i18n="pf.cat">Kategori</label>
+        <select class="input" id="pf-cat"></select>
+        <input class="input" id="pf-newcat" placeholder="Nama kategori baru" maxlength="40" hidden>
+        <span class="pill accent" id="pf-cat-ai" hidden></span>
       </div>
       <div class="field"><label for="pf-desc" data-i18n="pf.desc">Deskripsi singkat</label><input class="input" id="pf-desc" data-i18n-ph="pf.descPh" placeholder="Satu kalimat manfaat untuk pembeli" maxlength="110"></div>
-      <div class="field"><label for="pf-prompt">Prompt</label><textarea class="input" id="pf-prompt" rows="6" placeholder="Recreate my uploaded photo as…"></textarea></div>
       <div class="field"><label for="pf-tips" data-i18n="pf.tips">Tips (opsional)</label><input class="input" id="pf-tips" data-i18n-ph="pf.tipsPh" placeholder="Saran agar hasil maksimal"></div>
       <details class="pref" id="pf-en">
         <summary style="cursor:pointer;font-weight:700" data-i18n="pf.enTitle">Versi English (opsional)</summary>
@@ -573,14 +668,58 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
         <div class="field"><label for="pf-tips-en">Tips (EN)</label><input class="input" id="pf-tips-en"></div>
         <small class="muted" data-i18n="pf.enNote">Kalau kosong, tampilan English memakai teks Indonesia.</small>
       </details>
-      <div class="checks">
-        <label class="check"><input type="checkbox" id="pf-gemini" checked>Gemini</label>
-        <label class="check"><input type="checkbox" id="pf-gpt" checked>ChatGPT</label>
-        <label class="check"><input type="checkbox" id="pf-pop"><span data-i18n="pf.pop">Tampilkan di Paling laris</span></label>
+      <div>
+        <div class="studio-label">Cocok dipakai di</div>
+        <div class="checks">
+          <label class="check"><input type="checkbox" id="pf-gemini" checked>Gemini</label>
+          <label class="check"><input type="checkbox" id="pf-gpt" checked>ChatGPT</label>
+          <label class="check"><input type="checkbox" id="pf-pop"><span data-i18n="pf.pop">Tampilkan di Paling laris</span></label>
+        </div>
+        <small class="muted" id="pf-tool-note" hidden></small>
       </div>
       <div class="error" id="pf-error" hidden></div>
       <button class="btn btn-primary btn-block" type="submit" id="pf-save" data-i18n="pf.save">Simpan resep</button>
     </form>
+
+    <section class="tests" id="pf-tests">
+      <div class="row between"><h3 class="h-md">Hasil tes internal</h3><span class="pill">Hanya admin</span></div>
+      <p class="muted" style="margin:4px 0 0;font-size:13px">Simpan hasil percobaan tim untuk cek kualitas resep. Tidak tampil ke member.</p>
+      <div id="pf-tests-locked" class="empty" style="padding:18px 8px" hidden><strong>Simpan resep dulu</strong><span>Setelah tersimpan, kamu bisa menambah hasil tes di sini.</span></div>
+      <div id="pf-tests-body">
+        <div class="two tests-tools">
+          <div class="studio-box">
+            <div class="studio-label">Tambah hasil tes</div>
+            <div class="drop drop-sm" id="pt-drop" tabindex="0" role="button" aria-label="Gambar hasil tes: klik lalu Ctrl+V, atau pilih file">
+              <img id="pt-preview" alt="" hidden>
+              <div class="drop-empty"><svg class="ico"><use href="#i-image"/></svg><strong>Klik lalu Ctrl+V</strong><span>hasil dari Gemini/ChatGPT</span></div>
+              <div class="drop-bar"><span class="drop-ready">Siap tempel</span><label class="btn btn-ghost btn-sm" for="pt-file">Pilih file</label></div>
+              <input id="pt-file" type="file" accept="image/*" hidden>
+            </div>
+            <div class="two">
+              <select class="input" id="pt-tool" aria-label="Dites di"><option>Gemini</option><option>ChatGPT</option><option>Lainnya</option></select>
+              <input class="input" id="pt-model" placeholder="Model (opsional)" maxlength="60">
+            </div>
+            <div class="lang wide" role="group" aria-label="Status hasil" id="pt-status">
+              <button type="button" data-st="ok" aria-pressed="true">✓ Cocok</button><button type="button" data-st="fail" aria-pressed="false">✗ Kurang</button><button type="button" data-st="note" aria-pressed="false">Catatan</button>
+            </div>
+            <input class="input" id="pt-note" placeholder="Catatan (misal: wajah mirip, tangan aneh)" maxlength="400">
+            <button type="button" class="btn btn-primary btn-sm" id="pt-add">Simpan hasil tes</button>
+          </div>
+          <div class="studio-box">
+            <div class="studio-label">Tes generate dengan Gemini</div>
+            <div class="drop drop-sm" id="pg-drop" tabindex="0" role="button" aria-label="Foto input untuk tes: klik lalu Ctrl+V, atau pilih file">
+              <img id="pg-preview" alt="" hidden>
+              <div class="drop-empty"><svg class="ico"><use href="#i-user"/></svg><strong>Foto input (wajah)</strong><span>klik lalu Ctrl+V atau pilih file</span></div>
+              <div class="drop-bar"><span class="drop-ready">Siap tempel</span><label class="btn btn-ghost btn-sm" for="pg-file">Pilih file</label></div>
+              <input id="pg-file" type="file" accept="image/*" hidden>
+            </div>
+            <small class="muted">Prompt resep ini + foto input dikirim ke model gambar Gemini. Hasilnya tersimpan otomatis di bawah. Pakai foto tim yang sudah setuju.</small>
+            <button type="button" class="btn btn-ai btn-sm" id="pg-go"><svg class="ico" style="width:16px;height:16px"><use href="#i-spark"/></svg>Generate tes</button>
+          </div>
+        </div>
+        <div class="test-grid" id="pt-grid"></div>
+      </div>
+    </section>
   </div>
 
   <!-- member form sheet -->
@@ -803,6 +942,10 @@ async function api(action, body, isForm){
   if (!data.ok) { const e = new Error(data.error || t("err.generic")); e.status = res.status; throw e; }
   return data;
 }
+function track(type, id){
+  if (!state.user || isAdmin()) return;
+  api("track", {type, id}).catch(() => {});
+}
 function sessionEnded(){
   if (!state.user) return;
   state.user = null;
@@ -869,6 +1012,7 @@ function jump(to){
 }
 function syncTabbar(){
   $("#tabbar").classList.toggle("away", ["login","detail"].includes(state.current));
+  $("#app").classList.toggle("wide", state.current === "admin");
   $$(".tab").forEach(t => { if (t.dataset.tab === state.current) t.setAttribute("aria-current", "page"); else t.removeAttribute("aria-current"); });
 }
 
@@ -944,6 +1088,19 @@ function renderAccount(){
   $("#a-count").textContent = state.prompts.length;
   $("#a-admin").hidden = !isAdmin(); $("#tab-admin").hidden = !isAdmin();
 }
+const extTabs = []; let shownSeg = null;
+function addAdminTab({id, label, onShow}){
+  const b = document.createElement("button");
+  b.setAttribute("role", "tab"); b.setAttribute("aria-selected", "false");
+  b.dataset.seg = id; b.id = "seg-" + id; b.textContent = label;
+  b.addEventListener("click", () => { state.seg = id; renderAdmin(); b.scrollIntoView({block: "nearest", inline: "nearest"}); });
+  $(".seg").appendChild(b);
+  const panel = document.createElement("div");
+  panel.id = "adm-" + id; panel.hidden = true; panel.style.marginTop = "14px";
+  $("#s-admin").appendChild(panel);
+  extTabs.push({id, panel, onShow});
+  return panel;
+}
 function renderAdmin(){
   if (!isAdmin()) return;
   window.dispatchEvent(new CustomEvent("rf:admin-render"));
@@ -973,6 +1130,13 @@ function renderAdmin(){
   $("#adm-prompts").hidden = state.seg !== "prompts";
   $("#adm-members").hidden = state.seg !== "members";
   $$("[data-seg]").forEach(b => b.setAttribute("aria-selected", b.dataset.seg === state.seg));
+  $("#adm-add").style.visibility = ["prompts","members"].includes(state.seg) ? "" : "hidden";
+  extTabs.forEach(tb => {
+    const on = state.seg === tb.id;
+    tb.panel.hidden = !on;
+    if (on && shownSeg !== tb.id && tb.onShow) setTimeout(() => tb.onShow(tb.panel), 0);
+  });
+  shownSeg = state.seg;
 }
 function renderAll(){
   renderHome(); renderFav(); renderAccount(); renderAdmin();
@@ -1014,10 +1178,12 @@ function openDetail(id){
     return;
   }
   go("detail", "lift", 1);
+  track("open", id);
 }
 function toggleFav(id){
   state.favs.has(id) ? state.favs.delete(id) : state.favs.add(id);
   store.set("rf_favs", [...state.favs]);
+  if (state.favs.has(id)) track("fav", id);
   toast(t(state.favs.has(id) ? "fav.added" : "fav.removed"));
   renderHome(); renderFav(); if (state.current === "detail") renderDetail();
 }
@@ -1062,6 +1228,7 @@ async function copyText(t){
 async function copyPrompt(){
   const p = findPrompt(state.detailId); if (!p) return;
   const ok = await copyText(p.prompt);
+  if (ok) track("copy", p.id);
   toast(t(ok ? "copy.ok" : "copy.fail"), !ok);
   const btn = $("#d-copy-big");
   if (ok && btn){ btn.innerHTML = icon("check") + esc(t("detail.copied")); setTimeout(() => btn.innerHTML = icon("copy") + esc(t("detail.copyBig")), 1600); }
@@ -1119,41 +1286,201 @@ $("#scrim").addEventListener("click", closeSheet);
 $$("[data-seg]").forEach(b => b.addEventListener("click", () => { state.seg = b.dataset.seg; renderAdmin(); }));
 $("#adm-add").addEventListener("click", () => state.seg === "prompts" ? openPromptForm(null) : openMemberForm(null));
 
+/* ---------- prompt studio ---------- */
+const pf = {mode: store.get("rf_pf_mode", "link"), temp: null, file: null, origPrompt: null, source: null, testFile: null, genFile: null, testStatus: "ok"};
+function studioStatus(html, kind){
+  const el = $("#pf-ai-status");
+  if (!html){ el.hidden = true; el.innerHTML = ""; return; }
+  el.className = "ai-status" + (kind ? " " + kind : "");
+  el.innerHTML = (kind === "busy" ? '<span class="spin"></span>' : "") + `<div>${html}</div>`;
+  el.hidden = false;
+}
+function setMode(m){
+  pf.mode = m; store.set("rf_pf_mode", m);
+  $$("#pf-modes [data-mode]").forEach(b => b.setAttribute("aria-pressed", b.dataset.mode === m));
+  const editing = !!state.editPrompt;
+  $("#pf-linkbox").hidden = editing || m !== "link";
+  $("#pf-ai-label").textContent = editing ? "Rapikan & lengkapi dengan Gemini" : "Isi otomatis dengan Gemini";
+  lockTools(m === "link" && pf.source ? pf.source : null);
+}
+function lockTools(tool){
+  const g = $("#pf-gemini"), c = $("#pf-gpt"), note = $("#pf-tool-note");
+  if (tool){
+    g.checked = tool === "Gemini"; c.checked = tool === "ChatGPT";
+    g.disabled = c.disabled = true;
+    note.hidden = false; note.textContent = `Otomatis dari link referensi: ${tool}. Ganti ke mode Upload sendiri untuk memilih manual.`;
+  } else { g.disabled = c.disabled = false; note.hidden = true; }
+}
+function fillCats(selected){
+  const list = cats();
+  const sel = $("#pf-cat");
+  sel.innerHTML = list.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("") + `<option value="__new">+ Kategori baru…</option>`;
+  if (selected && list.includes(selected)) sel.value = selected;
+  else if (selected){ sel.value = "__new"; $("#pf-newcat").value = selected; }
+  else if (!list.length) sel.value = "__new";
+  syncCat();
+}
+function syncCat(){
+  const isNew = $("#pf-cat").value === "__new";
+  $("#pf-newcat").hidden = !isNew;
+  if (!isNew && !$("#pf-cat-en").value){
+    const p = state.prompts.find(x => x.cat === $("#pf-cat").value && x.catEn);
+    if (p) $("#pf-cat-en").value = p.catEn;
+  }
+}
+$("#pf-cat").addEventListener("change", () => { $("#pf-cat-en").value = ""; $("#pf-cat-ai").hidden = true; syncCat(); if ($("#pf-cat").value === "__new") $("#pf-newcat").focus(); });
+
+function setMainImage(src, file, temp){
+  pf.file = file || null; pf.temp = temp || null;
+  const img = $("#pf-preview");
+  if (src){ img.src = src; img.hidden = false; } else { img.hidden = true; img.removeAttribute("src"); }
+  $("#pf-file-note").textContent = file ? file.name || "Gambar dari clipboard" : (temp ? "Gambar dari link referensi" : "");
+}
+function checkImage(f, note){
+  if (!f || !/^image\/(jpeg|png|webp)$/.test(f.type)){ toast(t("pf.fileType"), true); return false; }
+  if (f.size > 12 * 1024 * 1024){ toast("Gambar terlalu besar. Maksimal 12 MB.", true); return false; }
+  return true;
+}
+/* dropzone: klik untuk fokus (lalu Ctrl+V), tarik-lepas, atau tombol Pilih file */
+let lastDrop = null;
+function makeDrop(drop, input, onFile){
+  drop._onFile = onFile;
+  drop.addEventListener("click", e => { if (e.target.closest("label,input")) return; drop.focus(); lastDrop = drop; });
+  drop.addEventListener("focus", () => { lastDrop = drop; });
+  drop.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " "){ e.preventDefault(); input.click(); } });
+  drop.addEventListener("dragover", e => { e.preventDefault(); drop.classList.add("over"); });
+  drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+  drop.addEventListener("drop", e => { e.preventDefault(); drop.classList.remove("over"); const f = e.dataTransfer.files[0]; if (checkImage(f)) onFile(f); });
+  input.addEventListener("change", () => { const f = input.files[0]; input.value = ""; if (checkImage(f)) onFile(f); });
+}
+makeDrop($("#pf-drop"), $("#pf-file"), f => { setMainImage(URL.createObjectURL(f), f, null); $$("#pf-thumbs button").forEach(b => b.setAttribute("aria-pressed", "false")); });
+makeDrop($("#pt-drop"), $("#pt-file"), f => { pf.testFile = f; $("#pt-preview").src = URL.createObjectURL(f); $("#pt-preview").hidden = false; });
+makeDrop($("#pg-drop"), $("#pg-file"), f => { pf.genFile = f; $("#pg-preview").src = URL.createObjectURL(f); $("#pg-preview").hidden = false; });
+document.addEventListener("paste", e => {
+  if (openSheetEl !== $("#sheet-prompt")) return;
+  const item = [...(e.clipboardData?.items || [])].find(i => i.kind === "file" && i.type.startsWith("image/"));
+  if (!item) return;
+  const f = item.getAsFile(); if (!f) return;
+  const active = document.activeElement?.closest?.(".drop");
+  const target = active || (document.activeElement?.matches?.("input,textarea") ? null : lastDrop) || $("#pf-drop");
+  e.preventDefault();
+  const named = new File([f], "tempel-" + Date.now() + "." + (f.type.split("/")[1] || "png"), {type: f.type});
+  if (checkImage(named)){ target._onFile(named); target.classList.add("focus"); setTimeout(() => target.classList.remove("focus"), 600); toast("Gambar ditempel"); }
+});
+
+function applyRecipe(r, {keepTools} = {}){
+  if (r.prompt && r.prompt !== $("#pf-prompt").value){
+    pf.origPrompt = $("#pf-prompt").value || null;
+    $("#pf-prompt").value = r.prompt;
+    $("#pf-undo").hidden = !pf.origPrompt;
+  }
+  if (r.title) $("#pf-name").value = r.title;
+  if (r.desc) $("#pf-desc").value = r.desc;
+  if (r.tips) $("#pf-tips").value = r.tips;
+  if (r.titleEn) $("#pf-name-en").value = r.titleEn;
+  if (r.descEn) $("#pf-desc-en").value = r.descEn;
+  if (r.tipsEn) $("#pf-tips-en").value = r.tipsEn;
+  if (r.cat){ fillCats(r.cat); $("#pf-cat-en").value = r.catEn || $("#pf-cat-en").value; }
+  const ai = $("#pf-cat-ai");
+  ai.hidden = !r.cat;
+  ai.textContent = r.catIsNew ? "Kategori baru dari Gemini, cek dulu namanya" : "Kategori dipilih Gemini dari yang sudah ada";
+  if (!keepTools && r.tool) lockTools(r.tool);
+}
+$("#pf-undo").addEventListener("click", () => {
+  if (pf.origPrompt === null) return;
+  $("#pf-prompt").value = pf.origPrompt; pf.origPrompt = null; $("#pf-undo").hidden = true;
+});
+
+$("#pf-link-go").addEventListener("click", async () => {
+  const url = $("#pf-link").value.trim();
+  if (!/^https:\/\//i.test(url)){ studioStatus("Tempel link share yang diawali https:// (contoh: https://g.co/gemini/share/…).", "err"); return; }
+  const btn = $("#pf-link-go"); btn.disabled = true;
+  studioStatus("Gemini sedang membaca link dan mengambil gambar hasil… biasanya 20–60 detik.", "busy");
+  try {
+    const {recipe: r} = await api("ai_link", {url});
+    pf.source = r.tool || "Gemini";
+    applyRecipe(r);
+    const imgs = r.images || [];
+    const th = $("#pf-thumbs");
+    th.hidden = imgs.length < 2;
+    th.innerHTML = imgs.map((src, i) => `<button type="button" data-temp="${esc(src)}" aria-pressed="${i === 0}" aria-label="Pakai gambar ${i + 1}"><img src="${esc(src)}" alt=""></button>`).join("");
+    if (imgs.length) setMainImage(imgs[0], null, imgs[0]);
+    const notes = [
+      `Berhasil dibaca dari link ${esc(pf.source)}.`,
+      imgs.length ? `${imgs.length} gambar ditemukan${imgs.length > 1 ? ", pilih yang paling bagus" : ""}.` : "<b>Gambar hasil tidak bisa diambil</b>, tempel manual di area gambar (Ctrl+V).",
+      r.notes ? "Catatan AI: " + esc(r.notes) : ""
+    ].filter(Boolean).join(" ");
+    studioStatus(notes, "ok");
+  } catch (ex) { studioStatus(esc(ex.message), "err"); }
+  finally { btn.disabled = false; }
+});
+$("#pf-thumbs").addEventListener("click", e => {
+  const b = e.target.closest("[data-temp]"); if (!b) return;
+  $$("#pf-thumbs button").forEach(x => x.setAttribute("aria-pressed", x === b));
+  setMainImage(b.dataset.temp, null, b.dataset.temp);
+});
+$("#pf-ai").addEventListener("click", async () => {
+  const prompt = $("#pf-prompt").value.trim();
+  if (!prompt){ studioStatus("Tempel prompt dulu, lalu tekan tombol ini.", "err"); $("#pf-prompt").focus(); return; }
+  const btn = $("#pf-ai"); btn.disabled = true;
+  studioStatus("Gemini sedang menentukan judul, kategori, deskripsi, tips, dan versi English…", "busy");
+  const fd = new FormData();
+  fd.append("prompt", prompt);
+  if (pf.file) fd.append("image", pf.file);
+  else if (pf.temp) fd.append("image_temp", pf.temp);
+  else if (state.editPrompt){ const p = findPrompt(state.editPrompt); if (p && /^uploads\//.test(p.image)) fd.append("image_temp", p.image); }
+  try {
+    const {recipe: r} = await api("ai_analyze", fd, true);
+    applyRecipe(r, {keepTools: true});
+    const conf = Math.round((r.confidence || 0) * 100);
+    studioStatus(`Terisi otomatis. Keyakinan kategori ${conf}%.${r.notes ? " Catatan AI: " + esc(r.notes) : ""} Cek lagi sebelum menyimpan.`, "ok");
+  } catch (ex) { studioStatus(esc(ex.message), "err"); }
+  finally { btn.disabled = false; }
+});
+$$("#pf-modes [data-mode]").forEach(b => b.addEventListener("click", () => {
+  if (b.dataset.mode !== "link"){ pf.source = null; }
+  setMode(b.dataset.mode);
+}));
+
 function openPromptForm(id){
   const p = id ? findPrompt(id) : null;
-  state.editPrompt = id; state.pendingImage = null;
+  state.editPrompt = id || null;
+  Object.assign(pf, {temp: null, file: null, origPrompt: null, source: null, testFile: null, genFile: null});
   $("#pf-title").textContent = t(p ? "pf.edit" : "pf.add");
-  $("#pf-cat").innerHTML = cats().map(c => `<option ${p && p.cat === c ? "selected" : ""}>${esc(c)}</option>`).join("");
-  $("#pf-newcat").value = "";
+  $("#pf-modes").hidden = !!p;
+  $("#pf-link").value = "";
   $("#pf-name").value = p?.title || ""; $("#pf-desc").value = p?.desc || "";
   $("#pf-prompt").value = p?.prompt || ""; $("#pf-tips").value = p?.tips || "";
   $("#pf-name-en").value = p?.titleEn || ""; $("#pf-cat-en").value = p?.catEn || "";
   $("#pf-desc-en").value = p?.descEn || ""; $("#pf-tips-en").value = p?.tipsEn || "";
-  $("#pf-en").open = en() || !!(p && !p.titleEn);
+  $("#pf-newcat").value = "";
+  fillCats(p?.cat || cats()[0]);
+  $("#pf-cat-ai").hidden = true;
+  $("#pf-en").open = en();
   $("#pf-gemini").checked = p ? (p.tools||[]).includes("Gemini") : true;
   $("#pf-gpt").checked = p ? (p.tools||[]).includes("ChatGPT") : true;
   $("#pf-pop").checked = !!p?.popular;
-  $("#pf-file").value = "";
-  $("#pf-preview").hidden = !p; $("#pf-ph").hidden = !!p; if (p) $("#pf-preview").src = imgSrc(p);
-  $("#pf-file-note").textContent = t("pf.fileNote");
+  $("#pf-thumbs").hidden = true; $("#pf-thumbs").innerHTML = "";
+  $("#pf-undo").hidden = true;
+  setMainImage(p ? imgSrc(p) : null, null, null);
+  $("#pf-file-note").textContent = p ? "Klik gambar lalu Ctrl+V untuk mengganti." : t("pf.fileNote");
   $("#pf-error").hidden = true;
+  studioStatus(null);
+  setMode(p ? "upload" : pf.mode);
+  resetTestForms();
+  renderTestsArea();
   openSheet($("#sheet-prompt"));
 }
-$("#pf-file").addEventListener("change", e => {
-  const f = e.target.files[0]; if (!f) return;
-  if (!/^image\/(jpeg|png|webp)$/.test(f.type)){ $("#pf-file-note").textContent = t("pf.fileType"); e.target.value = ""; return; }
-  if (f.size > 8 * 1024 * 1024){ $("#pf-file-note").textContent = t("pf.fileBig"); e.target.value = ""; return; }
-  state.pendingImage = f;
-  $("#pf-preview").src = URL.createObjectURL(f); $("#pf-preview").hidden = false; $("#pf-ph").hidden = true;
-  $("#pf-file-note").textContent = f.name;
-});
+
 $("#prompt-form").addEventListener("submit", async e => {
   e.preventDefault();
   const errEl = $("#pf-error"); errEl.hidden = true;
+  const cat = $("#pf-cat").value === "__new" ? $("#pf-newcat").value.trim() : $("#pf-cat").value;
   const fd = new FormData();
+  const wasNew = !state.editPrompt;
   if (state.editPrompt) fd.append("id", state.editPrompt);
   fd.append("title", $("#pf-name").value);
-  fd.append("cat", $("#pf-newcat").value.trim() || $("#pf-cat").value);
+  fd.append("cat", cat);
   fd.append("desc", $("#pf-desc").value);
   fd.append("prompt", $("#pf-prompt").value);
   fd.append("tips", $("#pf-tips").value);
@@ -1163,15 +1490,107 @@ $("#prompt-form").addEventListener("submit", async e => {
   fd.append("tips_en", $("#pf-tips-en").value);
   fd.append("tools", JSON.stringify([$("#pf-gemini").checked && "Gemini", $("#pf-gpt").checked && "ChatGPT"].filter(Boolean)));
   fd.append("popular", $("#pf-pop").checked ? "1" : "0");
-  if (state.pendingImage) fd.append("image", state.pendingImage);
+  if (pf.file) fd.append("image", pf.file);
+  else if (pf.temp) fd.append("image_temp", pf.temp);
   const btn = $("#pf-save"); btn.disabled = true; btn.textContent = t("pf.saving");
   try {
     const r = await api("prompt_save", fd, true);
     const i = state.prompts.findIndex(p => p.id === r.prompt.id);
     i >= 0 ? state.prompts.splice(i, 1, r.prompt) : state.prompts.push(r.prompt);
-    renderAll(); closeSheet(); toast(t(state.editPrompt ? "pf.updated" : "pf.added"));
+    renderAll();
+    if (wasNew){
+      state.editPrompt = r.prompt.id;
+      Object.assign(pf, {file: null, temp: null});
+      $("#pf-title").textContent = t("pf.edit");
+      $("#pf-modes").hidden = true; $("#pf-linkbox").hidden = true;
+      setMode("upload");
+      renderTestsArea();
+      toast(t("pf.added") + ". Tambahkan hasil tes di bawah.");
+      $("#pf-tests").scrollIntoView({behavior: reduce ? "auto" : "smooth", block: "start"});
+    } else { closeSheet(); toast(t("pf.updated")); }
   } catch (ex) { errEl.textContent = ex.message; errEl.hidden = false; }
   finally { btn.disabled = false; btn.textContent = t("pf.save"); }
+});
+
+/* hasil tes internal */
+function resetTestForms(){
+  pf.testFile = null; pf.genFile = null;
+  ["#pt-preview", "#pg-preview"].forEach(s => { $(s).hidden = true; $(s).removeAttribute("src"); });
+  $("#pt-note").value = ""; $("#pt-model").value = "";
+  setTestStatus("ok");
+}
+function setTestStatus(st){ pf.testStatus = st; $$("#pt-status [data-st]").forEach(b => b.setAttribute("aria-pressed", b.dataset.st === st)); }
+$$("#pt-status [data-st]").forEach(b => b.addEventListener("click", () => setTestStatus(b.dataset.st)));
+const TEST_LABEL = {ok: ["ok", "✓ Cocok"], fail: ["bad", "✗ Kurang"], note: ["", "Catatan"]};
+function testCard(x){
+  const [cls, lbl] = TEST_LABEL[x.status] || TEST_LABEL.note;
+  const when = new Date(x.createdAt).toLocaleDateString(lang === "en" ? "en-GB" : "id-ID", {day: "numeric", month: "short"});
+  return `<div class="test" data-test="${x.id}">
+    <a class="timg" href="${esc(x.image)}" target="_blank" rel="noopener"><img loading="lazy" src="${esc(x.image)}" alt="Hasil tes">${x.input ? `<img class="inp" src="${esc(x.input)}" alt="Foto input">` : ""}</a>
+    <div class="tbody">
+      <div class="row" style="gap:4px;flex-wrap:wrap"><span class="pill ${cls}">${lbl}</span><span class="pill">${esc(x.source === "gemini" ? "Generate" : (x.tool || "Upload"))}</span></div>
+      <small class="muted">${esc(when)}${x.model ? " · " + esc(x.model) : ""}</small>
+      ${x.note ? `<p>${esc(x.note)}</p>` : ""}
+      <div class="tact">
+        <button type="button" class="ok" data-tst="ok" aria-pressed="${x.status === "ok"}">✓</button>
+        <button type="button" class="fail" data-tst="fail" aria-pressed="${x.status === "fail"}">✗</button>
+        <button type="button" class="sq danger" data-tdel aria-label="Hapus hasil tes">${icon("trash")}</button>
+      </div>
+    </div></div>`;
+}
+let testsCache = [];
+async function renderTestsArea(){
+  const id = state.editPrompt;
+  $("#pf-tests-locked").hidden = !!id;
+  $("#pf-tests-body").hidden = !id;
+  if (!id) return;
+  const grid = $("#pt-grid");
+  grid.innerHTML = `<div class="muted" style="font-size:13px">Memuat hasil tes…</div>`;
+  try {
+    const r = await api("prompt_tests&id=" + encodeURIComponent(id));
+    if (state.editPrompt !== id) return;
+    testsCache = r.tests;
+    grid.innerHTML = r.tests.length ? r.tests.map(testCard).join("") : `<div class="muted" style="font-size:13px;grid-column:1/-1">Belum ada hasil tes untuk resep ini.</div>`;
+  } catch (ex) { grid.innerHTML = `<div class="error" style="grid-column:1/-1">${esc(ex.message)}</div>`; }
+}
+$("#pt-add").addEventListener("click", async () => {
+  if (!state.editPrompt) return;
+  if (!pf.testFile){ toast("Tempel atau pilih gambar hasil tes dulu", true); $("#pt-drop").focus(); return; }
+  const fd = new FormData();
+  fd.append("prompt_id", state.editPrompt); fd.append("image", pf.testFile);
+  fd.append("tool", $("#pt-tool").value); fd.append("model", $("#pt-model").value);
+  fd.append("status", pf.testStatus); fd.append("note", $("#pt-note").value);
+  const btn = $("#pt-add"); btn.disabled = true;
+  try { await api("prompt_test_add", fd, true); resetTestForms(); toast("Hasil tes disimpan"); renderTestsArea(); }
+  catch (ex) { toast(ex.message, true); }
+  finally { btn.disabled = false; }
+});
+$("#pg-go").addEventListener("click", async () => {
+  if (!state.editPrompt) return;
+  if (!pf.genFile){ toast("Tempel atau pilih foto input dulu", true); $("#pg-drop").focus(); return; }
+  const fd = new FormData();
+  fd.append("prompt_id", state.editPrompt); fd.append("input", pf.genFile);
+  const btn = $("#pg-go"); btn.disabled = true;
+  const old = btn.innerHTML; btn.innerHTML = '<span class="spin" style="width:14px;height:14px;border-radius:50%;border:2px solid #fff;border-top-color:transparent;animation:spin .8s linear infinite"></span>Membuat gambar… (30–90 dtk)';
+  try { const r = await api("prompt_test_generate", fd, true); toast(`Hasil generate tersimpan (${Math.round(r.ms / 1000)} dtk)`); pf.genFile = null; $("#pg-preview").hidden = true; renderTestsArea(); }
+  catch (ex) { toast(ex.message, true); }
+  finally { btn.disabled = false; btn.innerHTML = old; }
+});
+$("#pt-grid").addEventListener("click", async e => {
+  const card = e.target.closest("[data-test]"); if (!card) return;
+  const id = +card.dataset.test, x = testsCache.find(v => v.id === id); if (!x) return;
+  const st = e.target.closest("[data-tst]");
+  if (st){
+    const status = x.status === st.dataset.tst ? "note" : st.dataset.tst;
+    try { await api("prompt_test_update", {id, status, note: x.note}); x.status = status; card.outerHTML = testCard(x); }
+    catch (ex) { toast(ex.message, true); }
+    return;
+  }
+  const del = e.target.closest("[data-tdel]");
+  if (del) armDelete(del, async () => {
+    try { await api("prompt_test_delete", {id}); toast("Hasil tes dihapus"); renderTestsArea(); }
+    catch (ex) { toast(ex.message, true); }
+  });
 });
 
 function genCode(){
@@ -1272,9 +1691,11 @@ $("#s-admin").addEventListener("click", e => {
     const err = $("#l-error"); err.textContent = ex.message; err.hidden = false;
   }
 })();
-window.RFAPP = {api, toast, esc, copyText, openSheet, closeSheet, isAdmin, fmtDate, state, renderAll, t, get lang(){ return lang; }, setLang};
+window.RFAPP = {api, toast, esc, copyText, openSheet, closeSheet, isAdmin, fmtDate, state, renderAll, t, get lang(){ return lang; }, setLang, addAdminTab, openPromptForm, cats, armDelete, imgSrc};
 })();
 </script>
-<script src="admin-ext.js?v=2" defer></script>
+<script src="admin-ext.js?v=3" defer></script>
+<script src="admin-ai.js?v=1" defer></script>
+<script src="admin-reports.js?v=1" defer></script>
 </body>
 </html>
