@@ -156,6 +156,7 @@ h2{font-size:30px;line-height:1.08;font-weight:800;margin-top:8px}
 .rcard img{width:38px;height:46px;border-radius:9px;object-fit:cover}
 .rcard div{flex:1;min-width:0;font-size:11.5px;font-weight:700;line-height:1.25}
 .rcard small{display:block;color:var(--muted);font-weight:600;font-size:10px}
+.rcard small b{color:#B07D00}
 .rcard .cp{flex:none;font-size:10.5px;font-weight:800;color:#fff;background:var(--blue);padding:6px 9px;border-radius:9px}
 .rcard.active{outline:2px solid var(--blue)}
 .tap{position:absolute;width:34px;height:34px;border-radius:50%;background:rgba(43,102,246,.25);border:2px solid var(--blue);pointer-events:none;opacity:0}
@@ -191,18 +192,14 @@ h2{font-size:30px;line-height:1.08;font-weight:800;margin-top:8px}
 .demo-note{text-align:center;font-size:12px;color:var(--muted);margin-top:10px}
 
 /* gallery */
-.cats{display:flex;gap:8px;overflow-x:auto;margin:18px -20px 0;padding:2px 20px 4px;scrollbar-width:none}
-.cats::-webkit-scrollbar{display:none}
-.cat{flex:none;height:40px;padding:0 16px;border-radius:99px;background:var(--bg);font-weight:700;font-size:13.5px;color:var(--ink2);transition:all .2s}
-.cat[aria-pressed="true"]{background:var(--ink);color:#fff}
-.shots{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;margin:14px -20px 0;padding:4px 20px 14px;scrollbar-width:none}
+.shots{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;margin:20px -20px 0;padding:4px 20px 14px;scrollbar-width:none}
 .shots::-webkit-scrollbar{display:none}
 .shot{flex:none;width:200px;text-decoration:none;color:var(--ink);scroll-snap-align:start;text-align:left;border-radius:22px;overflow:hidden;background:var(--paper);box-shadow:var(--shadow);transition:transform .25s}
 .shot:active{transform:scale(.97)}
 .shot .ph{position:relative;aspect-ratio:4/5;max-width:100%;overflow:hidden}
 .shot .ph img{width:100%;height:100%;object-fit:cover;transition:transform .5s}
 .shot:hover .ph img{transform:scale(1.05)}
-.shot .ph .badge{position:absolute;left:10px;top:10px;background:rgba(255,255,255,.92);font-size:11px;font-weight:800;padding:4px 9px;border-radius:99px}
+.shot .ph .badge{position:absolute;left:10px;top:10px;background:var(--sun);color:#3A2A00;font-size:11px;font-weight:800;padding:4px 9px;border-radius:99px;box-shadow:0 4px 10px -4px rgba(0,0,0,.35)}
 .shot .meta{padding:11px 13px 13px}
 .shot strong{display:block;font-size:14px;line-height:1.25}
 .shot span{font-size:12px;color:var(--blue);font-weight:700}
@@ -534,12 +531,12 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
     <p class="sub">Cukup <strong>1 resep</strong>, fotomu auto jadi di <strong>Gemini</strong> atau <strong>ChatGPT</strong>.</p>
 
     <div class="compare" id="compare" style="--pos:50%">
-      <img id="cmp-after" src="img/p15.jpg" alt="Sesudah: foto hasil resep">
-      <img id="cmp-before" class="before" src="img/b15.jpg" alt="Sebelum: foto asli">
+      <img id="cmp-after" src="img/ra2.jpg" alt="Sesudah: foto hasil resep">
+      <img id="cmp-before" class="before" src="img/rb2.jpg" alt="Sebelum: foto asli">
       <span class="tag l">Sebelum</span><span class="tag r">Sesudah</span>
       <div class="handle"><button class="knob" id="knob" aria-label="Geser untuk membandingkan sebelum dan sesudah"><svg class="ico"><use href="#i-arrows"/></svg></button></div>
       <span class="hint" id="cmp-hint">Geser untuk lihat</span>
-      <div class="cap"><span class="n"><svg class="ico"><use href="#i-spark"/></svg></span><div><strong id="cmp-title">Foto Profil LinkedIn</strong><span id="cmp-sub">Selfie biasa → headshot profesional</span></div></div>
+      <div class="cap"><span class="n"><svg class="ico"><use href="#i-spark"/></svg></span><div><strong id="cmp-title">Headshot Profesional</strong><span id="cmp-sub">Foto duduk biasa → potret latar gelap</span></div></div>
     </div>
     <div class="ex-tabs" id="ex-tabs" role="tablist" aria-label="Contoh hasil"></div>
 
@@ -593,22 +590,23 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
       <div class="screen">
         <span class="island" aria-hidden="true"><i class="cam"></i></span>
         <div class="scene on" data-scene="0">
-          <div class="app-h">ResepFoto</div>
-          <div class="rcard"><img src="img/p01.jpg" alt=""><div>Studio Foto Era 90-an<small>Foto Jadul</small></div><span class="cp">Salin</span></div>
-          <div class="rcard active" style="position:relative"><img src="img/p12.jpg" alt=""><div>Wisuda Lempar Toga<small>Momen Spesial</small></div><span class="cp">Salin</span><span class="tap" style="right:6px;top:6px"></span></div>
-          <div class="rcard"><img src="img/p05.jpg" alt=""><div>Kimono di Jalanan Kyoto<small>Jalan-jalan</small></div><span class="cp">Salin</span></div>
-          <div class="rcard"><img src="img/p15.jpg" alt=""><div>Foto Profil LinkedIn<small>Profesional</small></div><span class="cp">Salin</span></div>
+          <div class="app-h">Paling laris</div>
+          <div class="rcard active" style="position:relative"><img src="img/p15.jpg" alt=""><div>Foto Profil LinkedIn<small><b>★</b> Profesional</small></div><span class="cp">Salin</span><span class="tap" style="right:6px;top:6px"></span></div>
+          <div class="rcard"><img src="img/p20.jpg" alt=""><div>Peluk Diri Versi Kecil<small><b>★</b> Tren Viral</small></div><span class="cp">Salin</span></div>
+          <div class="rcard"><img src="img/p01.jpg" alt=""><div>Studio Foto Era 90-an<small><b>★</b> Foto Jadul</small></div><span class="cp">Salin</span></div>
+          <div class="rcard"><img src="img/p04.jpg" alt=""><div>Restorasi Foto Lama<small><b>★</b> Foto Jadul</small></div><span class="cp">Salin</span></div>
+          <div class="rcard"><img src="img/p05.jpg" alt=""><div>Kimono di Jalanan Kyoto<small><b>★</b> Jalan-jalan</small></div><span class="cp">Salin</span></div>
           <span class="copied"><svg class="ico" style="width:13px;height:13px"><use href="#i-check"/></svg>Resep tersalin</span>
         </div>
         <div class="scene" data-scene="1">
           <div class="chat-top"><i></i>Gemini / ChatGPT</div>
-          <div class="bub me"><img src="img/b15.jpg" alt=""></div>
-          <div class="bub me mono">Create a graduation photo of me from my uploaded photo. Keep my face exactly the same…</div>
+          <div class="bub me"><img src="img/rb2.jpg" alt=""></div>
+          <div class="bub me mono">Turn my uploaded photo into a professional studio headshot on a dark background. Keep my face exactly the same…</div>
           <div class="bub ai"><span class="typing"><i></i><i></i><i></i></span></div>
         </div>
         <div class="scene" data-scene="2">
           <div class="chat-top"><i></i>Gemini / ChatGPT</div>
-          <div class="result"><img src="img/p12.jpg" alt="Contoh hasil wisuda"><span class="spark"></span></div>
+          <div class="result"><img src="img/ra2.jpg" alt="Contoh hasil headshot profesional"><span class="spark"></span></div>
           <div class="saved"><span>Simpan</span><span>Bagikan</span></div>
         </div>
       </div>
@@ -619,9 +617,8 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
 
   <!-- GALLERY -->
   <section class="wrap" id="galeri">
-    <span class="eyebrow">Galeri resep</span>
-    <h2>Mau jadi foto seperti apa hari ini?</h2>
-    <div class="cats" id="cats" role="toolbar" aria-label="Kategori"></div>
+    <span class="eyebrow">Paling laris</span>
+    <h2>Resep yang paling sering dipakai member.</h2>
     <div class="shots" id="shots"></div>
     <div class="swipe-hint"><svg class="ico" style="width:16px;height:16px"><use href="#i-swipe"/></svg>Geser untuk lihat lainnya</div>
   </section>
@@ -868,10 +865,12 @@ function toast(msg){ const t = $("#toast"); t.textContent = msg; t.classList.add
 
 /* ---- data (ganti gambar before/after dengan hasil asli) ---- */
 const EXAMPLES = [
-  {label: "LinkedIn", title: "Foto Profil LinkedIn", sub: "Selfie biasa → headshot profesional", before: "img/b15.jpg", after: "img/p15.jpg"},
-  {label: "Studio 90-an", title: "Studio Foto Era 90-an", sub: "Foto biasa → potret studio jadul", before: "img/b01.jpg", after: "img/p01.jpg"},
-  {label: "Restorasi", title: "Restorasi Foto Lama", sub: "Foto lama rusak → jernih & berwarna", before: "img/b04.jpg", after: "img/p04.jpg"},
-  {label: "Kyoto", title: "Kimono di Jalanan Kyoto", sub: "Foto di rumah → liburan ke Jepang", before: "img/b05.jpg", after: "img/p05.jpg"}
+  {label: "Headshot", title: "Headshot Profesional", sub: "Foto duduk biasa → potret latar gelap", before: "img/rb2.jpg", after: "img/ra2.jpg"},
+  {label: "Versi Mini", title: "Versi Mini Diri Sendiri", sub: "Selfie di kamar → figur mini di telapak tangan", before: "img/rb5.jpg", after: "img/ra5.jpg"},
+  {label: "Retro 80-an", title: "Kamar Retro 80-an", sub: "Selfie di meja kerja → potret film jadul", before: "img/rb4.jpg", after: "img/ra4.jpg"},
+  {label: "Streetwear", title: "Streetwear Latar Merah", sub: "Foto di gunung → potret studio fisheye", before: "img/rb6.jpg", after: "img/ra6.jpg"},
+  {label: "Golden Hour", title: "Jalanan Kota Golden Hour", sub: "Foto studio biasa → suasana kota sore", before: "img/rb3.jpg", after: "img/ra3.jpg"},
+  {label: "Stiker", title: "Lembar Stiker Aesthetic", sub: "Foto berdiri → satu lembar penuh pose", before: "img/rb1.jpg", after: "img/ra1.jpg"}
 ];
 const RECIPES = [
   ["p01","Foto Jadul","Studio Foto Era 90-an"],["p02","Foto Jadul","Hitam-Putih Klasik 1950-an"],["p03","Foto Jadul","Polaroid Hangat 70-an"],["p04","Foto Jadul","Restorasi Foto Lama"],
@@ -976,16 +975,13 @@ new IntersectionObserver(([e]) => {
 }, {threshold: .35}).observe($(".phone"));
 
 /* ---- gallery ---- */
-const cats = ["Semua", ...new Set(RECIPES.map(r => r.cat))];
-let cat = "Semua";
+// resep bertanda "paling laris" (popular) di app — urut sesuai yang paling sering dipakai
+const BEST = ["p15", "p20", "p01", "p04", "p05", "p12", "p09"];
 function renderShots(){
-  $("#cats").innerHTML = cats.map(c => `<button class="cat" aria-pressed="${c === cat}" data-cat="${c}">${c}</button>`).join("");
-  const list = RECIPES.filter(r => cat === "Semua" || r.cat === cat);
-  $("#shots").innerHTML = list.map(r => `<a class="shot" href="#harga" data-rec="${r.id}"><div class="ph"><img loading="lazy" src="${r.img}" alt="Contoh hasil ${r.title}"><span class="badge">${r.cat}</span></div><div class="meta"><strong>${r.title}</strong><span>Ada di paket →</span></div></a>`).join("");
-  $("#shots").scrollTo({left: 0, behavior: reduce ? "auto" : "smooth"});
+  const list = BEST.map(id => RECIPES.find(r => r.id === id)).filter(Boolean);
+  $("#shots").innerHTML = list.map(r => `<a class="shot" href="#harga" data-rec="${r.id}"><div class="ph"><img loading="lazy" src="${r.img}" alt="Contoh hasil ${r.title}"><span class="badge">★ Paling laris</span></div><div class="meta"><strong>${r.title}</strong><span>${r.cat} · ada di paket →</span></div></a>`).join("");
   if (!reduce) $$(".shot").forEach((s, i) => s.animate([{opacity: .3, transform: "translateY(10px)"}, {opacity: 1, transform: "none"}], {duration: 380, delay: i * 40, easing: "cubic-bezier(.2,.8,.2,1)"}));
 }
-$("#cats").addEventListener("click", e => { const b = e.target.closest("[data-cat]"); if (!b) return; cat = b.dataset.cat; renderShots(); });
 renderShots();
 
 /* ---- audience ---- */
@@ -1066,7 +1062,7 @@ if (matchMedia("(pointer:fine)").matches && !reduce){
 }
 
 /* ---- results wall ---- */
-$("#wall").innerHTML = ["p03","p07","p10","p14","p17","p20"].map(id => `<img loading="lazy" src="img/${id}.jpg" alt="">`).join("") +
+$("#wall").innerHTML = [1,2,3,4,5,6].map(i => `<img loading="lazy" src="img/rs${i}.jpg" alt="Hasil asli dari resep ResepFoto">`).join("") +
   `<div class="send"><svg class="ico" style="color:var(--blue)"><use href="#i-hand"/></svg>Sudah coba? Kirim hasilmu ke kami, fotomu bisa tampil di sini.</div>`;
 
 /* ---- checkout ---- */
