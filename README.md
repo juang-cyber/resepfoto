@@ -95,6 +95,22 @@ Yang perlu disiapkan di dashboard Mayar:
 3. Buka situs — database dan resep contoh dibuat otomatis.
 4. Login `admin`, lalu ikuti checklist di bawah.
 
+## Menambah resep secara massal (paket resep)
+`app/data/seed-prompts.json` hanya dipakai saat tabel `prompts` masih kosong, jadi database yang sudah jalan
+tidak bisa diisi lewat situ. Untuk itu ada **paket resep**: file `app/data/pack*-prompts.json` yang diimpor
+otomatis satu kali oleh `importPromptPacks()` di `app/lib.php`.
+
+1. Buat file JSON baru di `app/data/`, formatnya `{"version": "...", "prompts": [...]}`. Tiap resep memakai
+   field `id, order, cat, title, desc, popular, tools, prompt, tips, image, cat_en, title_en, desc_en, tips_en`.
+2. Simpan gambar contohnya di `app/img/` (ikut ter-deploy) dan isi `image` dengan `img/namafile.jpg`.
+3. Daftarkan nama filenya di konstanta `PROMPT_PACKS` (`app/lib.php`).
+4. Push ke `main`. Saat request pertama sesudah deploy, isinya masuk database.
+
+Impornya aman diulang: pakai `INSERT OR IGNORE` (resep yang id-nya sudah ada — misalnya sudah diedit admin —
+tidak tertimpa) dan ditandai selesai lewat kunci `pack_<version>` di tabel `settings`. Ganti `version` kalau
+ingin paket yang sama diimpor ulang. Resep baru memakai `created_at` saat impor, jadi member paket
+**Standard** yang mendaftar sebelum itu tidak otomatis melihatnya.
+
 ## Checklist serah-terima
 1. Ganti kode akses admin utama (Admin → *Ganti kode akses admin utama*).
 2. Hapus member contoh `demo`.
@@ -109,5 +125,5 @@ Yang perlu disiapkan di dashboard Mayar:
 - `api.php?a=recent_orders` (publik) mengembalikan pesanan asli 14 hari terakhir dengan nama disamarkan, untuk
   notifikasi di halaman iklan.
 - Gemini default: `gemini-3.8-flash` (analisis, link, OCR) dan `gemini-3.1-flash-image` (tes generate) — bisa diganti
-  di AI Gemini.
+  di AI Gemini. API key diambil dari aistudio.google.com dan **disimpan di database server, tidak di kode**.
 - Repo ini belum punya CI. Cek sintaks dijalankan manual (lihat `CLAUDE.md` → Pengujian lokal).

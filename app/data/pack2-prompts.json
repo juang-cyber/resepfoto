@@ -1,0 +1,880 @@
+{
+ "version": "pack2-2026-09-17",
+ "note": "47 prompt dari PDF 100 Prompt Photo (1 duplikat dibuang)",
+ "prompts": [
+  {
+   "id": "p21",
+   "order": 21,
+   "cat": "Foto Jadul",
+   "title": "Potret Gaya 1985",
+   "desc": "Ubah fotomu jadi potret tahun 1985: gaya rambut dan busana khas 80-an, grain analog, plus cap tanggal merah-oranye.",
+   "popular": true,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Using my uploaded photo, show me what I would have looked like around 1985. Preserve my identity, facial features, skin tone, age, and recognizable appearance. Reimagine my hair, clothing, accessories, and surroundings with bold, unmistakably mid-1980s styling — expressive silhouettes, statement accessories, layered details, distinctive colors, and textures. Make it feel like a genuine 1985 photograph with analog grain, faded color, direct flash, and subtle softness. Add a period-accurate 1980s red-orange date stamp in the lower corner. No recognizable posters. No modern objects or text.",
+   "tips": "Pakai foto wajah yang jelas dan cahayanya rata. Ganti angka tahunnya kalau mau era lain, misalnya 1978 atau 1992.",
+   "image": "img/p21.jpg",
+   "cat_en": "Retro Photos",
+   "title_en": "1985 Makeover",
+   "desc_en": "Turn your photo into a genuine 1985 shot: bold mid-80s styling, analog grain, faded colour and a red-orange date stamp.",
+   "tips_en": "Use a clear, evenly lit face photo. Change the year to jump to another era, e.g. 1978 or 1992."
+  },
+  {
+   "id": "p22",
+   "order": 22,
+   "cat": "Editorial",
+   "title": "Potret Studio Ivory",
+   "desc": "Potret studio latar abu netral: kemeja sutra ivory, celana hitam rapi, dan cahaya lembut ala majalah.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Use the uploaded photo as the primary identity reference. Preserve the subject's recognizable facial identity, natural face shape, forehead, eyebrows, eyes, nose, lips, cheeks, jawline, skin tone, natural facial proportions, hairline, hair color, hair texture, and distinctive characteristics. Keep the hairstyle closely resembling the reference photo, allowing only subtle styling adjustments required by the scene. Do not beautify, reshape, smooth, de-age, replace, or significantly modify the face. Create a straight-on medium-full studio portrait of the referenced person standing against a smooth, neutral gray backdrop. The subject wears a relaxed ivory silk shirt with a subtle sheen and a naturally open collar, tucked into high-waisted matte-black tailored trousers with sharp crease lines. The shirt has a masculine cut with a clean shoulder structure and slightly loose sleeves. Their hands rest naturally inside the trouser pockets, creating a relaxed yet confident posture. Use soft split-front lighting to illuminate the face evenly and create diffuse shadows around the sides of the head. Use a minimalist monochromatic palette dominated by black and ivory while preserving the subject's authentic skin tone. Photograph with a medium telephoto lens and moderate depth of field, keeping the face sharply focused against a softly blurred background. High-resolution professional editorial photography, fresh, poised, realistic, and polished. 3:4 ratio",
+   "tips": "Prompt ini menjaga wajah tetap asli. Kalau hasilnya terlalu mulus, tambahkan \"keep natural skin texture and pores\".",
+   "image": "img/p22.jpg",
+   "cat_en": "Editorial",
+   "title_en": "Ivory Studio Portrait",
+   "desc_en": "Neutral-grey studio portrait: ivory silk shirt, sharp black trousers and soft editorial lighting.",
+   "tips_en": "This prompt locks your real face. If the result looks too smooth, add \"keep natural skin texture and pores\"."
+  },
+  {
+   "id": "p23",
+   "order": 23,
+   "cat": "Editorial",
+   "title": "Lift Mewah Ala 90-an",
+   "desc": "Editorial seluruh badan di dalam lift kayu burgundy dengan setelan 90-an, kacamata hitam, dan cahaya sinematik.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Maintain the exact facial structure, bone features, skin texture, hair type, and identity of the subject from the uploaded reference photo without alteration. A cinematic, full-body high-fashion editorial portrait of the subject standing inside a moody, retro luxury elevator with rich oxblood-burgundy lacquered wood walls and large mirrored panels. The subject leans casually against the elevator corner or handrail with legs crossed, wearing dark black sunglasses. Styled in sharp 90s vintage menswear tailoring: an oversized double-breasted charcoal-black wool suit jacket with broad padded shoulders, relaxed wide-leg pleated trousers, a crisp button-up shirt, a dark silk necktie, and polished black leather loafers. Their textured hair is tousled with loose strands. The interior mirrors capture a sharp silhouette or reflection of their back/profile. Low-key cinematic lighting, direct editorial flash casting hard shadows against the deep burgundy walls, subtle warm wall-sconce glow, wispy cigarette smoke floating in the air, 35mm analog film aesthetic, Kodak Vision3 color grading, sharp details, luxury fashion lookbook photograph.",
+   "tips": "Cocok untuk foto berdiri seluruh badan. Hapus bagian \"wispy cigarette smoke\" kalau tidak mau ada asap rokok.",
+   "image": "img/p23.jpg",
+   "cat_en": "Editorial",
+   "title_en": "Retro Luxury Elevator",
+   "desc_en": "Full-body editorial inside a burgundy lacquered elevator with 90s tailoring, sunglasses and cinematic light.",
+   "tips_en": "Best with a full-body standing photo. Drop the \"wispy cigarette smoke\" part if you don't want smoke in frame."
+  },
+  {
+   "id": "p24",
+   "order": 24,
+   "cat": "Tren Viral",
+   "title": "Selfie Spider-Man",
+   "desc": "Selfie kamera depan memakai kostum Spider-Man realistis lengkap dengan tekstur kain tenun dan jahitannya.",
+   "popular": true,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Use my uploaded portrait as the identity reference and preserve my exact identity with zero facial changes. Maintain identical hairstyle, hair volume, skin texture, eye shape, lips, nose, freckles, jawline, expression, and age. Replace only my clothing with an authentic Marvel-inspired Spider-Man suit featuring photorealistic woven fabric, embossed web texture, premium stitching, realistic shadows, subtle wrinkles, and a movie-accurate chest emblem. Create a natural front-camera iPhone selfie with my arm extended toward the camera. Use a realistic wide-angle smartphone lens, HDR processing, natural skin pores, soft facial imperfections, and true-to-life lighting. Place me in Times Square, New York, with recognizable skyscrapers, giant LED billboards, pedestrians, taxis, and cinematic city depth. Ensure realistic crowd scale, authentic urban atmosphere, shallow depth of field, vibrant but natural color grading, ultra-photorealistic editorial photography, Marvel movie realism, and 8K quality. 4:5 ratio.",
+   "tips": "Pakai foto selfie setengah badan. Ganti lokasinya sesuai kotamu, misalnya \"in Jakarta at night\".",
+   "image": "img/p24.jpg",
+   "cat_en": "Viral Trends",
+   "title_en": "Spider-Man Selfie",
+   "desc_en": "Front-camera selfie in a photorealistic Spider-Man suit, complete with woven fabric and stitching.",
+   "tips_en": "Use a half-body selfie. Swap the location for your own city, e.g. \"in Jakarta at night\"."
+  },
+  {
+   "id": "p25",
+   "order": 25,
+   "cat": "Kartun & Ilustrasi",
+   "title": "Doodle Sketsa Lucu",
+   "desc": "Ubah foto jadi ilustrasi doodle sederhana: garis kuas yang sengaja goyah, bentuk imut, latar putih bersih.",
+   "popular": true,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Transform the image into a minimalist hand-drawn doodle illustration. Use simple brush-pen outlines with slightly wobbly, imperfect strokes. Reduce all details to cute, childlike shapes while preserving the main subject and composition. Naive sketchbook aesthetic, playful and whimsical character design, clean white background, minimal linework, expressive simplicity, handmade doodle style, water color ink drawing, charming imperfections, simple cartoon illustration.",
+   "tips": "Paling bagus untuk foto seluruh badan dengan pose jelas. Tambahkan \"pastel color accents\" kalau mau berwarna.",
+   "image": "img/p25.jpg",
+   "cat_en": "Cartoon & Art",
+   "title_en": "Playful Doodle Sketch",
+   "desc_en": "Turn a photo into a simple doodle: wobbly brush-pen lines, cute shapes and a clean white background.",
+   "tips_en": "Works best on a full-body photo with a clear pose. Add \"pastel color accents\" for a coloured version."
+  },
+  {
+   "id": "p26",
+   "order": 26,
+   "cat": "Tren Viral",
+   "title": "Candid Malam Tertangkap Kamera",
+   "desc": "Foto candid malam di trotoar kota: menoleh kaget sambil menutupi lensa, persis hasil kamera HP.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Ultra-realistic candid smartphone photo, 9:16 vertical. Use the uploaded photo as the primary facial identity reference. Preserve the person's recognizable facial identity, exact facial structure, hairstyle, skin tone, natural facial proportions, and distinctive features. Keep the person instantly recognizable and photorealistic. Do not beautify, reshape, replace, smooth, de-age, or significantly alter the face. Nighttime on a quiet city sidewalk beside a white ceramic tile wall. The subject walks past the camera, looks back with a naturally surprised expression, raises one hand to partially block the lens, and smiles spontaneously. Captured with a handheld smartphone and direct flash. Include strong natural motion blur, camera shake, subtle ghosting, visible digital noise, uneven exposure, harsh flash falloff, and imperfect framing. The image should feel like a genuine, spontaneous, unedited phone-camera moment — not a staged photoshoot. Despite the motion blur, keep the subject's key facial features sufficiently visible and recognizable. Negative prompt: different person, altered identity, inaccurate facial features, changed face shape, changed hairstyle, beautified face, facial distortion, overly smooth skin, plastic skin, posed expression, cinematic lighting, studio lighting, beauty lighting, perfectly sharp professional photography, anime, illustration, CGI, 3D render, text, watermark.",
+   "tips": "Kuncinya kesan spontan. Kalau wajah jadi terlalu rapi, tambahkan \"slight motion blur and unpolished framing\".",
+   "image": "img/p26.jpg",
+   "cat_en": "Viral Trends",
+   "title_en": "Caught Off Guard at Night",
+   "desc_en": "Night candid on a city sidewalk: a surprised look back with one hand blocking the lens, phone-camera style.",
+   "tips_en": "The point is spontaneity. If the face looks too polished, add \"slight motion blur and unpolished framing\"."
+  },
+  {
+   "id": "p27",
+   "order": 27,
+   "cat": "Tren Viral",
+   "title": "Singgasana Shinobi Gelap",
+   "desc": "Duduk di singgasana batu besar dengan jubah awan merah, cahaya low-key sinematik ala film shinobi.",
+   "popular": true,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Use my uploaded portrait/photo as the ONLY reference for my facial identity, hairstyle, facial hair, real skin tone, face shape, eyes, and natural facial proportions. Replace the man in the supplied throne reference scene with me, keeping my face instantly recognizable, natural, and completely realistic. Use the supplied throne image only as reference for the seated pose, Akatsuki-style outfit, throne design, hand placement, crossed-leg position, composition, camera angle, background symbols, lighting, shadows, and dark atmosphere. Do not copy the original man's face, hairstyle, beard, skin tone, jawline, or facial proportions onto me. Do not beautify, reshape, smooth, sharpen, de-age, or modify my face. Preserve my real forehead, eyebrows, eyes, nose, lips, cheeks, jaw/chin, beard pattern, hairstyle, natural asymmetry, pores, subtle skin imperfections, and authentic skin tone exactly as shown in my portrait. Create an ultra-photorealistic live-action cinematic portrait, vertical 4:5, like a genuine photograph from a high-budget dark shinobi fantasy film - not anime, illustration, digital painting, game render, or obvious CGI/AI art. Show me sitting confidently on a massive dark stone throne, centered in the frame. Keep the same relaxed dominant pose: back resting against the throne, shoulders relaxed, chin slightly raised, both hands loosely overlapping around the lower abdomen/lap, and one leg crossed casually over the other at the ankles. Keep my expression calm, emotionless, serious, and intimidating, looking directly toward the camera. Dress me in a realistic long black Akatsuki-inspired cloak with deep red cloud emblems and subtle red piping, slightly open around the upper chest with a dark mesh undershirt underneath. The cloak should have realistic heavy fabric, folds, stitching, wrinkles, and natural weight. Keep loose dark trousers underneath, white shin bandage wraps, and simple black open-toe shinobi sandals. Make the throne enormous and imposing, built from rough dark charcoal stone or aged carved metal, with thick rectangular armrests, an extremely tall backrest, dense engraved texture, scratches, imperfections, and weathered surfaces. Behind the throne, recreate the symmetrical dark ceremonial wall with large circular red-and-black clanstyle symbols, tall stone banners, subtle eye/fan-like emblems, intricate ancient engravings, and a large dark circular calligraphic symbol centered high above the throne. Keep all symbols decorative and atmospheric rather than modern printed graphics. Use moody low-key cinematic lighting with a soft warm overhead/side light illuminating my face, chest, hands, and parts of the throne while the corners fall into deep natural shadow. Preserve realistic skin highlights, pores, beard texture, fabric detail, stone texture, and subtle shadow transitions. Use a slightly low, straight-on camera angle, symmetrical centered composition, approximately 35-50mm lens perspective, natural depth of field, subtle film grain, realistic sensor noise, gentle lens softness, natural contrast, and physically believable shadows. The final result must look like a real person photographed on a practical dark-fantasy throne set, with authentic materials and natural imperfections. Avoid plastic skin, over-sharpening, excessive HDR, fake glow, overly clean textures, perfect symmetry in the face, artificial facial enhancement, or any Algenerated appearance. Highest priority: keep my facial identity completely unchanged from my uploaded portrait.",
+   "tips": "Prompt panjang ini sengaja detail supaya wajahmu tidak berubah. Siapkan juga foto referensi singgasana bila ada.",
+   "image": "img/p27.jpg",
+   "cat_en": "Viral Trends",
+   "title_en": "Dark Shinobi Throne",
+   "desc_en": "Seated on a massive stone throne in a red-cloud cloak, low-key cinematic light like a dark shinobi film.",
+   "tips_en": "The long prompt is deliberate — it keeps your face intact. Add a throne reference image if you have one."
+  },
+  {
+   "id": "p28",
+   "order": 28,
+   "cat": "Momen Spesial",
+   "title": "Layar MacBook Berdua",
+   "desc": "Foto layar MacBook dari atas: playlist Spotify di kiri, jendela Photo Booth berisi kalian berdua di kanan.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Use the uploaded male and female reference images to preserve both subjects' facial identities accurately. Create a hyper-realistic photograph taken from a downward, high-angle perspective of a physical MacBook screen. The MacBook display fills approximately 95% of the frame, with only a thin strip of the keyboard visible along the bottom edge. Make it clearly look like a real photograph of a laptop screen — not a digital screenshot. Include subtle RGB pixel-grid texture and moire patterns, tiny dust particles on the glass, faint ambient reflections, natural fingerprint smudges, and realistic screen glare. The MacBook is using macOS Dark Mode. On the left side of the screen, show a dimmed Spotify \"Liked Songs\" playlist. On the right side, show a large Photo Booth live-preview window as the dominant visual focus. Inside the Photo Booth window, show the referenced couple reclining closely together in a dim bedroom with an offwhite wall and rumpled bedding. Both subjects wear oversized red hoodies with their hoods pushed back so their faces remain fully visible. They are looking naturally toward the MacBook screen. Place the woman on the leftcenter, resting closely beside the man. Place the man on the right-center, holding a smartphone in his right hand with a clear reflective case. The rear camera of the phone must be aimed directly toward the MacBook screen, as if he is photographing the MacBook. Preserve the recognizable facial identity, natural proportions, skin texture, and distinguishing features of both reference subjects. Do not beautify, reshape, or replace their faces. Use low-key nocturnal lighting with cool blue screen glow mixed with subtle warm skin tones and deep natural shadows. The image should feel candid, intimate, raw, slightly imperfect, and unedited. Photorealistic, high fidelity, realistic laptop-screen photography, natural skin texture, authentic low-light noise, subtle optical imperfections, shallow ambient reflection, 4:5 portrait",
+   "tips": "Butuh dua foto referensi (kamu dan pasangan). Ganti judul lagu di playlist sesuai favorit kalian.",
+   "image": "img/p28.jpg",
+   "cat_en": "Special Moments",
+   "title_en": "Two on a MacBook Screen",
+   "desc_en": "A top-down photo of a MacBook screen: a Spotify playlist on the left, a Photo Booth window with the two of you.",
+   "tips_en": "Needs two reference photos (you and your partner). Swap the playlist track names for your favourites."
+  },
+  {
+   "id": "p29",
+   "order": 29,
+   "cat": "Tren Viral",
+   "title": "Mirror Selfie Kamera Digital",
+   "desc": "Mirror selfie sinematik pakai kamera saku digital, kaus putih oversize, nuansa hangat dan tenang.",
+   "popular": true,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Use the uploaded photo as the primary identity reference. Preserve the person's exact facial identity, facial structure, hairstyle, skin tone, body proportions, and recognizable characteristics. Do not replace, beautify, or significantly alter the face. Create a cinematic mirror selfie featuring the same person wearing an oversized white t-shirt. The subject holds a compact digital camera vertically in portrait orientation, close to their face. Their eyes look naturally slightly downward toward the camera's LCD monitor with a relaxed pose, subtle forward lean, and calm, confident, moody expression. Place the subject in a dimly lit room with warm tungsten lighting, soft shadows, subtle background blur, and natural depth. Shot with a 40mm lens at f/1.8, shallow depth of field, cinematic color grading, soft film grain, realistic skin texture, rich contrast, and premium fashion editorial photography. Photorealistic, high detail, no text, no watermark. Ratio 4:5",
+   "tips": "Pakai foto setengah badan menghadap depan. Tambahkan \"slight flash reflection on the mirror\" biar makin nyata.",
+   "image": "img/p29.jpg",
+   "cat_en": "Viral Trends",
+   "title_en": "Digicam Mirror Selfie",
+   "desc_en": "Cinematic mirror selfie with a compact digital camera, oversized white tee and a calm warm mood.",
+   "tips_en": "Use a front-facing half-body photo. Add \"slight flash reflection on the mirror\" for extra realism."
+  },
+  {
+   "id": "p30",
+   "order": 30,
+   "cat": "Editorial",
+   "title": "Sorot Cahaya Hitam Putih",
+   "desc": "Potret hitam-putih dramatis: satu lampu keras dari atas, selebihnya tenggelam dalam gelap.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Use the uploaded reference photo as the identity reference. Preserve the subject's exact facial identity, facial structure, hairstyle, skin tone, and recognizable characteristics. Create a dramatic cinematic black-and-white portrait of the subject wearing a dark minimalist outfit. The subject stands in a nearly completely black environment, looking slightly upward with a calm, mysterious and confident expression. Lighting: a single hard spotlight from above and slightly in front of the subject, illuminating only the face, forehead, nose, cheekbones, lips, and small parts of the upper body. Let most of the body disappear naturally into deep black shadows. Use extremely high contrast between bright highlights and deep blacks. Strong chiaroscuro lighting, cinematic noir photography, dramatic shadow falloff, subtle film grain, rich monochrome tones. Composition: vertical 3:4, subject positioned slightly below center, large areas of negative space surrounding the subject, emphasizing isolation and mystery. Wardrobe: dark black coat or structured black jacket, minimal styling, no distracting accessories. Mood: mysterious, elegant, dark, cinematic, psychological thriller poster, luxury fashion editorial. Professional photography aesthetic, realistic skin texture, realistic lighting physics, deep blacks, sharp facial details, subtle atmospheric texture. No color, no text, no watermark, no additional objects, no extra people.",
+   "tips": "Butuh foto wajah yang tajam. Kalau hasilnya terlalu gelap, tambahkan \"slight fill light on the jawline\".",
+   "image": "img/p30.jpg",
+   "cat_en": "Editorial",
+   "title_en": "Black & White Spotlight",
+   "desc_en": "Dramatic black-and-white portrait: one hard top light, everything else falling into darkness.",
+   "tips_en": "Needs a sharp face photo. If it comes out too dark, add \"slight fill light on the jawline\"."
+  },
+  {
+   "id": "p31",
+   "order": 31,
+   "cat": "Editorial",
+   "title": "Potret Sweater Krem",
+   "desc": "Potret editorial hangat: sweater krem bertekstur, kacamata bulat tipis, cahaya chiaroscuro lembut.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Create a cinematic, ultra-realistic editorial portrait photograph using the uploaded person as the main subject. Preserve the subject's identity, gender presentation, facial structure, skin tone, distinctive features, and overall likeness accurately. Do not change or masculinize/feminize their appearance Wearing a premium textured light beige/cream crew-neck sweater and round thin-metal-framed eyeglasses with lightly tinted lenses. He has, neatly styled hair, with individual strands clearly visible. The subject is shown in a tight chest-up portrait, positioned slightly right of center, with his body facing mostly toward the camera while his head is turned subtly toward the right sid of the frame. His expression is calm, serious, and slightly contemplative, with his gaze directed off-camera to the right. Use dramatic low-key cinematic lighting. A strong warm golden-orange key light from the left side of the fram illuminates the left side of his face, ear, hair, neck, and sweater, creating rich amber highlights and deep natural shadows. The right side of his face gradually falls into shadow, producing a striking chiaroscuro effect. Preserve realistic skin texture, subtle pores, fine facial details, natural imperfections, and detailed hair rendering. The background is extremely dark, nearly black, with very shallow depth of field and subtle warm out-of-focus light highlights. In the extreme foreground on the left side, include the blurred silhouette of another person, visible only as an indistinct very dark shoulder/head shape, creating a layered over-the-shoulder cinematic composition. Keep this foreground figure heavily out of focus so the main subject remains the clear visual focus. Camera: eye-level perspective, 85mm portrait lens, approximately f/2, shallow depth of field, natural perspective, cinematic bokeh. Composition: vertical portrait, chest-up framing, main subject dominant in frame, realistic proportions. Style: premium cinematic photography, intimate film still, warm moody color grading, realistic skin and fabric texture, soft highlight roll-off, deep blacks, high dynamic range, photorealistic, ultra-detailed, 8K quality. Aspect ratio 4:5.",
+   "tips": "Pilihan bagus untuk foto profil yang berkelas. Ganti warna sweaternya sesuai selera, misalnya \"deep navy\".",
+   "image": "img/p31.jpg",
+   "cat_en": "Editorial",
+   "title_en": "Cream Sweater Portrait",
+   "desc_en": "Warm editorial portrait: textured cream sweater, thin round glasses and soft chiaroscuro light.",
+   "tips_en": "A classy profile-photo option. Change the sweater colour to taste, e.g. \"deep navy\"."
+  },
+  {
+   "id": "p32",
+   "order": 32,
+   "cat": "Editorial",
+   "title": "Sampul Majalah Gelap",
+   "desc": "Gaya majalah mewah: turtleneck hitam, jas rapi, rim light merah tipis, dan bayangan yang dalam.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Turn an ordinary portrait into a dark, ultra-realistic editorial magazine image with dramatic studio lighting, premium styling, natural facial detail, and cinematic depth. The transformation keeps the face recognisable while rebuilding the scene with monochrome tones, a black turtleneck and tailored suit, controlled red rim lighting, realistic pores, individual hair strands, deep shadows, and the polished composition associated with luxury fashion photography. Instead of using a basic filter, the prompt guides the wardrobe, camera angle, lighting direction, background, textures, and colour grading, helping the final result feel like a professionally planned magazine shoot rather than a synthetic AI edit.",
+   "tips": "Ganti warna rim light-nya (misalnya biru atau ungu) untuk versi sampul yang berbeda.",
+   "image": "img/p32.jpg",
+   "cat_en": "Editorial",
+   "title_en": "Dark Magazine Cover",
+   "desc_en": "Luxury magazine style: black turtleneck, tailored suit, controlled red rim light and deep shadows.",
+   "tips_en": "Change the rim-light colour (blue or purple, say) for a different cover look."
+  },
+  {
+   "id": "p33",
+   "order": 33,
+   "cat": "Tren Viral",
+   "title": "Photobooth Spider-Man",
+   "desc": "Empat foto photobooth dalam grid 2×2, semuanya bergaya superhero tapi wajahnya tetap kamu.",
+   "popular": true,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Using the uploaded photo as the only identity reference, create a stylish photobooth output containing exactly FOUR photos arranged in a clean 2×2 grid. Transform the subject into a Spider-Man-inspired superhero while preserving their recognizable identity. ## IDENTITY RETENTION - STRICT Keep the subject's: face shape and facial proportions, hairstyle, hair color, and hairline, skin tone, age range, and defining facial features, body proportions and overall appearance, recognizable expression and personal energy. The final subject must still look unmistakably like the person in the uploaded image. Do not replace them with a generic model, actor, or existing Spider-Man performer. ## SPIDER-MAN SUIT Dress the subject in a fitted, premium red-and-blue Spider-Man suit in every frame. The suit should include: recognizable web-pattern detailing, subtle raised fabric texture, a clean spider emblem on the chest, realistic seams and stretch fabric, flattering but believable proportions, polished cinematic costume quality. Keep the subject's face visible in all four photos. The Spider-Man mask may be held as a prop, hanging from one hand, tucked beneath an arm, or placed around the neck, but it must not cover the subject's face. ## 2×2 PHOTOBOOTH COMPOSITION Create four clearly separated, evenly sized photobooth frames with consistent lighting, background, camera angle, and styling. Each frame must show a different Spider-Man-inspired pose:",
+   "tips": "Minta pose berbeda di tiap kotak. Bisa diganti kostum lain, misalnya \"Batman-inspired suit\".",
+   "image": "img/p33.jpg",
+   "cat_en": "Viral Trends",
+   "title_en": "Spider-Man Photobooth",
+   "desc_en": "Four photobooth shots in a 2×2 grid, all superhero-styled while keeping your own face.",
+   "tips_en": "Ask for a different pose per frame. Swap in another costume, e.g. \"Batman-inspired suit\"."
+  },
+  {
+   "id": "p34",
+   "order": 34,
+   "cat": "Profesional",
+   "title": "Iklan Produk Jaring Laba-laba",
+   "desc": "Iklan sinematik: produkmu melayang di atas jalanan kota, digantung jaring laba-laba tebal saat senja.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Create an ultra-photorealistic cinematic commercial advertisement (1080x1350, 4:5 vertical) using the uploaded product image as the main subject. Preserve the product exactly as uploaded, including its original shape, proportions, colors, branding, logo, packaging, materials, textures, labels, typography, and every design detail. Do not redesign, alter, distort, replace, obscure, or hallucinate any part of the product. Place the product dramatically floating at the center of the composition, suspended high above a wide, empty street by thick, dense, organic, chaotic Spider-Man-style spider webs attached across the surrounding skyscrapers. The webs must appear naturally spun over time — not circular, decorative, uniform, or symmetrical-with random and asymmetric patterns, varying strand thicknesses, tangled intersections, broken connections, stretched silk fibers, uneven knots, heavy clumping, subtle imperfections, and multiple intricate layers of overlapping web strands. Make the web fibers highly detailed, translucent, and visibly fibrous, with realistic tension, slack, pulling forces, and physically accurate sagging caused by the product's weight. Some strands should be pulled tightly toward the building anchors, while others hang loosely, twist together, overlap, or partially break under pressure. Golden-hour sunlight should shine through and illuminate the translucent silk fibers, creating glowing edges, subtle highlights, realistic shadows, and fine backlit details. The product must remain clearly visible and unobstructed as the hero subject. Set the scene in Jakarta, Indonesia, featuring recognizable iconic architecture and skyscrapers. Capture it from a dramatic low-angle street perspective, looking upward between towering buildings that form a cinematic urban canyon. The street should be slightly wet with realistic reflections, while the sky displays a breathtaking goldenhour sunset transitioning from vibrant orange clouds into deep-blue twilight. Include volumetric sunlight, atmospheric haze, soft fog, realistic glass reflections, HDR lighting, ray tracing, global illumination, cinematic contrast, blockbuster movie color grading, premium commercial-advertising quality, ultra-detailed architecture, shallow depth of field, razor-sharp focus on the product, realistic scale and physics, masterpiece-level photorealism, and 8K visual detail.",
+   "tips": "Unggah foto produk, bukan foto orang. Latar produk yang polos bikin bentuknya terbaca jelas.",
+   "image": "img/p34.jpg",
+   "cat_en": "Professional",
+   "title_en": "Spiderweb Product Ad",
+   "desc_en": "Cinematic ad: your product floating above a city street, suspended by thick spider webs at dusk.",
+   "tips_en": "Upload a product photo, not a person. A plain background keeps the product shape readable."
+  },
+  {
+   "id": "p35",
+   "order": 35,
+   "cat": "Foto Jadul",
+   "title": "Kamera Sekali Pakai 90-an",
+   "desc": "Duduk di atas mobil di parkiran malam, flash keras dan grain film Kodak Gold khas tahun 90-an.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "The same person from the reference photo is sitting on top of a car in a shopping center parking lot at night. Bright neon store lights illuminate the scene, with several old sedans parked nearby. The image has a candid 1990s aesthetic. The photo looks like it was taken with a 1990s disposable camera, featuring an awkward yet natural snapshot style. Shot on Kodak Gold 200 35mm film with a harsh direct flash. Captured using a cheap point-and-shoot camera. Fine film grain, not overly noisy, slightly aged film, soft focus, imperfect framing, evoking authentic suburban nostalgia. Visible dust, scratches, and slight motion blur make it feel like a genuine analog photograph. The subject is the exact same person from the reference photo, preserving the same facial features, hairstyle, expression, body proportions, and wearing the exact same outfit as in the reference photo, styled naturally within a 1990s setting. A large \"BORMA\" logo is clearly visible in the background. Aspect ratio 3:4, raw style, stylize 250, HD quality.",
+   "tips": "Makin tidak rapi makin bagus. Tambahkan \"slight red-eye from flash\" supaya makin autentik.",
+   "image": "img/p35.jpg",
+   "cat_en": "Retro Photos",
+   "title_en": "90s Disposable Camera",
+   "desc_en": "Sitting on a car in a night car park, harsh flash and Kodak Gold grain straight out of the 90s.",
+   "tips_en": "The messier the better. Add \"slight red-eye from flash\" for an even more authentic feel."
+  },
+  {
+   "id": "p36",
+   "order": 36,
+   "cat": "Tren Viral",
+   "title": "Selfie Cermin Cembung Minimarket",
+   "desc": "Selfie ke cermin cembung di sudut minimarket, latar rak penuh jajanan warna-warni.",
+   "popular": true,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Ultra-realistic iPhone 17 Pro Max mirror selfie inside a tiny colorful convenience store, with the person's identity preserved exactly as in the reference image. A person is taking a selfie facing a 30 cm circular convex mirror mounted high in the corner of the store wall. Several aesthetic stickers are attached around the edge of the mirror. One hand is holding the phone while the other hand is striking a pose. The person is wearing the exact same outfit as shown in the reference image. The background features a tiny, cluttered convenience store filled with snacks, posters, shelves, various colorful products, fluorescent ceiling lights, metallic surfaces, and orange and red accents in a cramped layout. The convex mirror creates stretched, curved reflections around the edges. A subtle iPhone flash reflection is visible, along with natural skin texture, realistic film grain, slightly imperfect framing, and a candid Pinterest-style snapshot aesthetic. Aspect ratio 3:4.",
+   "tips": "Prompt ini mempertahankan baju di foto aslimu. Sebut nama minimarket favorit kalau mau latar yang khas.",
+   "image": "img/p36.jpg",
+   "cat_en": "Viral Trends",
+   "title_en": "Convex Mirror Store Selfie",
+   "desc_en": "Selfie into the convex mirror in a corner shop, shelves packed with colourful snacks behind you.",
+   "tips_en": "This keeps the outfit from your original photo. Name your favourite store chain for a familiar backdrop."
+  },
+  {
+   "id": "p37",
+   "order": 37,
+   "cat": "Foto Jadul",
+   "title": "Jersey Bola di Pesta Rumah",
+   "desc": "Foto pesta rumah bergaya kamera sekali pakai, memakai jersey klub atau timnas pilihanmu.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Shot on disposable camera, Kodak Gold 200 film, heavy grain, light leaks on edges, slight overexposure. The person in the reference photo is wearing a [CLUB/NATIONAL FOOTBALL TEAM] home jersey, standing alone in a kitchen at a house party, leaning against the counter, blurred people in background, warm tungsten light, washed out warm tones, 35mm film photography -ar 3:4 -- raw -stylize 250 -hd",
+   "tips": "Ganti [CLUB/NATIONAL FOOTBALL TEAM] dengan nama tim, misalnya \"Indonesia\" atau \"Real Madrid\".",
+   "image": "img/p37.jpg",
+   "cat_en": "Retro Photos",
+   "title_en": "Football Jersey House Party",
+   "desc_en": "House-party shot in disposable-camera style, wearing the club or national jersey of your choice.",
+   "tips_en": "Replace [CLUB/NATIONAL FOOTBALL TEAM] with a team name, e.g. \"Indonesia\" or \"Real Madrid\"."
+  },
+  {
+   "id": "p38",
+   "order": 38,
+   "cat": "Momen Spesial",
+   "title": "Santai di Kursi Bioskop",
+   "desc": "Duduk santai di kursi beludru merah bioskop, diambil dari sudut over-the-shoulder yang sinematik.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Ultra-realistic cinematic photography of the exact same person as in the reference photo, sitting alone inside a modern movie theater, captured from a high over-the-shoulder angle. Relaxed posture on plush red velvet cinema seats, with one leg resting on the seat in front. Wearing the exact same outfit as the reference image, along with white ASICS Gel-Kayano 14 Unisex Sneakers. Holding a large soft drink cup with a straw in one hand while looking directly toward the camera with a calm and confident expression. Highly detailed skin texture, realistic eyes, natural facial features preserved exactly as the reference. The background features a nearly empty movie theater with rows of red and black seats extending into the distance. A large cinema screen is visible at the front, softly glowing and slightly out of focus. Warm theater lighting, subtle cinematic contrast, shallow depth of field, smooth bokeh, natural color grading, premium lifestyle editorial photography style, luxu- : rious cinema atmosphere. Shot on Sony A7R V, 85mm lens, f/1.8, photorealistic, ultra-detailed, HDR, realistic skin pores, natural shadows, high dynamic range, professional composition, strong depth, sharp focus on the subject, 4:5 aspect ratio, magazine-quality photography, no text, no watermark. Negative Prompt: blurry face, extra fingers, deformed hands, duplicate limbs, cartoon, anime, CGI, low resolution, oversaturated colors, bad anatomy, distorted perspective, unrealistic skin, exaggerated muscles, crowd, multiple people, messy background, motion blur, noise, watermark, logo, text, cropped face, closed eyes, smiling, low quality.",
+   "tips": "Prompt ini memakai baju dari foto aslimu. Ganti merek sepatunya kalau mau tampilan lain.",
+   "image": "img/p38.jpg",
+   "cat_en": "Special Moments",
+   "title_en": "Chilling at the Cinema",
+   "desc_en": "Relaxed on red velvet cinema seats, shot from a cinematic over-the-shoulder angle.",
+   "tips_en": "It reuses the outfit from your own photo. Swap the sneaker brand for a different look."
+  },
+  {
+   "id": "p39",
+   "order": 39,
+   "cat": "Jalan-jalan",
+   "title": "Ladang Bunga Kuning",
+   "desc": "Berdiri di tengah ladang bunga kuning saat golden hour, dengan latar tebing dan pegunungan.",
+   "popular": true,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Ultra-realistic candid travel photography of the exact same person as shown in the reference photo, standing in an endless blooming yellow canola flower field during golden hour. She looks directly at the camera with soft, gentle eyes, enjoying the warmth of the afternoon sunlight. Wearing the exact same outfit as in the reference image, with a few loose strands of hair moving naturally in the breeze. Thousands of vibrant yellow canola flowers surround her, creating natural depth and beautiful foreground bokeh. Massive rocky mountain cliffs, green trees, small countryside buildings, utility poles, and subtle road signs appear in the distant background, resembling a real rural mountain village. Authentic golden hour side lighting, warm natural sunlight, realistic shadows, natural skin texture with visible pores and tiny imperfections, genuine joyful expression, no heavy makeup, no beauty filter. Documentary lifestyle photography, National Geographic realism, captured with a premium full-frame mirrorless camera, 85mm lens, f/2.8, ISO 100, natural depth of field, realistic color science, subtle atmospheric haze, true-to-life colors, straight-out-of-camera photo with no editing, ultra-photorealistic. Aspect ratio 3:4. Negative Prompt: CGI, 3D render, digital art, illustration, anime, cartoon, beauty filter, skin smoothing, plastic skin, doll face, AI-generated look, HDR, oversaturated colors, fake bokeh, distorted hands, extra fingers, blurry face, glamour retouching, studio lighting, fantasy environment, unrealistic atmosphere.",
+   "tips": "Hasilnya meyakinkan untuk konten liburan. Ganti bunganya jadi \"lavender field\" untuk versi ungu.",
+   "image": "img/p39.jpg",
+   "cat_en": "Travel",
+   "title_en": "Golden Canola Field",
+   "desc_en": "Standing in an endless yellow canola field at golden hour, cliffs and mountains behind you.",
+   "tips_en": "A convincing holiday shot. Swap in a \"lavender field\" for a purple version."
+  },
+  {
+   "id": "p40",
+   "order": 40,
+   "cat": "Editorial",
+   "title": "Studio Oranye Gelap",
+   "desc": "Duduk santai di kursi lipat besi dengan latar oranye gelap, bayangan tajam dan suasana moody.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "USE MODEL (THE PERSON IN THE IMAGE) YOU CREATE A DARK ORANGE STUDIO PHOTO FEATURING A YOUNG MAN SITTING CASUALLY ON A METAL FOLDING CHAIR WITH HIS LEGS CROSS. HE'S WEARING A DENIM BLACK BAGGY JEANS, BLACK TSHIRT AND BLACK BOOTS. THE LIGHTNING IS SOFT AND MINIMAL, PRODUCING SHARP SHADOWS AND A MOODY ATMOSPHERE. HIS POSE IS RELAXED, SLIGHTLY LEANING WITH ONE HAND ON THE CHAIR'S BACKREST, HIS FACE TURN TO THE SIDE AND MODERN AESTHETIC. A",
+   "tips": "Prompt aslinya huruf besar semua — itu tidak masalah. Ganti warna latarnya sesukamu, misalnya \"deep teal\".",
+   "image": "img/p40.jpg",
+   "cat_en": "Editorial",
+   "title_en": "Dark Orange Studio",
+   "desc_en": "Relaxed on a metal folding chair against a dark orange backdrop, sharp shadows and a moody feel.",
+   "tips_en": "The original prompt is all caps — that's fine. Change the backdrop colour, e.g. \"deep teal\"."
+  },
+  {
+   "id": "p41",
+   "order": 41,
+   "cat": "Editorial",
+   "title": "Studio Beige Tenang",
+   "desc": "Potret studio semi realistis dengan hijab dan sweater beige senada, cahaya lembut dan merata.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "UBAH FOTO INI MENJADI MEDIUM-SHOT STUDIO PORTRAIT SEMI REALISTIS DENGAN GAYA FOTOGRAFI PROFESIONAL. GUNAKAN WAJAH ASLI SUBJEK PEREMPUAN DARI FOTO TANPA MENGUBAH DETAIL WAJAH SEDIKIT PUN. SUBJEK ADALAH PEREMPUAN BERHIJAB DAN BERKACAMATA, MENGENAKAN HIJAB BEIGE YANG SENADA DENGAN TURTLENECK SWEATER BEIGE SERTA JAM TANGAN ELEGAN. IA DUDUK DI FOREGROUND, MENOLEH KE SAMPING DENGAN SENYUM LEMBUT TANPA MEMPERLIHATKAN GIGI. LATAR BELAKANG POLOS BERWARNA TERANG. PENCAHAYAAN LEMBUT DAN MERATA MENONJOLKAN DETAIL WAJAH DAN PAKAIAN, MENCIPTAKAN SUASANA INTIM DAN TENANG. PALET WARNA HANGAT DAN EARTHY DENGAN DOMINASI BEIGE DAN COKELAT, MENGHASILKAN POTRET STUDIO YANG ELEGAN, NATURAL, DAN BERSIH. RASIO ASPEK 9:16.",
+   "tips": "Prompt-nya berbahasa Indonesia, aman dipakai apa adanya. Ganti beige dengan warna lain bila perlu.",
+   "image": "img/p41.jpg",
+   "cat_en": "Editorial",
+   "title_en": "Calm Beige Studio",
+   "desc_en": "Semi-realistic studio portrait in a matching beige hijab and sweater, soft even lighting.",
+   "tips_en": "The prompt is in Indonesian and works as-is. Swap beige for another colour if you like."
+  },
+  {
+   "id": "p42",
+   "order": 42,
+   "cat": "Editorial",
+   "title": "Studio Hijau Santai",
+   "desc": "Full-body di bangku kubik hijau muda dengan latar hijau lembut — gaya kasual yang bersih.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "GUNAKAN FOTO INI SECARA DETAIL (SELFIE JELAS) UNTUK MEMBUAT FULL-BODY STUDIO SHOT. SUBJEK DUDUK DI ATAS BANGKU KUBIK HIJAU MUDA DENGAN LATAR BELAKANG POLOS HIJAU SEDIKIT LEBIH GELAP. PENCAHAYAAN LEMBUT DAN MERATA, MENONJOLKAN TEKSTUR PAKAIAN SERTA PERBEDAAN HALUS ANTARA WARNA HIJAU PADA LATAR DAN BANGKU. IA MENGENAKAN SWEATSHIRT PUTIH CREW-NECK, CELANA CARGO HIJAU ZAITUN MUDA YANG AGAK LONGGAR DAN TERLIPAT DI PERGELANGAN, KAUS KAKI PUTIH, SERTA SNEAKERS HIJAU LIME DENGAN TALI PUTIH. POSE DUDUK DENGAN KEDUA TANGAN TERKATUP SANTAI DI PANGKUAN, MENGHADAP LANGSUNG KE ARAH KAMERA DENGAN EKSPRESI NETRAL. GAYA CASUAL DAN SEDERHANA, FOKUS PADA HARMONI WARNA HIJAU DAN DETAIL TEKSTUR. GUNAKAN WAJAH ASLI DARI FOTO TANPA MENGUBAH WAJAH SEDIKITPUN.",
+   "tips": "Butuh foto yang jelas (selfie terang). Sebutkan warna sepatunya supaya kontrasnya sesuai keinginan.",
+   "image": "img/p42.jpg",
+   "cat_en": "Editorial",
+   "title_en": "Chill Green Studio",
+   "desc_en": "Full-body on a light green cube stool against a soft green backdrop — clean and casual.",
+   "tips_en": "Needs a clear, well-lit selfie. Name the sneaker colour to control the contrast."
+  },
+  {
+   "id": "p43",
+   "order": 43,
+   "cat": "Editorial",
+   "title": "Kontras Merah Tajam",
+   "desc": "Potret vertikal dengan latar merah pekat, sudut sedikit dari bawah, kontras sinematik yang kuat.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "CREATE A VERTICAL PORTRAIT SHOT IN 1080X1920 FORMAT USING THE EXACT SAME FACE FEATURES, CHARACTERIZED BY STARK CINEMATIC LIGHTING AND INTENSE CONTRAST. CAPTURED IN A SLIGHTLY LOW, UPWARD-FACING ANGLE THAT DRAMATIZED THE SUBJECT'S JAWLINE AND NECK, THE COMPOSITION EVOKES QUITE DOMINANCE AND SCULPTURAL ELEGANCE. THE BACKGROUND IS A DEEP, SATURATED CRIMSON RED, CREATING A BOLD VISUAL CLASH WITH THE MODEL'S LUMINOUS SKIN AND DARK WARDROBE.",
+   "tips": "Merah pekat membuat kulit tampak bercahaya. Coba juga \"deep emerald green\" untuk suasana berbeda.",
+   "image": "img/p43.jpg",
+   "cat_en": "Editorial",
+   "title_en": "Intense Crimson Contrast",
+   "desc_en": "Vertical portrait on deep crimson, shot from a slightly low angle with strong cinematic contrast.",
+   "tips_en": "Deep red makes skin glow. Try \"deep emerald green\" for a different mood."
+  },
+  {
+   "id": "p44",
+   "order": 44,
+   "cat": "Gaya Jalanan",
+   "title": "Depan Kulkas Minimarket",
+   "desc": "Foto streetwear candid di depan kulkas minuman minimarket, ekspresi tenang dan santai.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "A candid yet editorial streetwear photograph of a young man inside a convenience store, positioned directly in front of a glass-door refrigerated drinks showcase filled with colorful bottled beverages. The subject stands close to the fridge with his body facing the showcase, captured mid-action while opening a can of beer. He subtly turns his head toward the camera with a calm, cool, and composed expression - effortless and controlled, never exaggerated. No other people are visible in the frame. Use the uploaded image as a strict identity reference. Preserve 100% facial accuracy, including exact facial structure, proportions, skin tone, and all unique features with no modification or beautification. Hair must remain identical in hairstyle, length, texture, color, and hairline with zero alteration. The pose feels candid but intentional - torso facing forward, arms engaged naturally in the action, body slightly angled for composition balance. The framing captures him in a visually strong position within the aisle, creating a subtle symmetry with the fridge lines and product layout. He wears an oversized heathered grey hoodie with dropped shoulders and wide sleeves, layered over a longline white tee. Loose wide-leg black trousers fall cleanly with structured volume. On his feet are sneakers inspired by the Nike Air Jordan 1 Low Fragment Design x Travis Scott aesthetic. The styling feels curated yet natural, with realistic fabric folds and weight. Captured with a wide-angle 28-35mm perspective (Fujifilm X100V style), creating immersive depth and slight distortion that enhances presence without breaking proportions. The composition is vertical 4:5, balanced and visually deliberate despite its candid nature. Lighting is driven by a direct on-camera flash, creating bold highlights and crisp shadows, but controlled enough to maintain subject clarity. Reflections on the fridge glass and packaging are pronounced, adding texture and depth. The exposure is slightly underlit overall, but key details remain readable. The color palette is dark and grounded - deep blacks, cool grays, and muted tones - contrasted by selectively vibrant product colors. The grading maintains a subtle editorial polish while preserving the raw flash aesthetic. Subtle analog film grain, light noise, and minimal imperfections are present, but not overwhelming. The image should feel like a real",
+   "tips": "Minta \"no other people in the frame\" supaya fokusnya tetap ke kamu.",
+   "image": "img/p44.jpg",
+   "cat_en": "Street Style",
+   "title_en": "At the Store Fridge",
+   "desc_en": "Candid streetwear shot in front of a convenience-store drinks fridge, calm and composed.",
+   "tips_en": "Ask for \"no other people in the frame\" to keep the focus on you."
+  },
+  {
+   "id": "p45",
+   "order": 45,
+   "cat": "Jalan-jalan",
+   "title": "Senja di Peron Stasiun",
+   "desc": "Berdiri di peron stasiun saat matahari terbenam, mantel panjang hitam, suasana tenang dan reflektif.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Gunakan wajah, sama persis dengan foto karakter referensi yang diunggah. Jangan mengubah ciri khas wajah. Seorang pria berdiri sendirian tinggi [isi tinggi] cm berat badan [isi berat] kg di peron stasiun kereta saat matahari terbenam. Posisi tubuh menghadap ke samping (side profile) mengarah ke kanan frame. Kepala sedikit terangkat ke atas, mata terpejam atau setengah terpejam, memberikan ekspresi tenang, reflektif, dan emosional seolah sedang menikmati suasana senja. Rambut hitam sedikit berantakan tertiup angin lembut. Mengenakan mantel panjang warna hitam dengan kerah tinggi yang memberikan kesan elegan, misterius, dan sinematik. Tubuh berada di sisi kiri frame dengan komposisi portrait vertikal. Rel kereta memanjang ke arah belakang menciptakan leading lines yang kuat menuju horizon. Latar belakang berupa stasiun kereta perkotaan dengan suasana senja keemasan. Matahari bulat terlihat jelas di belakang subjek, berada dekat garis horizon. Cahaya golden hour hangat menyinari kabut tipis yang memenuhi area rel, menciptakan efek atmosferik yang dramatis. Struktur atap peron, tiang listrik, dan kabel kereta tampak samar di latar belakang. Terdapat satu sosok manusia buram di kejauhan pada sisi kiri frame untuk menambah kesan kesepian dan cerita visual. Background sangat blur dengan bokeh halus, fokus tajam hanya pada profil wajah dan siluet tubuh karakter. Camera angle: eye level, medium shot dari samping, side profile 90 derajat. Komposisi: karakter berada di sepertiga kiri frame, matahari berada di area tengah kanan frame, rel kereta membentuk garis perspektif menuju kejauhan. Pencahayaan: natural golden hour sunset lighting, warm orange glow, soft backlight, volumetric light, atmospheric haze, cinematic rim light pada garis wajah dan rambut. Mood: melankolis, tenang, introspektif, kesepian yang indah, cinematic storytelling. Gaya fotografi: cinematic portrait photography, ultra realistic, shallow depth of field, soft bokeh, high dynamic range, realistic skin texture, natural color grading, premium film look. Kualitas: ultra detail, 8K, HDR, photorealistic, sharp focus on subject, professional photography, masterpiece, highly detailed, realistic lighting, cinematic depth, vertical 9:16. Prompt negatif: blur, low quality, low resolution, cartoon, anime, CGI, overexposed, underexposed, extra limbs, duplicate person, distorted face, bad anatomy, noisy image, pixelated, watermark, text, logo, oversaturated colors, unrealistic skin, deformed hands, out of frame, motion blur,",
+   "tips": "Isi bagian [isi tinggi] dan [isi berat] supaya proporsi tubuhnya lebih pas.",
+   "image": "img/p45.jpg",
+   "cat_en": "Travel",
+   "title_en": "Sunset on the Platform",
+   "desc_en": "On a train platform at sunset in a long black coat — quiet and reflective.",
+   "tips_en": "Fill in [isi tinggi] and [isi berat] so the body proportions come out right."
+  },
+  {
+   "id": "p46",
+   "order": 46,
+   "cat": "Gaya Jalanan",
+   "title": "Jalan Kota Sehabis Hujan",
+   "desc": "Berjalan di tengah jalan kota malam sehabis hujan, komposisi simetris dan pantulan lampu di aspal.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Gunakan wajah, yang sama persis dengan foto karakter referensi yang diunggah. Jangan mengubah ciri khas wajah. Seorang pria tinggi 180 cm. berjalan percaya diri tepat di tengah jalan kota modern pada malam hari setelah hujan. Kamera berada sejajar dengan tinggi dada subjek dan menghadap langsung ke depan, menghasilkan komposisi simetris dengan karakter berada tepat di tengah frame. Karakter berjalan menuju kamera dengan ekspresi tenang, karismatik, dan penuh percaya diri. Pria mengenakan outfit urban premium yang stylish dan maskulin: long coat warna camel atau cokelat tua yang terbuka, inner turtleneck hitam fitted, celana tailored slim fit warna gelap, serta sepatu boots kulit hitam modern. Outfit terlihat elegan, cocok untuk suasana kota metropolitan malam hari. Latar belakang berupa jalan kota dengan gedung-gedung tinggi, lampu neon, papan iklan digital, lampu kendaraan, dan pantulan cahaya di jalanan basah. Efek zoom burst radial motion blur yang sangat kuat berasal dari pusat frame menuju ke segala arah, menciptakan kesan kecepatan tinggi dan dunia di sekitar karakter bergerak cepat sementara karakter tetap tajam dan menjadi fokus utama. Dominasi warna sinematik teal dan orange, dengan cahaya neon biru kehijauan di satu sisi dan cahaya oranye hangat di sisi lainnya. Pantulan lampu kota terlihat jelas pada permukaan jalan yang basah. Karakter tetap sangat tajam, detail wajah sangat jelas, sementara lingkungan sekitar memiliki efek motion blur dramatis. Fotografi fashion editorial kelas premium, cinematic street photography, urban cyberpunk atmosphere, dynamic motion effect, shallow depth of field, ultra realistic, hyper detailed skin texture, realistic fabric texture, volumetric lighting, reflective wet pavement, dramatic contrast, high-end advertising campaign, movie poster quality, center composition, symmetrical framing, sharp focus on subject, 8K resolution, HDR, masterpiece. Make the aspect ratio 9:16",
+   "tips": "Isi tinggi badan di prompt. Tambahkan \"shallow puddles reflecting neon signs\" untuk pantulan lebih dramatis.",
+   "image": "img/p46.jpg",
+   "cat_en": "Street Style",
+   "title_en": "City Street After Rain",
+   "desc_en": "Walking down the middle of a wet city street at night, symmetrical framing and light reflections.",
+   "tips_en": "Fill in the height. Add \"shallow puddles reflecting neon signs\" for stronger reflections."
+  },
+  {
+   "id": "p47",
+   "order": 47,
+   "cat": "Editorial",
+   "title": "Kolase Tiga Panel",
+   "desc": "Kolase vertikal tiga panel dengan warna dan suasana yang konsisten, seperti halaman majalah.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Gunakan wajah, yang sama persis dengan foto karakter pria referensi yang diunggah. Jangan mengubah ciri khas wajah. Pertahankan kemiripan wajah 100%. Buat kolase fotografi sinematik vertikal yang terdiri dari 3 panel horizontal tersusun dari atas ke bawah dengan suasana dan warna yang konsisten. Panel Atas Close-up side profile seorang pria tinggi [isi tinggi] cm berat badan [isi berat] kg bersandar pada pagar jembatan penyeberangan modern berwarna putih saat golden hour. Mengenakan hoodie hitam oversized dan tas ransel hitam. Tangan memegang kaleng minuman dekat bibir seolah sedang minum. Tatapan mengarah ke kejauhan, ekspresi tenang dan reflektif. Cahaya matahari sore dari belakang menciptakan rim light keemasan pada rambut dan wajah. Background blur dengan bokeh kota modern. Panel Tengah Wide shot dari kejauhan. Pria yang sama berdiri tinggi 180 cm sendirian di tengah jembatan penyeberangan modern. Pagar putih memanjang membentuk leading lines yang kuat. Matahari terbenam berada di sisi kiri frame menghasilkan flare hangat. Gedung-gedung modern terlihat samar di latar belakang. Atmosfer urban yang sunyi dan emosional. Panel Bawah Medium close-up side profile dari sudut sedikit berbeda. Pria bersandar pada pagar jembatan sambil memegang kaleng minuman di dekat dada. Wajah terlihat lebih jelas dengan ekspresi melankolis dan contemplative. Cahaya golden hour menerangi sisi wajah dan rambut secara lembut. Background kota blur dengan depth of field dangkal. Gaya Visual Japanese cinematic photography, Makoto Shinkai atmosphere, nostalgic urban mood, emotional storytelling, warm golden hour lighting, orange and amber color grading, realistic sunlight, natural lens flare, shallow depth of field, photorealistic, ultra detailed, highly realistic skin texture, realistic clothing folds, realistic backpack texture, HDR, cinematic composition. Kamera 85mm lens, f/1.8, cinematic framing, shallow depth of field, professional photography, ultra realistic, 8K quality, masterpiece. Layout 3-panel vertical collage, stacked frames, seamless color consistency across all panels, identical character appearance in every panel. Rasio akhir 9:16 vertikal.",
+   "tips": "Adegan tiap panel bisa diganti. Pertahankan kalimat \"identical character appearance in every panel\".",
+   "image": "img/p47.jpg",
+   "cat_en": "Editorial",
+   "title_en": "Three-Panel Collage",
+   "desc_en": "A vertical three-panel collage with consistent colour and mood, like a magazine spread.",
+   "tips_en": "Each panel's scene can be swapped. Keep the line \"identical character appearance in every panel\"."
+  },
+  {
+   "id": "p48",
+   "order": 48,
+   "cat": "Editorial",
+   "title": "Template Potret Sinematik",
+   "desc": "Kerangka prompt isian: tinggal ganti kursi, ruangan, busana, dan arah cahaya sesuai keinginan.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "A cinematic portrait of a [man/woman/person] sitting on a [type of chair/sofa/bench] in a [setting: e.g. dimly lit vintage room / modern minimalist space / outdoor terrace]. The subject wears [outfit description: e.g. three-piece suit / elegant dress / gender-neutral outfit], styled to emphasize [vibe: elegance, power, sophistication]. Lighting is [warm golden / cool bluish / dramatic contrast], coming from [light source: window blinds / spotlight / natural sunlight], casting soft shadows / dramatic highlights / moody atmosphere across the scene. The subject's pose is [relaxed / authoritative / confident], with [hands resting, crossed legs, subtle gestures], creating a cinematic, dramatic, timeless mood. Additional props like [glass of whiskey / book / vintage lamp / flowers] add depth and atmosphere. The overall style feels cinematic, artistic, realistic, vintage/modern depending on reference.",
+   "tips": "Ganti semua teks dalam kurung siku [ ] sebelum dipakai. Satu template bisa jadi puluhan gaya berbeda.",
+   "image": "img/p48.jpg",
+   "cat_en": "Editorial",
+   "title_en": "Cinematic Portrait Template",
+   "desc_en": "A fill-in-the-blank prompt: swap the chair, room, outfit and light direction to taste.",
+   "tips_en": "Replace everything in square brackets [ ] before using. One template, dozens of looks."
+  },
+  {
+   "id": "p49",
+   "order": 49,
+   "cat": "Editorial",
+   "title": "Profil Oranye Bergerak",
+   "desc": "Potret samping dengan latar oranye pekat dan jejak motion blur tipis di rambut.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "A cinematic panning portrait of a [man/woman/person], captured in profile with a mysterious and dramatic expression. Studio lighting illuminates the subject softly, set against a solid vibrant orange background. Subtle motion blur trails along the hair and edges, adding a sense of movement and energy. The image has a matte, faded film effect with a warm cinematic tone. The overall atmosphere feels stylish, surreal, and contemporary, blending fashion photography with experimental art.",
+   "tips": "Pakai foto menyamping kalau ada. Ganti latarnya jadi \"electric blue\" untuk versi lain.",
+   "image": "img/p49.jpg",
+   "cat_en": "Editorial",
+   "title_en": "Vibrant Orange Profile",
+   "desc_en": "Side profile on a vivid orange backdrop with subtle motion-blur trails in the hair.",
+   "tips_en": "Use a side-profile photo if you have one. Try \"electric blue\" for another version."
+  },
+  {
+   "id": "p50",
+   "order": 50,
+   "cat": "Gaya Jalanan",
+   "title": "Lari Sore di Kota",
+   "desc": "Aksi lari di aspal kota saat sore: motion blur di tangan dan kaki, bayangan panjang yang tegas.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Street-style editorial action shot of the uploaded person mid-run on an urban asphalt path. Wearing a cream or light beige sports hoodie, black running shorts, white cap, white crew socks, and colorful performance sneakers. The background is a blurred urban cityscape with layered buildings, cars, and pedestrians, evoking speed and energy. Golden late-afternoon sunlight cuts through the scene, casting bold angular shadows and creating strong light contrast. The composition feels dynamic and fast: visible motion blur trails on the runner's arms and legs, with the environment streaked from camera panning. Only parts of the body are sharply in focus while others fade into motion blur, highlighting kinetic energy. Shot on a 50mm lens with Kodak Portra 400 film look, warm golden tones, shallow depth of field, cinematic framing, directional light, editorial fashion aesthetic, photorealistic, 8k quality.",
+   "tips": "Sebutkan merek atau warna sepatunya supaya hasilnya konsisten dengan koleksimu.",
+   "image": "img/p50.jpg",
+   "cat_en": "Street Style",
+   "title_en": "City Evening Run",
+   "desc_en": "Mid-run on city asphalt in late light: motion blur on the limbs and long hard shadows.",
+   "tips_en": "Name the shoe brand or colour so the result matches your own pair."
+  },
+  {
+   "id": "p51",
+   "order": 51,
+   "cat": "Editorial",
+   "title": "Mengapung di Air Bunga",
+   "desc": "Mengapung tenang di air berhias bunga daisy dan kelopak emas, disinari cahaya golden hour.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Subject: male model (same face, wavy tousled hair partially wet, and serene expression with closed eyes as in the provided image) Wearing outfit: casual brown hoodie, soaked and blending with the water surface for a raw, natural aesthetic. Environment: floating in calm, rippling water scattered with white daisies and golden petals, creating a dreamy and symbolic atmosphere. Lighting: warm golden-hour light reflecting on the water's surface, casting ethereal patterns across the model's face and clothing, emphasizing tranquility and intimacy. Style: surreal fashion editorial x poetic fine art photography. Composition: close-up overhead shot of the model immersed in water, body partially submerged framed by floating flowers and glowing reflections, embodying vulnerability, peace, and dreamlike escapism.",
+   "tips": "Foto wajah menghadap atas memberi hasil terbaik. Ganti bunganya jadi \"pink lotus\" untuk nuansa lain.",
+   "image": "img/p51.jpg",
+   "cat_en": "Editorial",
+   "title_en": "Floating Among Daisies",
+   "desc_en": "Floating calmly in water scattered with daisies and golden petals under soft golden-hour light.",
+   "tips_en": "A face-up photo gives the best result. Swap the flowers for \"pink lotus\" for a different mood."
+  },
+  {
+   "id": "p52",
+   "order": 52,
+   "cat": "Jalan-jalan",
+   "title": "Gunung dan Sungai Ala Vogue",
+   "desc": "Potret gaya Vogue di pegunungan dekat sungai: hoodie oversize, langit mendung, hijau yang tenang.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Vogue editorial style portrait of the uploaded person, standing outdoors in the mountains near a river. Wearing oversized black hoodie or cozy minimal fashion outfit, loose natural hair (or hairstyle softly flowing with wind), overcast sky, soft diffused natural light, cinematic atmosphere with moody muted green tones of grass and forest. Shot on film look with shallow depth of field, slightly grainy texture, calm and introspective expression, hands casually in pockets. Background softly blurred to create depth, professional fashion photography, photorealistic, 8k",
+   "tips": "Cocok untuk foto berdiri. Tambahkan \"light mist between the trees\" kalau ingin suasana lebih dingin.",
+   "image": "img/p52.jpg",
+   "cat_en": "Travel",
+   "title_en": "Mountain River Vogue",
+   "desc_en": "Vogue-style portrait by a mountain river: oversized hoodie, overcast sky, muted green tones.",
+   "tips_en": "Best with a standing photo. Add \"light mist between the trees\" for a cooler mood."
+  },
+  {
+   "id": "p53",
+   "order": 53,
+   "cat": "Jalan-jalan",
+   "title": "Papan Loncat di Atas Laut",
+   "desc": "Duduk di ujung papan loncat putih yang menjorok ke laut biru gelap — sunyi dan luas.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "A young person wearing a loose white and blue baseball jersey with the number 22 on the back, shorts, and boots, sits alone on the edge of a pool diving board (designed to resemble a white surfboard) that extends far above the wavy dark blue ocean. The person turns their head to the right and looks upward, as if gazing at the sky. Both hands rest on the board with their back straight. The view is taken from a slightly higher perspective, showing the vastness of the ocean and the serenity of the atmosphere. The sky is not visible; the focus is solely on the person and the water, without changing the shape of the hair and face.",
+   "tips": "Ganti nomor jersey \"22\" dengan angka favoritmu.",
+   "image": "img/p53.jpg",
+   "cat_en": "Travel",
+   "title_en": "Diving Board Over the Ocean",
+   "desc_en": "Sitting at the end of a white diving board jutting over the dark blue ocean — vast and quiet.",
+   "tips_en": "Change the jersey number \"22\" to your own lucky number."
+  },
+  {
+   "id": "p54",
+   "order": 54,
+   "cat": "Editorial",
+   "title": "Di Balik Kaca Akuarium",
+   "desc": "Menatap lembut dari balik kaca akuarium, dikelilingi ikan keemasan dan bias cahaya air.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Subject: (same face and features as in the reference image), gazing softly through the glass of an aquarium, his hands resting gently against the surface. Environment: surrounded by golden-orange fish swimming gracefully in water, creating a dreamy and surreal scene. Lighting: cinematic low light warm, cinematic glow with rays of light refracting through the water, casting soft shimmering patterns across his face and the glass. Mood/Style: intimate, ethereal, almost otherworldly-blending human presence with the fluidity of aquatic life, poetic, ethereal, and cinematic photography. Composition: close-up portrait through the glass, with the fish in motion adding depth, layering, and a sense of dreamlike serenity.",
+   "tips": "Pakai foto wajah dari depan. Tambahkan \"hands pressed on the glass\" supaya posenya lebih jelas.",
+   "image": "img/p54.jpg",
+   "cat_en": "Editorial",
+   "title_en": "Behind the Aquarium Glass",
+   "desc_en": "Gazing softly through aquarium glass, surrounded by golden fish and refracted light.",
+   "tips_en": "Use a front-facing photo. Add \"hands pressed on the glass\" to make the pose clearer."
+  },
+  {
+   "id": "p55",
+   "order": 55,
+   "cat": "Kartun & Ilustrasi",
+   "title": "Ilustrasi Buku Anak",
+   "desc": "Ubah foto jadi ilustrasi buku cerita anak: proporsi imut, sapuan gouache, dan warna pastel.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Convert the provided photo into a whimsical children's illustration inspired by the reference style. Use rounded, childlike proportions, large expressive eyes, small nose, and rosy cheeks, while keeping the facial structure consistent. Make the body slightly exaggerated and playful like picture book characters. Apply painterly strokes with soft blending, visible textures, and pastel tones, resembling gouache or crayon. Preserve the subject's original clothing, hair, skin, eyes, and accessories so they remain recognizable. Keep the mood playful, charming, and innocent, with a simple or softly textured background (plain white or beige preferred). Negative prompt: Avoid hyperrealistic faces, sharp outlines, extra accessories, or changes to pose and clothing.",
+   "tips": "Baju dan aksesori di fotomu tetap dipertahankan, jadi pilih foto dengan outfit favoritmu.",
+   "image": "img/p55.jpg",
+   "cat_en": "Cartoon & Art",
+   "title_en": "Children's Book Illustration",
+   "desc_en": "Turn a photo into a storybook illustration: cute proportions, gouache strokes and pastel tones.",
+   "tips_en": "Your clothes and accessories are kept, so pick a photo with your favourite outfit."
+  },
+  {
+   "id": "p56",
+   "order": 56,
+   "cat": "Kartun & Ilustrasi",
+   "title": "Karakter Piksel Everskies",
+   "desc": "Ilustrasi karakter piksel seluruh badan memakai rambut, baju, dan aksesori dari fotomu.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "I'm studying the Everskies pixel art style by mimicking how they draw body shapes, facial features (such as eyes, nose, and mouth), outfits, makeup and hairstyles. Please create a full-body illustration of one character using the hairstyle, clothing, and accessories from the attached image. The background should be transparent.",
+   "tips": "Latarnya transparan, jadi gampang ditempel ke stiker atau foto profil. Simpan sebagai PNG.",
+   "image": "img/p56.jpg",
+   "cat_en": "Cartoon & Art",
+   "title_en": "Everskies Pixel Character",
+   "desc_en": "Full-body pixel-art character using the hair, outfit and accessories from your photo.",
+   "tips_en": "The background is transparent — handy for stickers or profiles. Save it as PNG."
+  },
+  {
+   "id": "p57",
+   "order": 57,
+   "cat": "Kartun & Ilustrasi",
+   "title": "Kartun Sketsa Charlie & Lola",
+   "desc": "Jadi karakter kartun bergaris tipis dengan warna datar dan pesona gambar tangan.",
+   "popular": true,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Transform the subject from the uploaded image into a character in the style of Charlie and Lola (children's cartoon). Match the official cartoon look, thin sketchy outlines, flat colors, childlike proportions, playful hand-drawn charm, and simple textures. Retain the subject's original clothing, hairstyle, facial features, accessories, skin tone, pose, and expression, but reinterpret them as if they belong in the Charlie and Lola world. Clothing should be simplified into flat shapes and bright colors, while keeping the overall outfit recognizable. Background: plain white or transparent to keep the focus on the character.\" Negative Prompt: \"No realistic shading, no detailed rendering, no anime or manga style, no 3D modeling, no photographic textures.",
+   "tips": "Pose, baju, dan ekspresi dari foto asli dipertahankan. Minta latar putih polos atau transparan.",
+   "image": "img/p57.jpg",
+   "cat_en": "Cartoon & Art",
+   "title_en": "Charlie & Lola Cartoon",
+   "desc_en": "Become a thin-lined cartoon character with flat colours and hand-drawn charm.",
+   "tips_en": "Your pose, outfit and expression are kept. Ask for a plain white or transparent background."
+  },
+  {
+   "id": "p58",
+   "order": 58,
+   "cat": "Tren Viral",
+   "title": "Prajurit Steampunk Selfie",
+   "desc": "Selfie dinamis berarmor steampunk di tengah reruntuhan industri dan roda gigi yang beterbangan.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "A steampunk male soldier with black hair, a face with a few scratches, wearing futuristic black armor full of metal details and chains, leaps forward taking selfies in a dynamic pose. Surrounding him are giant gears flying through the air, the ruins of destroyed industrial buildings, and steampunk metal towers in the background. Post-apocalyptic atmosphere with dark clouds, smoke and dramatic light. High realism digital art style, cinematic composition, full of energy and visual intensity.",
+   "tips": "Gaya ini memang dramatis. Tambahkan \"keep my face unchanged\" kalau wajahnya terlalu banyak berubah.",
+   "image": "img/p58.jpg",
+   "cat_en": "Viral Trends",
+   "title_en": "Steampunk Soldier Selfie",
+   "desc_en": "A dynamic selfie in steampunk armour amid industrial ruins and flying gears.",
+   "tips_en": "This style runs dramatic. Add \"keep my face unchanged\" if the face drifts too far."
+  },
+  {
+   "id": "p59",
+   "order": 59,
+   "cat": "Gaya Jalanan",
+   "title": "Diam di Tengah Zebra Cross",
+   "desc": "Berdiri diam di zebra cross kota yang ramai sementara orang di sekitarmu jadi motion blur.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "A young man with black hair stood still in the middle of a zebra crossing in a very crowded city. He was holding a Leica O-Series No. 122 brand camera in one hand, wearing an oversized green denim jacket, baggy shorts, a white t-shirt, and sneakers. The background filled with people almost covers the fast-moving road with a motion blur effect, creating a dynamic contrast. There is a cyclist who is also caught in the blur. Soft lighting from the afternoon light (golden hour) casts warm shadows. Urban, contemplative and cinematic with warm brown-gold tones. Taken from a high angle, it gives a sense of quiet amidst the crowd.",
+   "tips": "Ganti kameranya dengan kamera milikmu. Foto seluruh badan memberi hasil paling pas.",
+   "image": "img/p59.jpg",
+   "cat_en": "Street Style",
+   "title_en": "Still on the Crosswalk",
+   "desc_en": "Standing still on a busy crosswalk while everyone around you blurs into motion.",
+   "tips_en": "Swap in your own camera model. A full-body photo gives the best result."
+  },
+  {
+   "id": "p60",
+   "order": 60,
+   "cat": "Jalan-jalan",
+   "title": "Negeri di Atas Awan",
+   "desc": "Ganti latar fotomu jadi lautan awan di puncak gunung saat senja — pose dan bajumu tetap sama.",
+   "popular": true,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "\"Use the uploaded image strictly as an identity reference. Preserve the subject exactly: identity, facial structure, body proportions, height, physique, clothing, accessories, pose, framing, perspective, camera angle, and composition with no alteration, reshaping, replacement, or embellishment. Modify only the atmosphere, weather, lighting, and environment. Maintain ultra photorealism, physically accurate lighting, natural colors, and realistic environmental interaction. Replace the environment with an endless, realistic sea of clouds/cloud inversion at a mountain peak, viewed from a low perspective, with natural cloud layers and a beautiful sunset.'",
+   "tips": "Prompt ini hanya mengganti lingkungan, bukan pose atau baju. Pakai foto berdiri yang tajam.",
+   "image": "img/p60.jpg",
+   "cat_en": "Travel",
+   "title_en": "Above the Clouds",
+   "desc_en": "Replace your background with a sea of clouds at a mountain peak at sunset — your pose stays.",
+   "tips_en": "This only swaps the environment, not your pose or outfit. Use a sharp standing photo."
+  },
+  {
+   "id": "p61",
+   "order": 61,
+   "cat": "Kartun & Ilustrasi",
+   "title": "Ditarik Doodle Kecil",
+   "desc": "Foto realistis dipadu karakter doodle hitam-putih yang menarik jaketmu — lucu dan mencuri perhatian.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Gunakan foto referensi yang saya upload sebagai REFERENCE IMAGE UTAMA untuk identitas wajah karakter. Pertahankan identitas wajah semirip mungkin dengan foto referensi: bentuk wajah, struktur rahang, mata, hidung, bibir, alis, gaya rambut, warna kulit, proporsi wajah, dan karakteristik alami wajah. Jangan mengubah wajah menjadi orang lain. Pria dewasa, tinggi 174 cm, berat 87 kg, berjalan santai ke arah kanan dengan ekspresi candid dan senyum natural. Mengenakan jaket abu-abu muda, hoodie oversized abu-abu gelap, inner putih, celana cargo jeans abu-abu muda, dan sneakers abu-abu-putih. Tangan kanan memegang gelas plastik transparan berisi iced coffee dengan es dan sedotan hitam. Pose berjalan natural dan dinamis, satu kaki melangkah ke depan dan kaki lainnya terangkat ke belakang, gerakan tubuh realistis. Di belakang kiri-bawah karakter utama terdapat versi MINI DOODLE/CARTOON dirinya sendiri dengan outfit yang sama. Karakter mini terlihat kesal, marah, tetapi lucu dan menggemaskan, sambil menarik bagian belakang celana cargo pria utama menggunakan kedua tangannya. Bagian celana yang ditarik terlihat jelas meregang dan tertarik ke belakang, dengan garis-garis doodle kecil sebagai efek tarikan. Tambahkan doodle hitam-putih sederhana di sekitar adegan: garis gerakan pada kaki dan tubuh, simbol angin di dekat rambut, garis ekspresi, hati kecil, sparkle, dan cloud puff di dekat karakter mini. Semua elemen doodle memiliki outline hitam bersih, ekspresif, playful, dan sedikit cartoonish. Perpaduan seamless antara manusia nyata ultra-photorealistic dan ilustrasi doodle 2D. Karakter utama sepenuhnya realistis: natural skin texture, realistic facial details, realistic fabric, denim texture, realistic iced coffee, realistic anatomy dan natural body proportions. Karakter mini dan seluruh elemen doodle tetap 2D dan tidak berubah menjadi photorealistic. Background studio minimalis putih-abu-abu terang, seamless, clean, dengan soft shadow tipis di lantai. Soft natural studio lighting, premium commercial photography, editorial fashion campaign, cinematic soft lighting. 3Full body shot, eye-level camera, karakter utama berada di kanan-tengah frame, karakter mini berada di kiri-bawah, negative space cukup luas. Dynamic walking pose, candid moment, playful visual storytelling, premium advertising photography, ultra-detailed, ultra-photorealistic, sharp facial details, realistic anatomy, natural proportions. Rasio 9:16 vertikal.",
+   "tips": "Isi tinggi dan berat badan di prompt supaya proporsinya pas. Cocok untuk konten iklan yang ringan.",
+   "image": "img/p61.jpg",
+   "cat_en": "Cartoon & Art",
+   "title_en": "Tugged by a Doodle",
+   "desc_en": "A photoreal shot mixed with a black-and-white doodle character tugging your jacket.",
+   "tips_en": "Fill in the height and weight for the right proportions. Great for light ad content."
+  },
+  {
+   "id": "p62",
+   "order": 62,
+   "cat": "Kartun & Ilustrasi",
+   "title": "Jalan Bareng Versi Sketsa",
+   "desc": "Berjalan di koridor beton brutalist ditemani versi sketsa pensil dari dirimu sendiri.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Gunakan foto wajah referensi yang saya unggah sebagai identitas utama karakter. Pertahankan kemiripan wajah semaksimal mungkin tanpa mengubah bentuk wajah, struktur tulang, mata, alis, hidung, bibir, telinga, garis rahang, warna kulit, tekstur kulit, maupun gaya rambut. Prioritaskan kemiripan wajah dibanding interpretasi artistik. karakter tinggi [isi tinggi] cm berat badan [isi berat] kg Buat foto editorial konseptual ultra-photorealistic seorang pria dewasa sedang berjalan santai di koridor bangunan modern bergaya brutalist dengan dinding beton ekspos berwarna abu-abu. Kamera menangkap momen saat pria berjalan di sisi kiri frame sambil menoleh ke arah kanan dengan senyum hangat, seolah sedang melihat versi ilustrasi dirinya sendiri. Di sisi kanan, tepat pada permukaan dinding beton, terdapat ilustrasi sketsa tinta hitam bergaya hand-drawn yang menggambarkan karakter yang sama dalam pose berjalan identik. Ilustrasi tampak menyatu dengan dinding seolah digambar langsung menggunakan pulpen atau tinta hitam, dengan teknik cross-hatching, garis acak, arsiran rapat, dan tekstur sketsa manual. Wajah ilustrasi memiliki ekspresi tersenyum dan menghadap ke karakter asli sehingga keduanya terlihat saling berinteraksi. Tambahkan elemen doodle artistik di sekitar ilustrasi seperti bintang kecil, percikan tinta, garis energi, coretan abstrak, dan efek sketsa yang menyebar dari tubuh ilustrasi sehingga memberikan kesan karakter tersebut baru saja keluar dari gambar. Karakter mengenakan kaos oversized hitam polos, celana cargo hijau olive, sneakers putih bersih, jam tangan sederhana di tangan kiri, kedua tangan masuk ke saku celana, gaya berjalan santai dan percaya diri. Lokasi berupa lorong arsitektur modern dengan pilar beton tinggi, lantai beton halus, perspektif memanjang, suasana minimalis tanpa banyak objek lain. Pencahayaan golden hour dari samping menghasilkan bayangan panjang yang lembut, warna hangat, cinematic lighting, soft natural sunlight, realistic shadow, ambient light, high dynamic range. Komposisi full body, eye level, rule of thirds, karakter asli berada di sisi kiri frame sedangkan ilustrasi berada di sisi kanan menempel pada dinding beton. Fokus sangat tajam pada karakter dan ilustrasi, dengan latar belakang sedikit blur (shallow depth of field). Gaya visual editorial fashion, conceptual photography, surreal realism, perpaduan dunia nyata dan ilustrasi dua dimensi, ultra realistic, extremely detailed, natural skin texture, realistic fabric folds, authentic lighting, high contrast, 8K, masterpiece, premium commercial photography, tanpa watermark, tanpa teks. 9:16",
+   "tips": "Prompt panjang berbahasa Indonesia. Jangan hapus bagian yang mengunci kemiripan wajah.",
+   "image": "img/p62.jpg",
+   "cat_en": "Cartoon & Art",
+   "title_en": "Walking With Your Sketch",
+   "desc_en": "Walking a brutalist concrete corridor beside a pencil-sketch version of yourself.",
+   "tips_en": "A long Indonesian prompt — keep the lines that lock your facial likeness."
+  },
+  {
+   "id": "p63",
+   "order": 63,
+   "cat": "Editorial",
+   "title": "Poster Fashion Sinematik",
+   "desc": "Poster editorial dengan teks vertikal besar, tekstur grunge, dan aksen merah yang tegas.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Gunakan foto referensi yang saya upload sebagai REFERENCE IMAGE UTAMA untuk identitas wajah karakter. Pertahankan identitas wajah semirip mungkin: bentuk wajah, struktur rahang, mata, hidung, bibir, alis, gaya rambut, warna kulit, dan karakteristik alami wajah. Jangan mengubah wajah menjadi orang lain. Buat poster editorial fashion pria tinggi badan [isi tinggi] cm berat badan [isi berat] kg bergaya sinematik, ultra-photorealistic dan premium. Seorang pria dewasa berdiri menghadap kamera dengan ekspresi serius, percaya diri, dan sedikit misterius. Pose half-body hingga 3/4 body, satu tangan menyilang di depan tubuh, tangan lainnya natural. Mengenakan kaos hitam oversized berbahan katun. Rambut terlihat natural, sedikit messy dan bertekstur. Pencahayaan dramatis seperti editorial fashion magazine, high contrast, detail kulit sangat realistis, tekstur kain terlihat jelas, cinematic photography, professional studio lighting, realistic shadows, sharp facial details. Di belakang karakter terdapat DUPLIKASI SILUET / SECONDARY PORTRAIT dirinya sendiri dengan efek motion blur dan sedikit out of focus, menciptakan efek visual seperti double exposure dan sense of movement. Karakter utama tetap sangat tajam dan menjadi focal point. Latar belakang berupa dinding beton industrial bertekstur kasar warna abuabu terang, dengan elemen grafis editorial berupa bidang merah vertikal, garis geometris, pola halftone hitam-putih, tekstur grunge, dan sedikit distressed texture. Komposisi poster vertikal 9:16. Karakter utama berada di sisi kiri-tengah frame. Sisakan ruang vertikal yang cukup di sisi kanan untuk typography. Tambahkan typography editorial besar secara VERTIKAL di sisi kanan: \"MY NAME IS\" dengan huruf kapital tebal, condensed bold sans-serif, warna hitam, sebagian teks berada di atas bidang merah. Tambahkan teks kecil vertikal: \"[@akun_instagram_kamu]\" Desain keseluruhan seperti cover majalah fashion modern yang edgy, maskulin, premium, industrial, minimalis namun powerful. Ultra photorealistic, cinematic, editorial fashion photography, realistic skin texture, realistic anatomy, natural hands, detailed fabric, dramatic lighting, high detail, sharp focus, premium magazine cover, sophisticated graphic design, 8K quality. Jangan mengubah identitas wajah dari foto referensi. Jangan membuat wajah generik. Jangan membuat karakter terlihat seperti AI.",
+   "tips": "Ganti [@akun_instagram_kamu] dengan akunmu sendiri sebelum dipakai.",
+   "image": "img/p63.jpg",
+   "cat_en": "Editorial",
+   "title_en": "Cinematic Fashion Poster",
+   "desc_en": "An editorial poster with large vertical type, grunge texture and a bold red accent.",
+   "tips_en": "Replace [@akun_instagram_kamu] with your own handle before using it."
+  },
+  {
+   "id": "p64",
+   "order": 64,
+   "cat": "Kartun & Ilustrasi",
+   "title": "Dikejar Doodle",
+   "desc": "Foto komedi: kamu berlari dikejar karakter doodle hitam-putih, hasilnya bersih dan premium.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Gunakan foto referensi yang saya upload sebagai REFERENCE IMAGE UTAMA untuk identitas wajah karakter. Pertahankan identitas wajah semirip mungkin dengan foto referensi: bentuk wajah, struktur rahang, mata, hidung, bibir, alis, gaya rambut, warna kulit, proporsi wajah, dan karakteristik alami wajah. Jangan mengubah karakter menjadi orang lain. Buat foto editorial komedi yang ultra-photorealistic, clean, premium, dengan konsep manusia nyata dipadukan dengan ilustrasi doodle hitam-putih. Seorang pria tinggi [isi tinggi] cm berat badan [isi berat] kg berlari ke arah kanan sambil tersenyum lebar dan terlihat santai, mengenakan kaos oversize abu-abu polos, celana jeans biru muda, dan sneakers putih. Pose tubuh sedang berlari secara natural, satu kaki melangkah ke depan dan kaki lainnya terangkat ke belakang. Tangan kanan memegang gelas plastik transparan berisi es kopi dingin berwarna gelap dengan sedotan hitam. Di bagian belakang pria, gambarkan karakter stickman doodle hitam-putih seperti ilustrasi tangan yang sedang menarik bagian belakang kaos pria dengan kedua tangan. Stickman memiliki ekspresi wajah jahil, licik, dan sedikit kesal. Efek tarikan pada kain dibuat jelas dengan garis-garis doodle kecil yang menunjukkan kaos sedang tertarik. Di bagian bawah kiri, tambahkan ilustrasi doodle seekor anjing bulldog kecil berwarna putih dengan outline hitam, ekspresi galak, gigi terlihat, sedang mengejar pria tersebut. Tambahkan beberapa garis gerak doodle di belakang anjing untuk menunjukkan gerakan cepat. Konsep visual: perpaduan fotografi manusia nyata dengan ilustrasi doodle 2D hitam-putih yang menyatu secara kreatif dengan adegan fotografi. Manusia harus terlihat benar-benar nyata, sedangkan stickman dan anjing tetap bergaya sketsa doodle sederhana. Background studio minimalis berwarna abu-abu muda hampir putih, seamless, bersih, dengan soft shadow tipis di lantai. Lighting studio profesional, soft diffused lighting, natural skin texture, realistic fabric texture, realistic denim texture, realistic ice coffee condensation. Komposisi full body, kamera eye-level, framing vertikal, karakter utama berada di sisi kanan frame dengan ruang kosong cukup di sisi kiri untuk elemen doodle. Dynamic motion, playful commercial advertising photography, premium editorial campaign, highly detailed, ultra realistic, photorealistic, cinematic, natural proportions, realistic anatomy, sharp facial details. Rasio 9:16 vertikal.",
+   "tips": "Isi tinggi dan berat badan. Ganti ekspresinya jadi panik atau tertawa sesuai selera.",
+   "image": "img/p64.jpg",
+   "cat_en": "Cartoon & Art",
+   "title_en": "Chased by a Doodle",
+   "desc_en": "A comedy shot: you running from a black-and-white doodle character, clean and premium.",
+   "tips_en": "Fill in height and weight. Change the expression to panicked or laughing as you like."
+  },
+  {
+   "id": "p65",
+   "order": 65,
+   "cat": "Editorial",
+   "title": "Taksi Kuning Malam Hari",
+   "desc": "Potret malam dari luar jendela taksi yang basah oleh hujan, disiram cahaya oranye lampu jalan.",
+   "popular": true,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Transform the subject into Cinematic nocturnal portrait inside a moving New York-style yellow taxi at night, shot through the rain-streaked rear side window from outside The Subject with strong facial features, intense direct gaze straight into the camera, slight furrow in his brow, full lips in a calm but guarded expression sits in the back seat Wears a simple beige/tan button-up shirt, collar open. Warm intense amber-orange sodium-vapor streetlight glow dominates the scene, bathing his face, neck, and shirt in rich golden-orange tones with strong chiaroscuro contrast. Deep cool shadows fill the left side of his face and most of the interior. Blurred vibrant neon city lights (reds, oranges yellows, some blues and greens) streak and refract across the wet glass in the foreground, creating dreamy bokeh and light trails Taxi interior details visible: worn tan/brown vinvl or leather seat, door panel window frame in shadow The iconic red taxi roof light glows softly above and behind him through the rear window, casting an additional subtle red rim on his shoulder and head. Moody,introspective, film-noir influenced urban atmosphere, shallow depth of field, cinematic color grading with heavy emphasis on warm oranges against deep blacks and subtle cool accents, wet reflective glass texture, realistic rair streaks and water droplets on the window, high-end street photography / editorial style, medium format feel, ultra-detailed skin pores and fabric texture subtle film grain, 8k resolution. ratio potrait 3:4",
+   "tips": "Kekuatannya ada di cahaya oranye lampu jalan. Tambahkan \"reflections of neon signs on the glass\".",
+   "image": "img/p65.jpg",
+   "cat_en": "Editorial",
+   "title_en": "Yellow Taxi at Night",
+   "desc_en": "A nocturnal portrait shot through a rain-streaked taxi window under amber street light.",
+   "tips_en": "The amber street light carries this one. Add \"reflections of neon signs on the glass\"."
+  },
+  {
+   "id": "p66",
+   "order": 66,
+   "cat": "Gaya Jalanan",
+   "title": "Senja di Rooftop Parkir",
+   "desc": "Duduk di tepi rooftop parkir saat golden hour dengan hoodie hitam dan latar gedung-gedung tinggi.",
+   "popular": false,
+   "tools": [
+    "Gemini",
+    "ChatGPT"
+   ],
+   "prompt": "Ultra-realistic cinematic urban portrait of a young woman (face, facial features, hairstyle, skin tone, and proportions matching the uploaded reference photo) sitting casually on the edge of a concrete rooftop parking structure during golden hour. She wears an oversized black hoodie with relaxed sleeves, loose black jogger pants, white crew socks, and clean white high-top sneakers, creating a minimalist streetwear aesthetic. She sits naturally on the concrete ledge with one hand resting behind her for support while the other hand relaxes on her knee. Her legs hang freely over the edge. She gazes thoughtfully toward the distant skyline, never looking directly at the camera, with a calm, introspective expression. Her short dark brown bob hair is gently tousled by the wind, with a few loose strands softly framing her face. The breeze subtly lifts parts of her hoodie and hair, adding natural movement. The location is a modern rooftop surrounded by contemporary skyscrapers. A tall glass office building rises in the background beneath a soft blue sky with scattered clouds. Minimal architectural elements and clean concrete textures create a cinematic urban atmosphere. Warm golden-hour sunlight illuminates her face from the side, producing soft rim lighting along her hair and shoulders while casting long realistic shadows across the concrete. The atmosphere feels peaceful, cinematic, and quietly reflective. Shot from a slightly low angle using an 85mm portrait lens, shallow depth of field, ultra-sharp focus on the subject, realistic skin pores, visible hair strands, detailed hoodie fabric texture, cinematic color grading, luxury editorial photography, DSLR quality, hyper realistic, masterpiece composition, 8K resolution, vertical portrait, 3:4 aspect ratio. Photography style: cinematic lifestyle photography, Korean editorial fashion, minimalist street portrait, luxury fashion campaign, urban solitude, documentary realism. Mood: peaceful, introspective, independent, modern, youthful, calm confidence. Color palette: warm golden sunlight, cool blue sky, charcoal black clothing, neutral concrete tones, subtle amber highlights.",
+   "tips": "Minta \"never looking directly at the camera\" supaya kesannya tetap candid.",
+   "image": "img/p66.jpg",
+   "cat_en": "Street Style",
+   "title_en": "Rooftop Parking at Golden Hour",
+   "desc_en": "Sitting on a rooftop parking ledge at golden hour in a black hoodie, skyline behind you.",
+   "tips_en": "Keep \"never looking directly at the camera\" so it stays candid."
+  }
+ ]
+}

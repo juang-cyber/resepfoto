@@ -77,6 +77,27 @@ bisa dites sungguhan sementara halaman tetap jujur menyatakan dirinya contoh, da
 - Notifikasi pesanan memakai `recent_orders` (pesanan asli 14 hari, nama disamarkan). Penghitung "sedang melihat"
   memakai `presence` asli dan hanya muncul bila ≥ 5 orang aktif atau ≥ 50 pengunjung/24 jam.
 
+## ⚠️ Hak cipta gambar katalog — belum beres, menyangkut iklan berbayar
+`CLAUDE.md` di root mencatat bahwa **foto contoh resep `p21`–`p66` berasal dari slide Instagram akun lain**
+(watermark sudah dipotong, tapi sumbernya tetap karya orang lain dan beberapa menampilkan figur publik).
+
+Halaman iklan ikut memakainya. Dari 18 foto `pNN` yang tampil di `/promo`, **16 masuk rentang itu**:
+
+```
+galeri "Paling laris"   p21 p23 p24 p27 p29 p33 p36 p39 p65
+"Hasil dari resep kami" p37 p51 p52 p56 p66
+"Cocok untuk siapa"     p44 p60
+aman (di luar rentang)  p16 p17
+```
+
+Di dalam app berbayar risikonya sudah ada; di **iklan Meta berbayar** risikonya lebih besar, karena:
+- jangkauannya publik dan berbayar, jadi jauh lebih mudah ditemukan pemilik aslinya;
+- memakai wajah figur publik di materi iklan bisa kena kebijakan Meta dan berujung akun iklan ditangguhkan.
+
+**Sebelum iklan dijalankan**, ganti keenam belas foto itu: generate ulang lewat Admin → AI Gemini → tes generate,
+simpan hasilnya, lalu sinkronkan ke `landing/img/` dan bangun ulang `/promo`. 13 gambar `rtl*` (dari upload member
+sendiri) dan pasangan hero `rb*`/`ra*` tidak termasuk masalah ini.
+
 ## Isi halaman
 `#top` hero (6 pasang before/after, slider banding, frame **iPhone 17** berisi alur 3 langkah) → `#masalah` banner
 masalah → "Kenapa ResepFoto" (5 ikon + anotasi tulisan tangan) → `#cara` demo 3 langkah → `#galeri` 14 best seller
@@ -203,10 +224,11 @@ dilampirkan sebagai file atau lewat Drive.
 - Semua desain dibangun sebagai CSS/SVG editable, bukan gambar tempel.
 
 ## Yang masih terbuka
-1. Setelan Mayar (lihat di atas) — menunggu pemilik repo.
-2. File gambar latar biru untuk CTA penutup; slot `img/bg-final.*` sudah siap.
-3. Label "Satisfaction Guarantee" masih bahasa Inggris — belum diputuskan mau diindonesiakan atau tidak.
-4. FAQ "Ini aplikasi atau apa?" masih memakai frasa "resep prompt siap tempel" — belum diseragamkan jadi "siap pake".
-5. `landing/index.html` versi lama menunggu keputusan untuk dihapus.
-6. Auto-WhatsApp setelah pembayaran (Fonnte/Wablas/Watzap atau Meta Cloud API) — sudah ditawarkan, belum diputuskan.
-7. Pindah dari `mail()` ke SMTP (mis. Brevo, gratis 300/hari) kalau email ternyata masuk spam.
+1. **Ganti 16 foto `p21`–`p66` di halaman iklan** sebelum iklan berbayar jalan — lihat bagian hak cipta di atas.
+2. Setelan Mayar (lihat di atas) — menunggu pemilik repo.
+3. File gambar latar biru untuk CTA penutup; slot `img/bg-final.*` sudah siap.
+4. Label "Satisfaction Guarantee" masih bahasa Inggris — belum diputuskan mau diindonesiakan atau tidak.
+5. FAQ "Ini aplikasi atau apa?" masih memakai frasa "resep prompt siap tempel" — belum diseragamkan jadi "siap pake".
+6. `landing/index.html` versi lama menunggu keputusan untuk dihapus.
+7. Auto-WhatsApp setelah pembayaran (Fonnte/Wablas/Watzap atau Meta Cloud API) — sudah ditawarkan, belum diputuskan.
+8. Pindah dari `mail()` ke SMTP (mis. Brevo, gratis 300/hari) kalau email ternyata masuk spam.

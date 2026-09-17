@@ -24,11 +24,12 @@ app/            ← yang di-deploy ke document root website
   admin-cover.js    tab Cover (foto/teks halaman login)   [admin & super]
   webhook-mayar.php webhook pembayaran Mayar
   terima-kasih.html halaman sesudah bayar
+  img/          foto contoh resep bawaan (p01…p66.jpg, 4:5) — ikut ter-deploy
   promo/        HALAMAN IKLAN — dibangkitkan, JANGAN diedit tangan (lihat landing/CLAUDE.md)
   .htaccess     blokir file sensitif, paksa HTTPS, header keamanan, cache
   .autodeploy   penanda warisan; skrip deploy sekarang tidak mengeceknya, tapi jangan dihapus
   config.example.php  template config (config.php asli TIDAK di repo)
-  data/         seed-prompts.json, seed-en.json (database .sqlite TIDAK di repo)
+  data/         seed-prompts.json, seed-en.json, pack2-prompts.json (database .sqlite TIDAK di repo)
   uploads/      hanya .htaccess (file upload TIDAK di repo)
 brand/          logo, ikon, og-image
 landing/        SUMBER DESAIN halaman iklan (mockup.html) + build-promo.mjs + img/ → baca landing/CLAUDE.md
@@ -103,9 +104,13 @@ Tanpa token cocok, pesanan tetap tercatat tapi hanya `notifyAdmin()` yang jalan 
   cats, armDelete, imgSrc, applyCover`). Tab admin baru: `APP.addAdminTab({id, label, onShow, superOnly})` →
   mengembalikan panel; event `rf:admin-render` dipancarkan tiap render admin.
 - **i18n:** kamus ID & EN di `index.html` (`t(key, vars)`), markup pakai `data-i18n`, `data-i18n-ph`, `data-i18n-aria`.
-  Resep punya kolom `_en` (cat/title/descr/tips); kalau kosong tampil versi ID.
+  Resep punya kolom `_en` (cat/title/descr/tips); kalau kosong tampil versi ID. Kategori diambil dinamis dari
+  data (`cats()`); nama Inggrisnya dari `cat_en` tiap resep, dengan cadangan peta `CAT_EN`. Saat ini 9:
+  Foto Jadul, Jalan-jalan, Keluarga, Momen Spesial, Profesional, Tren Viral, Editorial, Gaya Jalanan,
+  Kartun & Ilustrasi.
 - **Gambar:** semua upload divalidasi `getimagesize` lalu **di-encode ulang via GD** (resep 4:5 960×1200, avatar 1:1
-  400×400, tes maks 1600px). Path disimpan relatif `uploads/xxx.jpg`. Hapus lewat `delUpload()`.
+  400×400, tes maks 1600px). Path disimpan relatif `uploads/xxx.jpg`. Hapus lewat `delUpload()`. Foto contoh bawaan ada di `app/img/`
+  (`img/pNN.jpg`, ikut repo); `imgSrc()` hanya menerima pola `^(img|uploads)/[\w.-]+$`.
 - **AI (Gemini):** `ai.php`. Model teks `gemini-3.8-flash` (default, bisa diganti di setting), model gambar
   `gemini-3.1-flash-image`. Fungsi: `recipeFromLink()` (share link Gemini/ChatGPT + url_context),
   `recipeFromUpload()`, `recipeFromImagePrompt()` (OCR prompt dari screenshot), `generateTestImage()`. Error
@@ -118,6 +123,15 @@ Kolom penting `members`: `username, name, code_hash, code_hint, plan, expires, a
 Kunci `settings`: `admin_hash, admin_avatar, admin_email, mail_from, mayar_webhook_token, auto_without_token,
 gemini_api_key, gemini_model, gemini_image_model, cover_title, cover_sub, cover_title_en, cover_sub_en, cover_chip,
 cover_img1..3`.
+
+**Menambah resep massal — paket resep.** `seed-prompts.json` hanya jalan saat tabel `prompts` masih kosong, jadi
+database yang sudah dipakai tidak bisa diisi lewat situ. Gunakan **paket resep**: file `data/pack*-prompts.json`
+berformat `{"version": "...", "prompts": [...]}` yang diimpor sekali oleh `importPromptPacks()` di `lib.php`.
+Daftarkan nama filenya di konstanta `PROMPT_PACKS`, simpan gambar contohnya di `app/img/`, lalu push ke `main`.
+Impornya `INSERT OR IGNORE` (resep yang sudah diedit admin tidak tertimpa), dibungkus transaksi + `try/catch`,
+`ord` menyambung dari `MAX(ord)`, dan ditandai selesai lewat kunci `pack_<version>` di tabel `settings`.
+Ganti `version` kalau paket yang sama perlu diimpor ulang. Resep baru memakai `created_at` saat impor, jadi member
+paket **Standard** yang mendaftar sebelum itu tidak otomatis melihatnya.
 
 ## Endpoint `api.php?a=…` (auth)
 | Level | Endpoint |
@@ -205,7 +219,12 @@ di `/root/.claude/uploads/`.
 - Pindah pengiriman email dari `mail()` bawaan PHP ke SMTP (mis. Brevo) kalau ternyata masuk spam.
 - Cover login: dukung video/animasi ringan; pratinjau langsung di tab Cover.
 - Halaman panduan pembeli (PDF/HTML) yang bisa diunduh dari panel admin.
-- Ekspor/impor resep (JSON) untuk backup & migrasi.
+- **Ganti foto contoh resep p21–p66.** Foto itu berasal dari slide Instagram akun lain (watermark sudah dipotong,
+  tapi sumbernya tetap karya orang lain dan beberapa menampilkan figur publik). Sebelum produk dijual, generate
+  ulang lewat tab AI Gemini → tes generate, lalu ganti gambarnya per resep dari panel admin.
+  **Ini juga menyangkut halaman iklan** — lihat `landing/CLAUDE.md`.
+- Ekspor/impor resep lewat panel admin (impor massal sudah ada lewat paket resep di `data/pack*-prompts.json`,
+  tapi belum ada UI-nya).
 - Tes otomatis Playwright di CI (GitHub Actions) sebelum deploy. Repo ini **belum punya CI sama sekali**.
 
 ## Checklist serah-terima ke pembeli
