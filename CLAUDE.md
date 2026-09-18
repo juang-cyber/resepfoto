@@ -159,8 +159,11 @@ otomatis berisiko dianggap spam sekaligus membakar kuota Fonnte. Pengaman server
 jeda minimal 24 jam, penanda ditulis sebelum pengiriman (kolom `orders.reminded_at`, `orders.reminder_count`).
 
 **Voucher — panel ini TIDAK memotong harga.** Kuponnya milik Mayar; potongan dihitung dan divalidasi di halaman
-pembayaran Mayar lewat parameter `?coupon=KODE` pada link. Tabel `vouchers` hanya katalog + bahan pembuat link,
-sehingga menghapus baris di panel **tidak** mematikan kupon di Mayar. Aturan yang harus dipegang:
+pembayaran Mayar lewat parameter `?coupon=KODE` pada link. Tabel `vouchers` berisi **sembilan template tingkat
+diskon** (10%..90%, satu baris per persen, di-seed otomatis di `db()` dari konstanta `VOUCHER_TIERS`) yang tinggal
+diisi kodenya dari panel — bukan daftar bebas. Kuncinya `pct`, bukan `code`; satu kode hanya boleh menempel di satu
+tingkat. `voucher_delete` **mengosongkan** kode sebuah tingkat, templatenya sendiri tidak pernah dihapus.
+Mengosongkan kode di panel **tidak** mematikan kupon di Mayar. Aturan yang harus dipegang:
 - Setiap kode dibuat **dua kali**: di Mayar (Diskon dan Kupon; tipe persentase, reusable, **wajib** isi batas
   pemakaian dan tanggal kedaluwarsa) lalu dicatat di panel.
 - Mematikan kampanye juga **dua langkah**: nonaktifkan di panel DAN di Mayar.

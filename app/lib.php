@@ -7,6 +7,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/config.php';
 
 const PLAN_LIFETIME = ['Standard', 'Premium', 'Lifetime'];
+/** Tingkat diskon yang tersedia sebagai template voucher. */
+const VOUCHER_TIERS = [10, 20, 30, 40, 50, 60, 70, 80, 90];
 const PLAN_ALL = ['Standard', 'Premium', 'Lifetime', 'Bulanan', 'Tahunan'];
 // Paket resep tambahan di data/ — diimpor sekali per versi (lihat importPromptPacks()).
 const PROMPT_PACKS = ['pack2-prompts.json'];
@@ -51,11 +53,30 @@ function db(): PDO {
   // dan file gambarnya sengaja TIDAK ikut dihapus sampai sampahnya benar-benar dikosongkan.
   $pdo->exec('CREATE TABLE IF NOT EXISTS prompts_trash (id TEXT PRIMARY KEY, data TEXT, deleted_at TEXT, deleted_by TEXT)');
   $pdo->exec('CREATE TABLE IF NOT EXISTS ad_spend (day TEXT, campaign TEXT, amount INTEGER, note TEXT, PRIMARY KEY (day, campaign))');
-  // Katalog kode voucher. CATATAN PENTING: tabel ini TIDAK memotong harga apa pun.
-  // Potongan dihitung dan divalidasi oleh Mayar lewat parameter ?coupon= pada link
-  // pembayaran. Baris di sini hanya catatan + bahan pembuat link, sehingga menghapus
-  // baris di sini TIDAK mematikan kupon di Mayar.
-  $pdo->exec('CREATE TABLE IF NOT EXISTS vouchers (code TEXT PRIMARY KEY, pct INTEGER, note TEXT, active INTEGER DEFAULT 1, created_at TEXT)');
+  // Sembilan TEMPLATE tingkat diskon (10%..90%), satu baris per persen. Pemilik tinggal
+  // mengisi kodenya dari panel, tidak perlu membuat baris baru.
+  // CATATAN PENTING: tabel ini TIDAK memotong harga apa pun. Potongan dihitung dan
+  // divalidasi Mayar lewat parameter ?coupon= pada link pembayaran, sehingga mengosongkan
+  // kode di sini TIDAK mematikan kupon di Mayar.
+  $vinfo = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='vouchers'")->fetchAll();
+  if ($vinfo) {
+    $pkCode = false;
+    foreach ($pdo->query('PRAGMA table_info(vouchers)')->fetchAll() as $c) {
+      if ($c['name'] === 'code' && (int)$c['pk'] === 1) $pkCode = true;
+    }
+    if ($pkCode) $pdo->exec('ALTER TABLE vouchers RENAME TO vouchers_lama');   // bentuk lama: satu baris per kode
+  }
+  $pdo->exec('CREATE TABLE IF NOT EXISTS vouchers (pct INTEGER PRIMARY KEY, code TEXT DEFAULT \'\', note TEXT DEFAULT \'\', active INTEGER DEFAULT 0, updated_at TEXT)');
+  $benih = $pdo->prepare("INSERT OR IGNORE INTO vouchers (pct, code, note, active, updated_at) VALUES (?, '', '', 0, ?)");
+  foreach (VOUCHER_TIERS as $tp) $benih->execute([$tp, gmdate('c')]);
+  // pindahkan kode dari bentuk lama, satu kode per tingkat
+  if ($pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='vouchers_lama'")->fetchAll()) {
+    $pindah = $pdo->prepare('UPDATE vouchers SET code = ?, note = ?, active = ? WHERE pct = ? AND code = \'\'');
+    foreach ($pdo->query('SELECT * FROM vouchers_lama ORDER BY created_at') as $v) {
+      if (in_array((int)$v['pct'], VOUCHER_TIERS, true)) $pindah->execute([$v['code'], $v['note'], (int)$v['active'], (int)$v['pct']]);
+    }
+    $pdo->exec('DROP TABLE vouchers_lama');
+  }
   // migrasi kolom baru
   $cols = array_column($pdo->query('PRAGMA table_info(prompts)')->fetchAll(), 'name');
   if (!in_array('created_at', $cols, true)) {
@@ -391,10 +412,12 @@ function publicOrder(array $o): array {
     'note' => $o['note'], 'createdAt' => $o['created_at'], 'updatedAt' => $o['updated_at'],
     'reminderCount' => (int)($o['reminder_count'] ?? 0), 'remindedAt' => (string)($o['reminded_at'] ?? '')];
 }
-/** Satu baris voucher untuk panel admin. */
+/** Satu template tingkat voucher untuk panel admin. */
 function publicVoucher(array $v): array {
-  return ['code' => $v['code'], 'pct' => (int)$v['pct'], 'note' => (string)($v['note'] ?? ''),
-    'active' => (bool)$v['active'], 'createdAt' => (string)($v['created_at'] ?? '')];
+  $code = (string)($v['code'] ?? '');
+  return ['pct' => (int)$v['pct'], 'code' => $code, 'note' => (string)($v['note'] ?? ''),
+    'active' => (bool)$v['active'] && $code !== '', 'filled' => $code !== '',
+    'updatedAt' => (string)($v['updated_at'] ?? '')];
 }
 function updateOrder(string $id, array $fields): void {
   $fields['updated_at'] = gmdate('c');
