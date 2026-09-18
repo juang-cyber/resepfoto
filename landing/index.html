@@ -703,9 +703,11 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
         <ul class="checks">
           <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Akses web selamanya</li>
           <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Koleksi resep saat pembelian</li>
-          <li class="lim"><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Best seller <small>&mdash; 7 resep</small></li>
-          <li class="lim"><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Tren viral <small>&mdash; 5 resep</small></li>
+          <li class="lim"><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Resep best seller <small>&mdash; terbatas</small></li>
+          <li class="lim"><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Resep tren viral <small>&mdash; terbatas</small></li>
           <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Tips &amp; panduan tiap resep</li>
+          <li class="no"><span class="ck"><svg class="ico"><use href="#i-x"/></svg></span>Semua akses best seller</li>
+          <li class="no"><span class="ck"><svg class="ico"><use href="#i-x"/></svg></span>Semua tren viral</li>
           <li class="no"><span class="ck"><svg class="ico"><use href="#i-x"/></svg></span>Update resep baru</li>
         </ul>
         <button class="btn btn-main btn-block" data-buy="standard">Ambil Standard</button>
@@ -716,12 +718,12 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
         <div class="plan-top"><div class="plan-name">Premium</div><span class="ribbon">Paling laris</span></div>
         <div class="price"><span class="rp">Rp</span><span class="num" data-count="79900">79.900</span><span class="per">/ sekali bayar</span></div>
         <div class="was"><s>Rp 299.000</s><span class="off">Hemat 73%</span></div>
-        <p class="plan-desc">Semua 250 resep + setiap resep baru &amp; tren viral, selamanya.</p>
+        <p class="plan-desc">Semua resep &mdash; 250 sekarang, menuju 1000+. Setiap tambahan ikut, selamanya.</p>
         <ul class="checks">
           <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Akses web selamanya</li>
-          <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Semua 250 resep yang sudah ada</li>
-          <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Semua best seller</li>
-          <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Semua tren viral, termasuk yang baru</li>
+          <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Semua resep &mdash; 250 sekarang, menuju 1000+</li>
+          <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Semua akses best seller</li>
+          <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Semua tren viral &mdash; yang terbaru otomatis masuk</li>
           <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Update resep baru rutin</li>
           <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Tips &amp; panduan tiap resep</li>
         </ul>
@@ -1197,7 +1199,14 @@ function countPrice(el){
   const tick = now => { const t = Math.min(1, (now - start) / 600); n.textContent = Math.round(to * (1 - Math.pow(1 - t, 3)) / 1000 * 1000).toLocaleString("id-ID"); if (t < 1) requestAnimationFrame(tick); };
   requestAnimationFrame(tick);
 }
-function animateRoad(){ const r = $("#road"); r.style.width = "0"; requestAnimationFrame(() => requestAnimationFrame(() => r.style.width = "10%")); }
+/* Bar kemajuan koleksi. Penanda di bawahnya dibagi rata dengan space-between, jadi skalanya
+   BUKAN linear. Hasil ukur render nyata (390px dan 520px): tengah penanda "250" ada di 42-45%,
+   "500" di ~68%, "1000+" di ~94%. ROAD_PCT disetel supaya ujung bar berhenti TEPAT di penanda
+   jumlah resep saat ini -- jangan dinaikkan melewati itu, karena bar yang berhenti di celah
+   kosong sesudah "250" terbaca seolah koleksinya sudah lewat 250.
+   Kalau koleksi mencapai 500, ganti ke 68. */
+const ROAD_PCT = 45;
+function animateRoad(){ const r = $("#road"); r.style.width = "0"; requestAnimationFrame(() => requestAnimationFrame(() => r.style.width = ROAD_PCT + "%")); }
 $("#switch").addEventListener("click", e => { const b = e.target.closest("[data-plan]"); if (b) setPlan(b.dataset.plan, true); });
 document.addEventListener("click", e => { const g = e.target.closest("[data-goplan]"); if (g){ setPlan(g.dataset.goplan, true); $("#harga").scrollIntoView({behavior: reduce ? "auto" : "smooth"}); } });
 new IntersectionObserver(([e]) => { if (e.isIntersecting && plan === "premium") animateRoad(); }, {threshold: .4}).observe($("#plan-premium"));
