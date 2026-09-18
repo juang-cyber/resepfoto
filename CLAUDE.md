@@ -241,6 +241,13 @@ halaman — pembayaran terjadi di domain Mayar; itu perlu Conversions API dari `
    pesan error baru di peta `tr()`.
 6. Tab admin baru: buat `admin-xxx.js` mengikuti pola yang ada, daftarkan `<script src="admin-xxx.js?v=1" defer>` di
    akhir `index.html`, pakai `superOnly:true` bila khusus super admin.
+   **Atribut `data-*` yang SUDAH DIPESAN aplikasi** — jangan dipakai di tab baru, karena ada penangkap klik
+   tingkat-dokumen di `index.html` yang menyambarnya lebih dulu: `data-open` (membuka detail resep, index.html:1500),
+   `data-cat`, `data-close`, `data-fav`, `data-go`, `data-tab`, `data-tool`, `data-lang`, `data-theme-set`,
+   `data-qc`, `data-rs`, `data-edit-prompt`, `data-edit-member`, `data-del-prompt`.
+   Pernah terjadi: tab Voucher memakai `data-open` untuk tombol "Isi kode", dan menekannya justru membuka halaman
+   detail resep — tombolnya seolah rusak padahal handler-nya benar. Beri awalan nama tab pada atribut sendiri
+   (mis. `data-vou-save`) supaya tidak mungkin bentrok.
 7. Setelah mengubah `index.html`, jalankan cek sintaks skrip inline — file ini besar dan mudah salah kurung.
 8. Perubahan UI: pertahankan gaya yang ada (radius besar, `var(--accent)`, pill, sheet bawah). Cek di lebar 390px dan
    mode gelap.
