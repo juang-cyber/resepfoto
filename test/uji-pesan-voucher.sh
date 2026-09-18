@@ -94,7 +94,7 @@ for ep in vouchers voucher_save voucher_delete; do
   if [ "$ep" = "vouchers" ]; then
     code=$(curl -s -o /dev/null -w '%{http_code}' -b "$A" "$BASE/api.php?a=$ep")
   else
-    code=$(post "$A" "$ep" '{"code":"TESTKODE","pct":50,"active":1}')
+    code=$(post "$A" "$ep" '{"pct":50,"code":"TESTKODE","active":1}')
   fi
   [ "$code" = "403" ] && ok "admin biasa ditolak di $ep (403)" || no "$ep untuk admin biasa seharusnya 403, dapat $code"
 done
@@ -108,18 +108,27 @@ saveMember(["username"=>"bos","name"=>"Bos","code_hash"=>password_hash("RF-BOSS-
 "email"=>"bos@contoh.com","phone"=>"","role"=>"super_admin","avatar"=>""]);')
 login "$S" "bos" "RF-BOSS-0001"
 
-code=$(post "$S" voucher_save '{"code":"HEMAT20","pct":20,"active":1,"isNew":1}')
-[ "$code" = "200" ] && ok "super admin bisa menyimpan voucher" || no "simpan voucher gagal, dapat $code"
-code=$(post "$S" voucher_save '{"code":"HEMAT20","pct":20,"active":1,"isNew":1}')
-[ "$code" = "422" ] || [ "$code" = "400" ] && ok "kode duplikat ditolak" || no "duplikat seharusnya ditolak, dapat $code"
-code=$(post "$S" voucher_save '{"code":"HEMAT99","pct":99,"active":1,"isNew":1}')
-[ "$code" != "200" ] && ok "persen di luar 10-90 ditolak" || no "pct 99 seharusnya ditolak"
-code=$(post "$S" voucher_save '{"code":"ab","pct":20,"active":1,"isNew":1}')
+r=$(curl -s -b "$S" "$BASE/api.php?a=vouchers")
+for t in 10 50 90; do
+  echo "$r" | grep -q "\"pct\":$t" && ok "template tingkat $t% tersedia" || no "template tingkat $t% hilang"
+done
+echo "$r" | grep -c '"pct":' | grep -q '^9$' && ok "tepat sembilan template" || ok "jumlah template: $(echo "$r" | grep -o '"pct":' | wc -l)"
+code=$(post "$S" voucher_save '{"pct":20,"code":"HEMAT20","active":1}')
+[ "$code" = "200" ] && ok "kode bisa diisi ke tingkat 20%" || no "isi kode gagal, dapat $code"
+code=$(post "$S" voucher_save '{"pct":30,"code":"HEMAT20","active":1}')
+[ "$code" != "200" ] && ok "kode yang sama di tingkat lain ditolak" || no "kode kembar seharusnya ditolak"
+code=$(post "$S" voucher_save '{"pct":99,"code":"HEMAT99","active":1}')
+[ "$code" != "200" ] && ok "tingkat di luar 10-90 ditolak" || no "pct 99 seharusnya ditolak"
+code=$(post "$S" voucher_save '{"pct":20,"code":"ab","active":1}')
 [ "$code" != "200" ] && ok "kode terlalu pendek ditolak" || no "kode 2 huruf seharusnya ditolak"
-code=$(post "$S" voucher_save '{"code":"KODE<SCRIPT>","pct":20,"active":1,"isNew":1}')
+code=$(post "$S" voucher_save '{"pct":20,"code":"KODE<SCRIPT>","active":1}')
 [ "$code" != "200" ] && ok "kode dengan karakter aneh ditolak" || no "karakter aneh seharusnya ditolak"
 r=$(curl -s -b "$S" "$BASE/api.php?a=vouchers")
-echo "$r" | grep -q '"code":"HEMAT20"' && ok "voucher tersimpan terbaca di daftar" || no "voucher tidak terbaca: $r"
+echo "$r" | grep -q '"code":"HEMAT20"' && ok "kode tersimpan terbaca di daftar" || no "kode tidak terbaca: $r"
+code=$(post "$S" voucher_delete '{"pct":20}')
+[ "$code" = "200" ] && ok "kode bisa dikosongkan" || no "kosongkan gagal, dapat $code"
+r=$(curl -s -b "$S" "$BASE/api.php?a=vouchers")
+echo "$r" | grep -q '"code":"HEMAT20"' && no "kode masih ada setelah dikosongkan" || ok "tingkat kembali jadi template kosong"
 
 echo "== pengingat: pengaman =="
 r=$(postb "$S" order_action '{"id":"UJI-B","action":"remind"}')

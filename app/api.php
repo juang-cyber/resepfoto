@@ -41,7 +41,7 @@ function tr(string $msg): string {
     'Pengingat gagal dikirim lewat email maupun WhatsApp. Cek setelan SMTP dan Fonnte.' => 'The reminder could not be sent by email or WhatsApp. Check the SMTP and Fonnte settings.',
     'Kode voucher harus 5-24 karakter, hanya huruf, angka, dan tanda minus.' => 'A voucher code must be 5-24 characters: letters, digits and hyphens only.',
     'Persentase harus salah satu dari 10 sampai 90.' => 'The percentage must be one of 10 through 90.',
-    'Kode voucher ini sudah ada di daftar.' => 'That voucher code is already in the list.',
+    'Kode itu sudah dipakai untuk tingkat diskon lain.' => 'That code is already used for another discount tier.',
     'Akun ini baru saja dipakai masuk di perangkat lain. Satu akun hanya bisa aktif di satu perangkat.' => 'This account was just signed in on another device. One account can only be active on one device.',
     'Terjadi kesalahan di server. Coba lagi sebentar lagi.' => 'Something went wrong on the server. Please try again shortly.',
     'Terlalu banyak percobaan. Coba lagi 15 menit lagi.' => 'Too many attempts. Try again in 15 minutes.',
@@ -282,7 +282,7 @@ try {
   switch ($a) {
     case 'me': {
       $who = currentUser();
-      $res = ['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => $who, 'cover' => coverConfig(), 'v' => 'admin-19'];
+      $res = ['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => $who, 'cover' => coverConfig(), 'v' => 'admin-20'];
       if (!$who && !empty($GLOBALS['rf_session_taken'])) $res['sessionTaken'] = true;
       out($res);
     }
@@ -1182,32 +1182,38 @@ try {
      */
     case 'vouchers': {
       requireSuperAdmin();
-      $rows = db()->query('SELECT * FROM vouchers ORDER BY active DESC, pct DESC, code')->fetchAll();
-      out(['ok' => true, 'vouchers' => array_map('publicVoucher', $rows)]);
+      $rows = db()->query('SELECT * FROM vouchers ORDER BY pct')->fetchAll();
+      out(['ok' => true, 'vouchers' => array_map('publicVoucher', $rows), 'tiers' => VOUCHER_TIERS]);
     }
 
     case 'voucher_save': {
       requireSuperAdmin();
       $in = input();
-      $code = strtoupper(str($in, 'code', 24));
-      if (!preg_match('/^[A-Z0-9-]{5,24}$/', $code)) fail('Kode voucher harus 5-24 karakter, hanya huruf, angka, dan tanda minus.');
       $pct = (int)($in['pct'] ?? 0);
-      if (!in_array($pct, [10, 20, 30, 40, 50, 60, 70, 80, 90], true)) fail('Persentase harus salah satu dari 10 sampai 90.');
-      $q = db()->prepare('SELECT created_at FROM vouchers WHERE code = ?'); $q->execute([$code]);
-      $dibuat = (string)($q->fetchColumn() ?: '');
-      if (!empty($in['isNew']) && $dibuat !== '') fail('Kode voucher ini sudah ada di daftar.');
-      db()->prepare('INSERT OR REPLACE INTO vouchers (code, pct, note, active, created_at) VALUES (?,?,?,?,?)')
-        ->execute([$code, $pct, str($in, 'note', 160), !empty($in['active']) ? 1 : 0,
-          $dibuat !== '' ? $dibuat : gmdate('c')]);
-      $st = db()->prepare('SELECT * FROM vouchers WHERE code = ?'); $st->execute([$code]);
+      if (!in_array($pct, VOUCHER_TIERS, true)) fail('Persentase harus salah satu dari 10 sampai 90.');
+      $code = strtoupper(str($in, 'code', 24));
+      // Kode boleh dikosongkan: artinya tingkat ini kembali jadi template kosong.
+      if ($code !== '' && !preg_match('/^[A-Z0-9-]{5,24}$/', $code)) fail('Kode voucher harus 5-24 karakter, hanya huruf, angka, dan tanda minus.');
+      if ($code !== '') {
+        $bentrok = db()->prepare('SELECT pct FROM vouchers WHERE code = ? AND pct <> ?');
+        $bentrok->execute([$code, $pct]);
+        $lain = $bentrok->fetchColumn();
+        if ($lain !== false) fail('Kode itu sudah dipakai untuk tingkat diskon lain.');
+      }
+      db()->prepare('UPDATE vouchers SET code = ?, note = ?, active = ?, updated_at = ? WHERE pct = ?')
+        ->execute([$code, str($in, 'note', 160), ($code !== '' && !empty($in['active'])) ? 1 : 0, gmdate('c'), $pct]);
+      $st = db()->prepare('SELECT * FROM vouchers WHERE pct = ?'); $st->execute([$pct]);
       out(['ok' => true, 'voucher' => publicVoucher($st->fetch())]);
     }
 
     case 'voucher_delete': {
+      // Mengosongkan kode sebuah tingkat. Templatenya sendiri tidak pernah dihapus.
       requireSuperAdmin();
       $in = input();
-      $code = strtoupper(str($in, 'code', 24));
-      db()->prepare('DELETE FROM vouchers WHERE code = ?')->execute([$code]);
+      $pct = (int)($in['pct'] ?? 0);
+      if (!in_array($pct, VOUCHER_TIERS, true)) fail('Persentase harus salah satu dari 10 sampai 90.');
+      db()->prepare("UPDATE vouchers SET code = '', note = '', active = 0, updated_at = ? WHERE pct = ?")
+        ->execute([gmdate('c'), $pct]);
       out(['ok' => true]);
     }
 
