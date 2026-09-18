@@ -52,6 +52,7 @@ cek 'echo strpos(accessMessage($o), "Kak Budi") !== false ? 1 : 0;'             
 cek 'echo strpos(accessHtml($o), "<strong>Kak Budi</strong>") !== false ? 1 : 0;' "HTML: tebal jadi <strong>"
 cek 'echo strpos(accessHtml($o), "<ol") !== false ? 1 : 0;'                      "HTML: daftar bernomor jadi <ol>"
 cek 'echo strpos(accessHtml($o), "<em>") !== false ? 1 : 0;'                     "HTML: miring jadi <em>"
+cek 'echo (strpos(accessHtml($o), "<strong>Detail akun</strong>") !== false && strpos(accessHtml($o), "<ol") !== false) ? 1 : 0;' "HTML: judul + daftar tanpa baris kosong tetap jadi <ol>"
 cek 'echo strpos(accessHtml($o), "brand/email-logo.png") !== false ? 1 : 0;'     "HTML: logo ikut"
 cek 'echo strpos(accessWa($o), $o["code"]) !== false ? 1 : 0;'                   "WA: kode akses terisi"
 cek 'echo strpos(accessWa($o), "{kode}") === false ? 1 : 0;'                     "tidak ada placeholder tersisa"

@@ -498,25 +498,32 @@ function waToHtml(string $s): string {
     $t = preg_replace('/(?<![A-Za-z0-9])_([^_\n]+)_(?![A-Za-z0-9])/u', '<em>$1</em>', $t);
     return preg_replace('/~([^~\n]+)~/u', '<del>$1</del>', $t);
   };
+  // Jenis tiap baris. Satu blok boleh campur: judul lalu daftar, seperti
+  // "*Detail akun*" yang langsung diikuti "1. Website: ..." tanpa baris kosong.
+  $jenis = function (string $b): string {
+    if (preg_match('/^\d+[.)]\s+/', $b)) return 'ol';
+    if (preg_match('/^[-\x{2022}]\s+/u', $b)) return 'ul';
+    return 'p';
+  };
   $out = '';
   foreach (preg_split("/\n[ \t]*\n/", str_replace("\r\n", "\n", $s)) as $blok) {
     $baris = array_values(array_filter(array_map('rtrim', explode("\n", $blok)), function ($x) { return $x !== ''; }));
     if (!$baris) continue;
-    $nomor = true; $titik = true;
-    foreach ($baris as $b) {
-      if (!preg_match('/^\d+[.)]\s+/', $b)) $nomor = false;
-      if (!preg_match('/^[-\x{2022}]\s+/u', $b)) $titik = false;
-    }
-    if ($nomor || $titik) {
-      $tag = $nomor ? 'ol' : 'ul';
-      $out .= '<' . $tag . ' style="margin:0 0 16px;padding-left:22px;color:#44506A;line-height:1.6">';
-      foreach ($baris as $b) {
-        $isi = preg_replace($nomor ? '/^\d+[.)]\s+/' : '/^[-\x{2022}]\s+/u', '', $b);
+    $i = 0; $n = count($baris);
+    while ($i < $n) {
+      $j = $jenis($baris[$i]);
+      $grup = [];
+      while ($i < $n && $jenis($baris[$i]) === $j) { $grup[] = $baris[$i]; $i++; }
+      if ($j === 'p') {
+        $out .= '<p style="margin:0 0 14px;color:#44506A;line-height:1.6">' . implode('<br>', array_map($inline, $grup)) . '</p>';
+        continue;
+      }
+      $out .= '<' . $j . ' style="margin:0 0 16px;padding-left:22px;color:#44506A;line-height:1.7">';
+      foreach ($grup as $b) {
+        $isi = preg_replace($j === 'ol' ? '/^\d+[.)]\s+/' : '/^[-\x{2022}]\s+/u', '', $b);
         $out .= '<li style="margin:0 0 6px">' . $inline($isi) . '</li>';
       }
-      $out .= '</' . $tag . '>';
-    } else {
-      $out .= '<p style="margin:0 0 16px;color:#44506A;line-height:1.6">' . implode('<br>', array_map($inline, $baris)) . '</p>';
+      $out .= '</' . $j . '>';
     }
   }
   return $out;
