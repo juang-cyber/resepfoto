@@ -402,6 +402,12 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
 .sum{margin-top:16px;padding:14px;border-radius:16px;background:var(--bg);display:grid;gap:6px;font-size:13.5px}
 .sum div{display:flex;justify-content:space-between}
 .sum .tot{font-weight:800;font-size:16px;padding-top:6px;border-top:1px dashed var(--line)}
+.checks li.lim .ck{background:#FFF1D6;color:#B07D00}
+.checks li.lim small{color:var(--muted);font-weight:600}
+.vs-table td.part{color:#B07D00;font-weight:700}
+.anchor{margin:14px 0 0;padding:12px 14px;border-radius:14px;background:var(--tint);border:1px solid var(--line);
+  text-align:center;font-size:14px;font-weight:800;color:var(--blue-d);line-height:1.5}
+.anchor small{display:block;font-weight:600;font-size:12px;color:var(--muted);margin-top:3px}
 .pays{display:flex;gap:6px;margin-top:14px;flex-wrap:wrap}
 .pays span{font-size:12px;font-weight:700;padding:6px 10px;border-radius:99px;background:var(--tint);color:var(--blue-d)}
 .vou{margin-top:14px}
@@ -693,13 +699,14 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
         <div class="plan-top"><div class="plan-name">Standard</div><span class="ribbon calm">Hemat</span></div>
         <div class="price"><span class="rp">Rp</span><span class="num" data-count="49900">49.900</span><span class="per">/ sekali bayar</span></div>
         <div class="was"><s>Rp 150.000</s><span class="off">Hemat 67%</span></div>
-        <p class="plan-desc">Semua resep yang tersedia saat kamu beli, akses selamanya.</p>
+        <p class="plan-desc">100 resep pilihan, akses selamanya.</p>
         <ul class="checks">
           <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Akses web selamanya</li>
           <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Koleksi resep saat pembelian</li>
-          <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Tips & panduan tiap resep</li>
+          <li class="lim"><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Best seller <small>&mdash; 7 resep</small></li>
+          <li class="lim"><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Tren viral <small>&mdash; 5 resep</small></li>
+          <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Tips &amp; panduan tiap resep</li>
           <li class="no"><span class="ck"><svg class="ico"><use href="#i-x"/></svg></span>Update resep baru</li>
-          <li class="no"><span class="ck"><svg class="ico"><use href="#i-x"/></svg></span>Resep tren viral terbaru</li>
         </ul>
         <button class="btn btn-main btn-block" data-buy="standard">Ambil Standard</button>
         <div class="upsell"><svg class="ico" style="color:#B07D00"><use href="#i-gift"/></svg><span>Mau resep baru terus?</span><button data-goplan="premium">Lihat Premium</button></div>
@@ -709,22 +716,25 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
         <div class="plan-top"><div class="plan-name">Premium</div><span class="ribbon">Paling laris</span></div>
         <div class="price"><span class="rp">Rp</span><span class="num" data-count="79900">79.900</span><span class="per">/ sekali bayar</span></div>
         <div class="was"><s>Rp 299.000</s><span class="off">Hemat 73%</span></div>
-        <p class="plan-desc">Semua resep + update resep baru & tren viral, selamanya.</p>
+        <p class="plan-desc">Semua 250 resep + setiap resep baru &amp; tren viral, selamanya.</p>
         <ul class="checks">
           <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Akses web selamanya</li>
-          <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Semua resep yang sudah ada</li>
+          <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Semua 250 resep yang sudah ada</li>
+          <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Semua best seller</li>
+          <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Semua tren viral, termasuk yang baru</li>
           <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Update resep baru rutin</li>
-          <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Resep tren viral terbaru</li>
-          <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Tips & panduan tiap resep</li>
+          <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Tips &amp; panduan tiap resep</li>
         </ul>
         <div class="roadmap">
           <div class="rt"><span>Koleksi terus bertambah</span><span>Target 1000+ resep</span></div>
           <div class="track2"><i id="road"></i></div>
-          <div class="miles"><span>Sekarang 100</span><span>100</span><span>500</span><span>1000+</span></div>
+          <div class="miles"><span>Sekarang 250</span><span>250</span><span>500</span><span>1000+</span></div>
         </div>
         <button class="btn btn-main btn-block" data-buy="premium">Ambil Premium</button>
       </article>
     </div>
+    <p class="anchor">Beda Rp 30.000, dapat ratusan resep lebih banyak.
+      <small>Standard 100 resep &middot; Premium 250 resep dan terus bertambah</small></p>
     <p class="honest"><svg class="ico"><use href="#i-info"/></svg>Bayar aman via Mayar (QRIS, transfer bank, e-wallet). Akses dikirim ke email setelah pembayaran.</p>
 
     <details class="vs">
@@ -734,11 +744,14 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
           <thead><tr><th></th><th>Standard</th><th>Premium</th></tr></thead>
           <tbody>
             <tr><td>Harga</td><td><s>Rp 150.000</s>Rp 49.900</td><td><s>Rp 299.000</s>Rp 79.900</td></tr>
+            <tr><td>Jumlah resep</td><td class="part">100 pilihan</td><td class="yes">250 &amp; bertambah</td></tr>
+            <tr><td>Harga per resep</td><td class="part">Rp 499</td><td class="yes">Rp 320</td></tr>
+            <tr><td>Tren viral</td><td class="part">5 resep</td><td class="yes">Semua &amp; yang baru</td></tr>
+            <tr><td>Best seller</td><td class="part">7 resep</td><td class="yes">Semua</td></tr>
+            <tr><td>Update resep baru</td><td class="nope">–</td><td class="yes">✓</td></tr>
             <tr><td>Akses</td><td class="yes">Selamanya</td><td class="yes">Selamanya</td></tr>
             <tr><td>Resep saat beli</td><td class="yes">✓</td><td class="yes">✓</td></tr>
-            <tr><td>Update resep baru</td><td class="nope">–</td><td class="yes">✓</td></tr>
-            <tr><td>Tren viral terbaru</td><td class="nope">–</td><td class="yes">✓</td></tr>
-            <tr><td>Tips & panduan</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+            <tr><td>Tips &amp; panduan</td><td class="yes">✓</td><td class="yes">✓</td></tr>
           </tbody>
         </table>
       </div>
@@ -792,7 +805,7 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
       <details><summary>Wajahku bakal berubah?<span class="pm"><svg class="ico" style="width:15px;height:15px"><use href="#i-plus"/></svg></span></summary><p>Setiap resep sudah berisi perintah menjaga wajah asli. Pakai foto yang jelas dan terang supaya hasilnya paling mirip.</p></details>
       <details><summary>Bisa dipakai di HP?<span class="pm"><svg class="ico" style="width:15px;height:15px"><use href="#i-plus"/></svg></span></summary><p>Bisa. Semua resep dibuka lewat browser HP, tinggal tekan tombol salin.</p></details>
       <details><summary>Setelah bayar, aksesnya gimana?<span class="pm"><svg class="ico" style="width:15px;height:15px"><use href="#i-plus"/></svg></span></summary><p>Pilih paket, bayar lewat halaman pembayaran Mayar (QRIS, transfer bank, atau e-wallet). Setelah lunas, username dan kode akses otomatis dikirim ke email yang kamu isi.</p></details>
-      <details><summary>Apa beda Standard dan Premium?<span class="pm"><svg class="ico" style="width:15px;height:15px"><use href="#i-plus"/></svg></span></summary><p>Standard berisi resep yang tersedia saat kamu beli. Premium mendapat semua update resep baru dan tren viral, dengan koleksi yang terus bertambah menuju 1000+ resep.</p></details>
+      <details><summary>Apa beda Standard dan Premium?<span class="pm"><svg class="ico" style="width:15px;height:15px"><use href="#i-plus"/></svg></span></summary><p>Standard berisi 100 resep pilihan yang dikunci saat kamu beli &mdash; koleksinya tetap, termasuk 7 best seller dan 5 tren viral. Premium membuka semua 250 resep, dan setiap resep baru serta tren viral berikutnya otomatis ikut masuk, menuju target 1000+ resep.</p></details>
       <details><summary>Ini aplikasi atau apa?<span class="pm"><svg class="ico" style="width:15px;height:15px"><use href="#i-plus"/></svg></span></summary><p>ResepFoto adalah kumpulan resep prompt siap tempel. Kamu salin resepnya, tempel di Gemini atau ChatGPT bersama fotomu, lalu fotonya dibuat di sana.</p></details>
     </div>
   </section>
@@ -818,7 +831,7 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
   <div class="grab"></div>
   <h3 id="co-title">Pilih paket kamu</h3>
   <p class="lead" style="margin-top:4px;font-size:14px">Kamu akan diarahkan ke halaman pembayaran aman Mayar. Isi nama, email, dan nomor HP di sana.</p>
-  <label class="opt"><input type="radio" name="plan" value="standard" id="co-standard"><span class="grow"><strong>Standard</strong><small>Resep saat beli · akses selamanya</small></span><span class="p"><s>Rp 150.000</s>Rp 49.900</span></label>
+  <label class="opt"><input type="radio" name="plan" value="standard" id="co-standard"><span class="grow"><strong>Standard</strong><small>100 resep pilihan · akses selamanya</small></span><span class="p"><s>Rp 150.000</s>Rp 49.900</span></label>
   <label class="opt"><input type="radio" name="plan" value="premium" id="co-premium" checked><span class="grow"><strong>Premium</strong><small>+ update resep & tren viral</small></span><span class="p"><s>Rp 299.000</s>Rp 79.900</span></label>
  <div class="pays"><span>QRIS</span><span>Transfer bank</span><span>E-wallet</span></div>
   <div class="vou">

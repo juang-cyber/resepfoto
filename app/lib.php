@@ -9,6 +9,10 @@ require_once __DIR__ . '/config.php';
 const PLAN_LIFETIME = ['Standard', 'Premium', 'Lifetime'];
 /** Tingkat diskon yang tersedia sebagai template voucher. */
 const VOUCHER_TIERS = [10, 20, 30, 40, 50, 60, 70, 80, 90];
+/** Jumlah resep yang didapat pembeli Standard BARU. Member lama tidak terpotong. */
+const STANDARD_CAP = 100;
+/** Komposisi jatah Standard baru: [best seller, Tren Viral]. Sisanya resep reguler. */
+const STANDARD_MIX = [7, 5];
 const PLAN_ALL = ['Standard', 'Premium', 'Lifetime', 'Bulanan', 'Tahunan'];
 // Paket resep tambahan di data/ — diimpor sekali per versi (lihat importPromptPacks()).
 const PROMPT_PACKS = ['pack2-prompts.json'];
@@ -94,6 +98,12 @@ function db(): PDO {
   if (!in_array('role', $mcols, true)) $pdo->exec("ALTER TABLE members ADD COLUMN role TEXT DEFAULT 'member'");
   if (!in_array('avatar', $mcols, true)) $pdo->exec('ALTER TABLE members ADD COLUMN avatar TEXT');
   if (!in_array('session_token', $mcols, true)) $pdo->exec('ALTER TABLE members ADD COLUMN session_token TEXT');
+  // Batas jumlah resep untuk member Standard. Sengaja dibiarkan NULL pada member yang
+  // sudah ada saat kolom ini dibuat, supaya akses mereka tidak berkurang.
+  if (!in_array('plan_cap', $mcols, true)) $pdo->exec('ALTER TABLE members ADD COLUMN plan_cap INTEGER');
+  // Daftar id resep yang dibekukan untuk member Standard saat dia mendaftar (JSON).
+  // NULL = member lama / Premium: tidak ada daftar beku, pakai aturan dinamis.
+  if (!in_array('allow_ids', $mcols, true)) $pdo->exec('ALTER TABLE members ADD COLUMN allow_ids TEXT');
   $ocols = array_column($pdo->query('PRAGMA table_info(orders)')->fetchAll(), 'name');
   if (!in_array('wa_sent', $ocols, true)) $pdo->exec('ALTER TABLE orders ADD COLUMN wa_sent INTEGER DEFAULT 0');
   if (!in_array('reminded_at', $ocols, true)) $pdo->exec('ALTER TABLE orders ADD COLUMN reminded_at TEXT');
@@ -282,9 +292,51 @@ function today(): string { return (new DateTime('now', new DateTimeZone('Asia/Ja
 const VIRAL_CAT = 'Tren Viral';
 
 /** Jatah per paket: [best seller, Tren Viral, regular]. -1 berarti semuanya. */
-function planQuota(string $plan): ?array {
-  $q = ['Trial' => [3, 1, 6], 'Standard' => [10, 10, -1]];
+/**
+ * Jatah katalog per paket: [best seller, Tren Viral, reguler]. -1 = semua.
+ * $cap = batas TOTAL resep untuk member Standard. Diisi dari kolom members.plan_cap:
+ *   - null  -> member Standard lama, aturan sebelumnya (semua resep reguler)
+ *   - angka -> pembeli baru, totalnya dibatasi persis segitu
+ * Pembedanya dengan Premium tetap sama: Premium bebas, termasuk semua Tren Viral
+ * dan semua resep yang ditambahkan kemudian.
+ */
+function planQuota(string $plan, ?int $cap = null): ?array {
+  if ($plan === 'Standard') {
+    if ($cap === null) return [10, 10, -1];                       // member lama: aturan sebelumnya
+    list($nPop, $nVir) = STANDARD_MIX;
+    return [$nPop, $nVir, max(0, $cap - $nPop - $nVir)];          // sisanya resep reguler
+  }
+  $q = ['Trial' => [3, 1, 6]];
   return isset($q[$plan]) ? $q[$plan] : null;         // null = paket bebas (Premium dsb.)
+}
+
+/**
+ * Bekukan jatah resep untuk pembeli Standard BARU, dihitung sekali saat dia mendaftar.
+ *
+ * - best seller & Tren Viral: diambil dari resep yang PALING BARU diunggah saat itu,
+ *   supaya pembeli baru mendapat yang sedang hangat.
+ * - reguler: diacak.
+ * - hasilnya disimpan di members.allow_ids dan TIDAK PERNAH dihitung ulang, sehingga
+ *   koleksinya tetap seumur hidup: tidak bertambah, dan yang sudah dimiliki tidak hilang.
+ *   Resep baru -- termasuk tren viral baru -- hanya mengalir ke Premium.
+ */
+function freezeStandardIds(int $cap): array {
+  list($nPop, $nVir) = STANDARD_MIX;
+  $nPop = max(0, (int)$nPop); $nVir = max(0, (int)$nVir);
+  $pdo = db();
+  $pop = $pdo->query('SELECT id FROM prompts WHERE popular = 1 ORDER BY created_at DESC, ord DESC LIMIT ' . $nPop)
+    ->fetchAll(PDO::FETCH_COLUMN);
+  $st = $pdo->prepare('SELECT id FROM prompts WHERE popular = 0 AND cat = ? ORDER BY created_at DESC, ord DESC LIMIT ' . $nVir);
+  $st->execute([VIRAL_CAT]);
+  $vir = $st->fetchAll(PDO::FETCH_COLUMN);
+  $sisa = max(0, $cap - count($pop) - count($vir));
+  $reg = [];
+  if ($sisa > 0) {
+    $st = $pdo->prepare('SELECT id FROM prompts WHERE popular = 0 AND cat <> ? ORDER BY RANDOM() LIMIT ' . $sisa);
+    $st->execute([VIRAL_CAT]);
+    $reg = $st->fetchAll(PDO::FETCH_COLUMN);
+  }
+  return array_values(array_unique(array_merge($pop, $vir, $reg)));
 }
 
 /**
@@ -306,8 +358,10 @@ function pickStable(array $ids, int $n, string $seed): array {
  * Ember-nya saling lepas dan best seller menang: resep yang popular DAN Tren Viral
  * dihitung sebagai best seller, tidak dua kali.
  */
-function allowedPromptIds(array $rows, string $plan, string $seed): ?array {
-  $q = planQuota($plan);
+function allowedPromptIds(array $rows, string $plan, string $seed, ?int $cap = null, ?array $fixed = null): ?array {
+  // Daftar beku menang atas apa pun: inilah koleksi yang dikunci saat member mendaftar.
+  if ($fixed !== null) return array_fill_keys($fixed, true);
+  $q = planQuota($plan, $cap);
   if ($q === null) return null;
   list($nPop, $nVir, $nReg) = $q;
   $pop = $vir = $reg = [];
@@ -316,10 +370,16 @@ function allowedPromptIds(array $rows, string $plan, string $seed): ?array {
     elseif ((string)$r['cat'] === VIRAL_CAT) $vir[] = $r['id'];
     else $reg[] = $r['id'];
   }
+  // Untuk Standard berbatas, jatah reguler diambil menurut URUTAN KURASI, bukan diacak.
+  // Kalau diacak per member, setiap resep baru ikut diundi ulang dan bisa MENGGESER resep
+  // yang sudah dimiliki member -- akses yang kemarin ada, besok hilang. Dengan urutan
+  // kurasi, resep baru selalu ber-ord lebih besar sehingga tidak pernah menggeser apa pun:
+  // koleksi Standard tetap, dan resep baru mengalir ke Premium saja.
+  $seedReg = ($plan === 'Standard' && $cap !== null) ? '' : $seed;
   $take = array_merge(
     pickStable($pop, $nPop, ''),                               // best seller: urutan kurasi
     pickStable($vir, $nVir, $nVir === 1 ? $seed : ''),         // jatah 1 (Trial) diacak per member
-    $nReg < 0 ? $reg : pickStable($reg, $nReg, $seed)
+    $nReg < 0 ? $reg : pickStable($reg, $nReg, $seedReg)
   );
   return array_fill_keys($take, true);
 }
@@ -334,6 +394,8 @@ function publicMember(array $m): array {
     'active' => (bool)$m['active'], 'codeHint' => $m['code_hint'], 'status' => memberStatus($m),
     'email' => $m['email'] ?? '', 'phone' => $m['phone'] ?? '', 'role' => $m['role'] ?? 'member',
     'avatar' => $m['avatar'] ?? '',
+    'planCap' => isset($m['plan_cap']) && $m['plan_cap'] !== null ? (int)$m['plan_cap'] : null,
+    'allowIds' => isset($m['allow_ids']) && $m['allow_ids'] !== null ? (json_decode((string)$m['allow_ids'], true) ?: []) : null,
     'createdAt' => $m['created_at'], 'lastLogin' => $m['last_login']];
 }
 function findMember(string $username): ?array {
@@ -352,10 +414,27 @@ function saveMember(array $m, ?PDO $pdo = null): void {
     $q->execute([$m['username']]);
     $tok = (string)($q->fetchColumn() ?: '');
   }
-  $pdo->prepare('INSERT OR REPLACE INTO members (username, name, code_hash, code_hint, plan, expires, active, created_at, last_login, email, phone, role, avatar, session_token)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)')->execute([
+  $lama = null;
+  if (!array_key_exists('plan_cap', $m) || !array_key_exists('allow_ids', $m)) {
+    $q2 = $pdo->prepare('SELECT plan_cap, allow_ids FROM members WHERE username = ?');
+    $q2->execute([$m['username']]);
+    $lama = $q2->fetch() ?: null;
+  }
+  if (array_key_exists('plan_cap', $m)) {
+    $cap = $m['plan_cap'] === null ? null : (int)$m['plan_cap'];
+  } else {
+    $v = $lama ? $lama['plan_cap'] : null;
+    $cap = ($v === null) ? null : (int)$v;
+  }
+  if (array_key_exists('allow_ids', $m)) {
+    $ids = is_array($m['allow_ids']) ? json_encode(array_values($m['allow_ids'])) : ($m['allow_ids'] === null ? null : (string)$m['allow_ids']);
+  } else {
+    $ids = $lama ? $lama['allow_ids'] : null;
+  }
+  $pdo->prepare('INSERT OR REPLACE INTO members (username, name, code_hash, code_hint, plan, expires, active, created_at, last_login, email, phone, role, avatar, session_token, plan_cap, allow_ids)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')->execute([
     $m['username'], $m['name'], $m['code_hash'], $m['code_hint'], $m['plan'], $m['expires'] ?? '', (int)$m['active'],
-    $m['created_at'], $m['last_login'] ?? null, $m['email'] ?? '', $m['phone'] ?? '', $m['role'] ?? 'member', $m['avatar'] ?? '', $tok]);
+    $m['created_at'], $m['last_login'] ?? null, $m['email'] ?? '', $m['phone'] ?? '', $m['role'] ?? 'member', $m['avatar'] ?? '', $tok, $cap, $ids]);
 }
 /** Token sesi acak. Dipakai saat login, dan saat sengaja memutus semua sesi lama. */
 function newSessionToken(): string { return bin2hex(random_bytes(16)); }
@@ -439,7 +518,7 @@ function fulfillOrder(string $id, bool $sendEmail = true): array {
   }
   if ($existing) {
     $m = $existing;
-    if ($plan === 'Premium') $m['plan'] = 'Premium';
+    if ($plan === 'Premium') { $m['plan'] = 'Premium'; $m['plan_cap'] = null; $m['allow_ids'] = null; }   // naik paket -> batas & daftar beku dilepas
     $m['active'] = 1; $m['expires'] = in_array($m['plan'], PLAN_LIFETIME, true) ? '' : $m['expires'];
     $m['code_hash'] = password_hash($code, PASSWORD_DEFAULT); $m['code_hint'] = substr($code, -4);
     $m['session_token'] = newSessionToken(); // kode baru -> token diganti, semua perangkat lama terputus
@@ -450,7 +529,9 @@ function fulfillOrder(string $id, bool $sendEmail = true): array {
     $username = usernameFromEmail((string)$o['email'], (string)$o['name']);
     saveMember(['username' => $username, 'name' => $o['name'] ?: $username, 'code_hash' => password_hash($code, PASSWORD_DEFAULT),
       'code_hint' => substr($code, -4), 'plan' => $plan, 'expires' => '', 'active' => 1, 'created_at' => gmdate('c'),
-      'last_login' => null, 'email' => $o['email'], 'phone' => $o['phone'], 'session_token' => newSessionToken()]);
+      'last_login' => null, 'email' => $o['email'], 'phone' => $o['phone'], 'session_token' => newSessionToken(),
+      'plan_cap' => $plan === 'Standard' ? STANDARD_CAP : null,
+      'allow_ids' => $plan === 'Standard' ? freezeStandardIds(STANDARD_CAP) : null]);
   }
   updateOrder($id, ['state' => 'aktif', 'username' => $username, 'code' => $code]);
   if ($sendEmail) { sendAccessEmail($id); sendAccessWa($id); }
