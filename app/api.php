@@ -34,6 +34,7 @@ function tr(string $msg): string {
     'Isi username dan kode akses dulu.' => 'Enter your username and access code first.',
     'Kode akses admin salah.' => 'Wrong admin access code.',
     'Sesi berakhir. Silakan masuk lagi.' => 'Your session has ended. Please sign in again.',
+    'Akun ini baru saja dipakai masuk di perangkat lain. Satu akun hanya bisa aktif di satu perangkat.' => 'This account was just signed in on another device. One account can only be active on one device.',
     'Terjadi kesalahan di server. Coba lagi sebentar lagi.' => 'Something went wrong on the server. Please try again shortly.',
     'Terlalu banyak percobaan. Coba lagi 15 menit lagi.' => 'Too many attempts. Try again in 15 minutes.',
     'Username atau kode akses tidak cocok. Cek lagi pesan konfirmasi pembelianmu.' => 'Username or access code doesn\'t match. Check your purchase confirmation again.',
@@ -90,12 +91,26 @@ function currentUser(): ?array {
   $st->execute([$s['username']]);
   $m = $st->fetch();
   if (!$m || memberStatus($m) !== 'ok') { unset($_SESSION['user']); return null; }
+  // Satu sesi aktif per akun. Token tidak cocok = akun ini baru dipakai masuk di
+  // perangkat lain, jadi sesi ini diputus.
+  $tok = (string)($m['session_token'] ?? '');
+  if ($tok !== '' && !hash_equals($tok, (string)($s['stok'] ?? ''))) {
+    unset($_SESSION['user']);
+    $GLOBALS['rf_session_taken'] = true;
+    return null;
+  }
   $mrole = $m['role'] ?? 'member';
   $pub = publicMember($m);
   if ($mrole === 'admin' || $mrole === 'super_admin') return ['role' => 'admin', 'adminRole' => $mrole] + $pub;
   return ['role' => 'member', 'adminRole' => ''] + $pub;
 }
-function requireUser(): array { $u = currentUser(); if (!$u) fail('Sesi berakhir. Silakan masuk lagi.', 401); return $u; }
+function requireUser(): array {
+  $u = currentUser();
+  if (!$u) fail(!empty($GLOBALS['rf_session_taken'])
+    ? 'Akun ini baru saja dipakai masuk di perangkat lain. Satu akun hanya bisa aktif di satu perangkat.'
+    : 'Sesi berakhir. Silakan masuk lagi.', 401);
+  return $u;
+}
 function requireAdmin(): array { $u = requireUser(); if ($u['role'] !== 'admin') fail('Khusus admin.', 403); return $u; }
 function requireSuperAdmin(): array { $u = requireUser(); if (($u['adminRole'] ?? '') !== 'super_admin') fail('Khusus super admin.', 403); return $u; }
 function coverConfig(): array {
@@ -254,8 +269,12 @@ if ($method === 'POST' && !in_array($a, ['lt'], true) && !hash_equals($_SESSION[
 
 try {
   switch ($a) {
-    case 'me':
-      out(['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => currentUser(), 'cover' => coverConfig(), 'v' => 'admin-16']);
+    case 'me': {
+      $who = currentUser();
+      $res = ['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => $who, 'cover' => coverConfig(), 'v' => 'admin-17'];
+      if (!$who && !empty($GLOBALS['rf_session_taken'])) $res['sessionTaken'] = true;
+      out($res);
+    }
 
     case 'cover_save': {
       requireAdmin();
@@ -280,25 +299,31 @@ try {
       $st = $pdo->prepare('SELECT COUNT(*) FROM attempts WHERE ip = ?'); $st->execute([$ip]);
       if ((int)$st->fetchColumn() >= 10) fail('Terlalu banyak percobaan. Coba lagi 15 menit lagi.', 429);
       if ($user === '' || $code === '') fail('Isi username dan kode akses dulu.');
-      $ok = false; $role = 'member';
+      $ok = false; $role = 'member'; $stok = '';
       if ($user === strtolower(ADMIN_USER)) {
         $ok = password_verify($code, setting('admin_hash') ?: ADMIN_HASH); $role = 'admin';
         if (!$ok) { $pdo->prepare('INSERT INTO attempts VALUES (?,?)')->execute([$ip, time()]); fail('Kode akses admin salah.'); }
       } else {
-        $st = $pdo->prepare('SELECT * FROM members WHERE username = ?'); $st->execute([$user]);
+        // Boleh masuk pakai alamat email atau username. Member baru usernamenya memang email,
+        // member lama tetap bisa memakai username lamanya.
+        $st = $pdo->prepare("SELECT * FROM members WHERE username = ? OR (email IS NOT NULL AND lower(email) = ?) LIMIT 1");
+        $st->execute([$user, $user]);
         $m = $st->fetch();
         if (!$m || !password_verify(strtoupper($code), $m['code_hash'])) {
           $pdo->prepare('INSERT INTO attempts VALUES (?,?)')->execute([$ip, time()]);
           fail('Username atau kode akses tidak cocok. Cek lagi pesan konfirmasi pembelianmu.');
         }
+        $user = (string)$m['username'];   // sesi selalu menyimpan username asli, bukan yang diketik
         $s = memberStatus($m);
         if ($s === 'off') fail('Akses akun ini sedang nonaktif. Hubungi admin untuk mengaktifkan lagi.');
         if ($s === 'expired') fail('Akses kamu sudah berakhir. Perpanjang paket untuk lanjut.');
-        $pdo->prepare('UPDATE members SET last_login = ? WHERE username = ?')->execute([gmdate('c'), $user]);
+        // Satu sesi aktif per akun: token baru membuat perangkat lain otomatis keluar.
+        $stok = bin2hex(random_bytes(16));
+        $pdo->prepare('UPDATE members SET last_login = ?, session_token = ? WHERE username = ?')->execute([gmdate('c'), $stok, $user]);
         $pdo->prepare('INSERT INTO events (ts, username, type, prompt_id) VALUES (?,?,?,?)')->execute([gmdate('c'), $user, 'login', null]);
       }
       session_regenerate_id(true);
-      $_SESSION['user'] = ['role' => $role, 'username' => $user];
+      $_SESSION['user'] = ['role' => $role, 'username' => $user, 'stok' => $stok];
       out(['ok' => true, 'user' => currentUser()]);
     }
 
@@ -534,6 +559,7 @@ try {
         'created_at' => $old['created_at'] ?? gmdate('c'), 'last_login' => $old['last_login'] ?? null,
         'email' => str($in, 'email', 120) ?: ($old['email'] ?? ''), 'phone' => $old['phone'] ?? '', 'role' => $role,
         'avatar' => $old['avatar'] ?? ''], $pdo);
+      if ($newCode) $pdo->prepare('UPDATE members SET session_token = NULL WHERE username = ?')->execute([$username]);
       $st->execute([$username]);
       $p = publicMember($st->fetch()); $p['builtin'] = false; $p['self'] = false;
       out(['ok' => true, 'admin' => $p, 'code' => $newCode]);
@@ -591,6 +617,8 @@ try {
         'expires' => $expires, 'active' => !empty($in['active']) ? 1 : 0, 'created_at' => $old['created_at'] ?? gmdate('c'),
         'last_login' => $old['last_login'] ?? null, 'email' => $email !== '' ? $email : ($old['email'] ?? ''),
         'phone' => str($in, 'phone', 30) ?: ($old['phone'] ?? ''), 'role' => 'member', 'avatar' => $avatar], $pdo);
+      // kode akses diganti admin -> semua perangkat yang masih masuk harus keluar
+      if ($newCode) $pdo->prepare('UPDATE members SET session_token = NULL WHERE username = ?')->execute([$username]);
       $st->execute([$username]);
       out(['ok' => true, 'member' => publicMember($st->fetch()), 'code' => $newCode]);
     }
