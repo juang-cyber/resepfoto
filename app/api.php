@@ -93,8 +93,11 @@ function currentUser(): ?array {
   if (!$m || memberStatus($m) !== 'ok') { unset($_SESSION['user']); return null; }
   // Satu sesi aktif per akun. Token tidak cocok = akun ini baru dipakai masuk di
   // perangkat lain, jadi sesi ini diputus.
+  // Bandingkan SELALU. Kalau token di database dikosongkan/diganti, sesi lama otomatis
+  // tidak cocok lagi -> terputus. Member lama yang belum pernah login sejak fitur ini
+  // terpasang punya token kosong DAN sesi tanpa stok, jadi keduanya kosong dan tetap masuk.
   $tok = (string)($m['session_token'] ?? '');
-  if ($tok !== '' && !hash_equals($tok, (string)($s['stok'] ?? ''))) {
+  if (!hash_equals($tok, (string)($s['stok'] ?? ''))) {
     unset($_SESSION['user']);
     $GLOBALS['rf_session_taken'] = true;
     return null;
@@ -559,7 +562,7 @@ try {
         'created_at' => $old['created_at'] ?? gmdate('c'), 'last_login' => $old['last_login'] ?? null,
         'email' => str($in, 'email', 120) ?: ($old['email'] ?? ''), 'phone' => $old['phone'] ?? '', 'role' => $role,
         'avatar' => $old['avatar'] ?? ''], $pdo);
-      if ($newCode) $pdo->prepare('UPDATE members SET session_token = NULL WHERE username = ?')->execute([$username]);
+      if ($newCode) $pdo->prepare('UPDATE members SET session_token = ? WHERE username = ?')->execute([newSessionToken(), $username]);
       $st->execute([$username]);
       $p = publicMember($st->fetch()); $p['builtin'] = false; $p['self'] = false;
       out(['ok' => true, 'admin' => $p, 'code' => $newCode]);
@@ -618,7 +621,7 @@ try {
         'last_login' => $old['last_login'] ?? null, 'email' => $email !== '' ? $email : ($old['email'] ?? ''),
         'phone' => str($in, 'phone', 30) ?: ($old['phone'] ?? ''), 'role' => 'member', 'avatar' => $avatar], $pdo);
       // kode akses diganti admin -> semua perangkat yang masih masuk harus keluar
-      if ($newCode) $pdo->prepare('UPDATE members SET session_token = NULL WHERE username = ?')->execute([$username]);
+      if ($newCode) $pdo->prepare('UPDATE members SET session_token = ? WHERE username = ?')->execute([newSessionToken(), $username]);
       $st->execute([$username]);
       out(['ok' => true, 'member' => publicMember($st->fetch()), 'code' => $newCode]);
     }

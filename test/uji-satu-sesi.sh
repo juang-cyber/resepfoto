@@ -5,7 +5,8 @@
 set -u
 R="$(cd "$(dirname "$0")/.." && pwd)"
 T="$(mktemp -d "${TMPDIR:-/tmp}/rf-uji.XXXXXX")"
-PORT="${PORT:-8390}"
+# Cari port kosong sendiri supaya tidak tabrakan dengan sisa proses uji sebelumnya.
+PORT="${PORT:-$(php -r '$s=@stream_socket_server("tcp://127.0.0.1:0",$e,$m); if(!$s){echo 8390; exit;} $n=stream_socket_get_name($s,false); fclose($s); echo (int)substr(strrchr($n,":"),1);')}"
 BASE="http://127.0.0.1:$PORT"
 pass=0; fail=0
 ok(){ printf '  OK    %s\n' "$1"; pass=$((pass+1)); }

@@ -327,6 +327,8 @@ function saveMember(array $m, ?PDO $pdo = null): void {
     $m['username'], $m['name'], $m['code_hash'], $m['code_hint'], $m['plan'], $m['expires'] ?? '', (int)$m['active'],
     $m['created_at'], $m['last_login'] ?? null, $m['email'] ?? '', $m['phone'] ?? '', $m['role'] ?? 'member', $m['avatar'] ?? '', $tok]);
 }
+/** Token sesi acak. Dipakai saat login, dan saat sengaja memutus semua sesi lama. */
+function newSessionToken(): string { return bin2hex(random_bytes(16)); }
 function genCode(): string {
   $a = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; $n = '23456789'; $s = 'RF-';
   for ($i = 0; $i < 4; $i++) $s .= $a[random_int(0, strlen($a) - 1)];
@@ -402,7 +404,7 @@ function fulfillOrder(string $id, bool $sendEmail = true): array {
     if ($plan === 'Premium') $m['plan'] = 'Premium';
     $m['active'] = 1; $m['expires'] = in_array($m['plan'], PLAN_LIFETIME, true) ? '' : $m['expires'];
     $m['code_hash'] = password_hash($code, PASSWORD_DEFAULT); $m['code_hint'] = substr($code, -4);
-    $m['session_token'] = ''; // kode akses baru -> perangkat lama harus masuk ulang
+    $m['session_token'] = newSessionToken(); // kode baru -> token diganti, semua perangkat lama terputus
     if (!$m['phone'] && $o['phone']) $m['phone'] = $o['phone'];
     saveMember($m);
     $username = $m['username'];
@@ -410,7 +412,7 @@ function fulfillOrder(string $id, bool $sendEmail = true): array {
     $username = usernameFromEmail((string)$o['email'], (string)$o['name']);
     saveMember(['username' => $username, 'name' => $o['name'] ?: $username, 'code_hash' => password_hash($code, PASSWORD_DEFAULT),
       'code_hint' => substr($code, -4), 'plan' => $plan, 'expires' => '', 'active' => 1, 'created_at' => gmdate('c'),
-      'last_login' => null, 'email' => $o['email'], 'phone' => $o['phone'], 'session_token' => '']);
+      'last_login' => null, 'email' => $o['email'], 'phone' => $o['phone'], 'session_token' => newSessionToken()]);
   }
   updateOrder($id, ['state' => 'aktif', 'username' => $username, 'code' => $code]);
   if ($sendEmail) { sendAccessEmail($id); sendAccessWa($id); }
