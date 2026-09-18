@@ -4,7 +4,7 @@
 > Terakhir diperbarui: 17 September 2026.
 
 ## Ringkasan sepuluh detik
-Desain dirawat di **`landing/mockup.html`**. Halaman yang tayang di **`resepfoto.oziera.co.id/promo`** tidak diedit
+Desain dirawat di **`landing/mockup.html`**. Halaman yang tayang di **`resepfoto.kitlab.id/promo`** tidak diedit
 langsung — ia **dibangkitkan** dari mockup oleh `landing/build-promo.mjs`. Jadi alurnya selalu:
 
 ```
@@ -156,7 +156,7 @@ event/pengunjung/hari.
 
 Link iklan Meta:
 ```
-https://resepfoto.oziera.co.id/promo?utm_source=facebook&utm_medium=paid&utm_campaign=NAMA&utm_content={{ad.name}}
+https://resepfoto.kitlab.id/promo?utm_source=facebook&utm_medium=paid&utm_campaign=NAMA&utm_content={{ad.name}}
 ```
 
 ### Meta Pixel
@@ -187,7 +187,7 @@ kalau produk atau harga diganti:
 1. Harga produk: Standard `49900`, Premium `79900`.
 2. **Nama produk wajib memuat kata "Standard" / "Premium"** — mis. `ResepFoto Standard`, `ResepFoto Premium`.
    Slug URL tidak dibaca.
-3. Webhook → `https://resepfoto.oziera.co.id/webhook-mayar.php`.
+3. Webhook → `https://resepfoto.kitlab.id/webhook-mayar.php`.
 4. Webhook Token dari Mayar → tempel di **Admin → Pesanan**. Tanpa token, pesanan masuk tapi tidak aktif otomatis.
 
 **KOREKSI PENTING — jangan diulangi.** Ambang `Rp 90.000` di `planFromProduct()` (`app/lib.php`) **bukan masalah**
@@ -208,7 +208,7 @@ Sudah dibuktikan dengan uji lokal (lihat bagian Pengujian). Tidak ada perubahan 
 2. Cek `CHECKOUT` & `PLANS` cocok dengan produk di Mayar, termasuk **nama produknya**.
 3. Webhook Mayar terdaftar dan Webhook Token sudah diisi di Admin → Pesanan.
 4. Commit & push ke `main`; tunggu ±5 menit, halaman tayang di `/promo`.
-   Verifikasi: `curl -sI https://resepfoto.oziera.co.id/promo/`.
+   Verifikasi: `curl -sI https://resepfoto.kitlab.id/promo/`.
 5. Tes: buka `/promo?utm_source=test&utm_campaign=cek`, klik CTA & checkout, pastikan angkanya muncul di
    **Admin → Iklan**. Pelacakan jalan di kedua mode. Di build `--live`, klik checkout juga membuat kartu
    "Seseorang memasukkan Paket … ke keranjang" muncul di kunjungan berikutnya — itu peristiwamu sendiri, bukan
@@ -245,7 +245,7 @@ mengerjakannya:
 
 | Host | Akibatnya |
 |---|---|
-| `resepfoto.oziera.co.id` | Tidak bisa membaca database/katalog live. Data harus dikirim pemilik repo sebagai lampiran file |
+| `resepfoto.kitlab.id` | Tidak bisa membaca database/katalog live. Data harus dikirim pemilik repo sebagai lampiran file |
 | `kitlab.myr.id`, `mayar.id`, `web.mayar.id` | Tidak bisa menyetel produk/webhook Mayar sama sekali |
 | `ik.imagekit.io` | Tidak bisa melihat label CONTOH |
 

@@ -5,8 +5,8 @@ Resep prompt foto siap salin untuk Gemini & ChatGPT.
 ## Struktur
 | Folder | Isi | Online? |
 |---|---|---|
-| `app/` | Aplikasi member + admin (PHP 7.4+ & SQLite), webhook Mayar, halaman terima kasih | Ya, auto-deploy ke resepfoto.oziera.co.id |
-| `landing/index.html` | **Halaman iklan.** Dibangkitkan oleh `landing/build-promo.mjs` — jangan diedit langsung | Ya, auto-deploy ke resepfoto.oziera.co.id/promo |
+| `app/` | Aplikasi member + admin (PHP 7.4+ & SQLite), webhook Mayar, halaman terima kasih | Ya, auto-deploy ke resepfoto.kitlab.id |
+| `landing/index.html` | **Halaman iklan.** Dibangkitkan oleh `landing/build-promo.mjs` — jangan diedit langsung | Ya, auto-deploy ke resepfoto.kitlab.id/promo |
 | `landing/mockup.html` | **Sumber desain** halaman iklan, sekaligus versi presentasi (pembayaran nonaktif, berlabel CONTOH) | Tidak untuk publik, tidak ikut deploy |
 | `landing/build-promo.mjs` | Skrip build halaman iklan (tanpa dependency) | – |
 | `brand/` | Logo, ikon, gambar share + skrip pembuatnya | – |
@@ -16,8 +16,8 @@ Cron di cPanel jalan tiap **5 menit** (perintahnya ada di cPanel → Cron Jobs, 
 yang tinggal jadi referensi versi SSH lama):
 1. `git fetch` + `git reset --hard origin/main` di `~/repositories/resepfoto` (clone HTTPS, repo publik).
 2. Kalau commit berubah **dan** `app/.autodeploy` ada:
-   - isi `app/` disalin ke `~/resepfoto.oziera.co.id/`;
-   - `landing/index.html` + `landing/img/` disalin ke `~/resepfoto.oziera.co.id/promo/`.
+   - isi `app/` disalin ke `~/resepfoto.kitlab.id/`;
+   - `landing/index.html` + `landing/img/` disalin ke `~/resepfoto.kitlab.id/promo/`.
 3. Riwayat deploy: `~/rf-deploy/deploy.log`, keluaran mentah: `~/rf-deploy/cron.log`.
 
 Jadi cukup push ke `main`, website ter-update dalam ±5 menit. Tidak ada password yang disimpan di GitHub.
@@ -49,7 +49,7 @@ selama `TESTIMONIALS` kosong — isi hanya dengan ulasan asli yang sudah diizink
 Link iklan Meta:
 
 ```
-https://resepfoto.oziera.co.id/promo?utm_source=facebook&utm_medium=paid&utm_campaign=NAMA&utm_content={{ad.name}}
+https://resepfoto.kitlab.id/promo?utm_source=facebook&utm_medium=paid&utm_campaign=NAMA&utm_content={{ad.name}}
 ```
 
 ## Pembayaran Mayar
@@ -60,7 +60,7 @@ Setelan di dashboard Mayar (**sudah terpasang 17 Sep 2026** — cek ulang kalau 
 1. Harga produk: Standard `49900`, Premium `79900` — harus sama dengan `PLANS` di `landing/mockup.html`.
 2. **Nama produk wajib memuat kata "Standard" / "Premium"** — nama inilah yang menentukan paket pembeli, bukan
    nominalnya. Slug URL tidak dibaca.
-3. Webhook → `https://resepfoto.oziera.co.id/webhook-mayar.php`, event **Purchase** aktif.
+3. Webhook → `https://resepfoto.kitlab.id/webhook-mayar.php`, event **Purchase** aktif.
 4. Webhook Token dari Mayar → tempel di **Admin → Pesanan**. Tanpa token, pesanan tercatat tapi harus diaktifkan
    manual. Verifikasi: tombol **TEST URL** di Mayar harus menghasilkan baris "token cocok" di Riwayat webhook.
 

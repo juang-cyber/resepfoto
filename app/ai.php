@@ -31,7 +31,7 @@ function httpRequest(string $method, string $url, array $headers = [], ?string $
     curl_setopt_array($ch, [
       CURLOPT_CUSTOMREQUEST => $method, CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => true, CURLOPT_MAXREDIRS => 5,
       CURLOPT_TIMEOUT => $timeout, CURLOPT_CONNECTTIMEOUT => 15, CURLOPT_HTTPHEADER => $h,
-      CURLOPT_USERAGENT => 'Mozilla/5.0 (compatible; ResepFotoBot/1.0; +https://resepfoto.oziera.co.id)',
+      CURLOPT_USERAGENT => 'Mozilla/5.0 (compatible; ResepFotoBot/1.0; +https://resepfoto.kitlab.id)',
       CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS, CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
     ]);
     if ($body !== null) curl_setopt($ch, CURLOPT_POSTFIELDS, $body);

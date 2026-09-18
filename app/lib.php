@@ -324,8 +324,8 @@ function genCode(): string {
   return $s;
 }
 function siteUrl(): string {
-  $host = $_SERVER['HTTP_HOST'] ?? 'resepfoto.oziera.co.id';
-  if (!preg_match('/^[a-z0-9.-]+$/i', $host)) $host = 'resepfoto.oziera.co.id';
+  $host = $_SERVER['HTTP_HOST'] ?? 'resepfoto.kitlab.id';
+  if (!preg_match('/^[a-z0-9.-]+$/i', $host)) $host = 'resepfoto.kitlab.id';
   return 'https://' . $host . '/';
 }
 
@@ -408,8 +408,8 @@ function accessMessage(array $o): string {
 /* ---------- email ---------- */
 /** Alamat pengirim; harus di domain sendiri supaya SPF & DKIM cocok. */
 function mailFrom(): string {
-  $from = setting('mail_from', 'no-reply@oziera.co.id');
-  return filter_var($from, FILTER_VALIDATE_EMAIL) ? $from : 'no-reply@oziera.co.id';
+  $from = setting('mail_from', 'no-reply@kitlab.id');
+  return filter_var($from, FILTER_VALIDATE_EMAIL) ? $from : 'no-reply@kitlab.id';
 }
 function mailSubject(string $s): string { return '=?UTF-8?B?' . base64_encode($s) . '?='; }
 /**
@@ -418,7 +418,7 @@ function mailSubject(string $s): string { return '=?UTF-8?B?' . base64_encode($s
  */
 function mailHeaders(?string $from = null): string {
   $from = $from ?: mailFrom();
-  $domain = ltrim((string)strrchr($from, '@'), '@') ?: 'oziera.co.id';
+  $domain = ltrim((string)strrchr($from, '@'), '@') ?: 'kitlab.id';
   return "From: ResepFoto <$from>\r\n"
     . "Reply-To: $from\r\n"
     . 'Date: ' . date('r') . "\r\n"
@@ -471,7 +471,7 @@ function smtpSend(string $to, string $subject, string $body, string $from): void
     if (strncmp($r, $expect, strlen($expect)) !== 0) throw new RuntimeException('SMTP ' . ($label !== '' ? $label : trim($c)) . ': ' . trim($r));
     return $r;
   };
-  $ehlo = 'resepfoto.oziera.co.id';
+  $ehlo = 'resepfoto.kitlab.id';
   $cmd('', '220', 'sambungan');
   $cmd('EHLO ' . $ehlo, '250');
   if ($secure === 'tls') {

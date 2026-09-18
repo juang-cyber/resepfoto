@@ -3,7 +3,7 @@
 # Mengambil branch main dari GitHub (deploy key) lalu menyalin folder app/ ke document root.
 # config.php, database (data/*.sqlite) dan uploads/ di server tidak pernah disentuh karena tidak ada di repo.
 REPO="$HOME/repositories/resepfoto"
-DOCROOT="$HOME/resepfoto.oziera.co.id"
+DOCROOT="$HOME/resepfoto.kitlab.id"
 LOG="$HOME/rf-deploy/deploy.log"
 export GIT_SSH_COMMAND="ssh -i $HOME/.ssh/rf_github -o IdentitiesOnly=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=yes"
 exec 9>"$HOME/rf-deploy/.lock"; flock -n 9 || exit 0

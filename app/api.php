@@ -255,7 +255,7 @@ if ($method === 'POST' && !in_array($a, ['lt'], true) && !hash_equals($_SESSION[
 try {
   switch ($a) {
     case 'me':
-      out(['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => currentUser(), 'cover' => coverConfig(), 'v' => 'admin-13']);
+      out(['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => currentUser(), 'cover' => coverConfig(), 'v' => 'admin-14']);
 
     case 'cover_save': {
       requireAdmin();
@@ -601,7 +601,7 @@ try {
       $log = db()->query('SELECT ts, ip, event, verified, headers, note FROM webhook_log ORDER BY id DESC LIMIT 15')->fetchAll();
       out(['ok' => true, 'orders' => array_map('publicOrder', $rows), 'log' => $log, 'settings' => [
         'hasToken' => setting('mayar_webhook_token') !== '',
-        'adminEmail' => setting('admin_email'), 'mailFrom' => setting('mail_from', 'no-reply@oziera.co.id'),
+        'adminEmail' => setting('admin_email'), 'mailFrom' => setting('mail_from', 'no-reply@kitlab.id'),
         'webhookUrl' => siteUrl() . 'webhook-mayar.php',
         'autoWithoutToken' => setting('auto_without_token') === '1',
         'smtpHost' => setting('smtp_host'), 'smtpPort' => (int)setting('smtp_port', '587'),
@@ -653,7 +653,7 @@ try {
       if (array_key_exists('mailFrom', $in)) {
         $mf = str($in, 'mailFrom', 120);
         if ($mf !== '' && !filter_var($mf, FILTER_VALIDATE_EMAIL)) fail('Email pengirim tidak valid.');
-        setSetting('mail_from', $mf !== '' ? $mf : 'no-reply@oziera.co.id');
+        setSetting('mail_from', $mf !== '' ? $mf : 'no-reply@kitlab.id');
       }
       if (array_key_exists('autoWithoutToken', $in)) setSetting('auto_without_token', !empty($in['autoWithoutToken']) ? '1' : '0');
       // SMTP opsional — kalau host dikosongkan, pengiriman kembali memakai mail()

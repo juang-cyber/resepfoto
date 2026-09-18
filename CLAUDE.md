@@ -5,7 +5,7 @@
 > Terakhir diperbarui: 17 September 2026.
 
 ## Apa ini
-**ResepFoto** (resepfoto.oziera.co.id) — web app berbayar berisi "resep" prompt foto AI yang disalin member ke
+**ResepFoto** (resepfoto.kitlab.id) — web app berbayar berisi "resep" prompt foto AI yang disalin member ke
 Gemini/ChatGPT bersama foto mereka. Bisnis sampingan Juang Mahmud H (Glass Pro Indonesia) bersama Hendrick Kurnia.
 Tagline: *Imagine Your Photo*. Bilingual ID/EN. **Produk ini akan dijual** — jaga kualitas kode, keamanan, dan jangan
 pernah commit rahasia.
@@ -44,7 +44,7 @@ deploy/         rf-deploy.sh lama (versi SSH) — referensi saja, yang aktif ada
    `node landing/build-promo.mjs` yang menulis ulang `landing/index.html`.
 2. `git add -A && git commit -m "..." && git push` (branch `main`).
 3. Cron di hosting (tiap 5 menit) menarik `origin/main`, dan **hanya jika commit berubah dan `app/.autodeploy` ada**, menyalin `app/.` ke document root **dan** `landing/index.html` + `landing/img/` ke `promo/`. `config.php`, database, `uploads/` tidak pernah tersentuh; `landing/mockup.html` sengaja tidak ikut.
-4. Verifikasi: `curl -s https://resepfoto.oziera.co.id/api.php?a=me` → lihat field `"v"`; landing: `curl -sI https://resepfoto.oziera.co.id/promo/`.
+4. Verifikasi: `curl -s https://resepfoto.kitlab.id/api.php?a=me` → lihat field `"v"`; landing: `curl -sI https://resepfoto.kitlab.id/promo/`.
 
 Perintah cron sebenarnya ada di **cPanel → Cron Jobs**, bukan di `deploy/rf-deploy.sh` (itu sisa versi SSH lama
 yang menyebut 2 menit tanpa guard `.autodeploy` — jangan dipercaya sebagai sumber kebenaran).
@@ -54,7 +54,7 @@ pada `<script src="admin-*.js?v=N">` di `index.html` untuk file JS yang berubah.
 no-cache` lewat `.htaccess`, gambar di-cache 30 hari.
 
 ## Halaman iklan `/promo`
-Tayang di `resepfoto.oziera.co.id/promo`, disajikan dari **`landing/index.html`** yang disalin cron.
+Tayang di `resepfoto.kitlab.id/promo`, disajikan dari **`landing/index.html`** yang disalin cron.
 **Sumber desainnya `landing/mockup.html`** — `landing/index.html` dibangkitkan, jangan diedit tangan:
 
 ```bash
@@ -224,7 +224,7 @@ node -e "const h=require('fs').readFileSync('app/index.html','utf8');for(const b
 Tes Gemini butuh API key sungguhan; `RF_GEMINI_BASE` env bisa mengarahkan ke mock server.
 
 ## Dua jenis sesi Claude Code — jangan tertukar
-- **Sesi remote/cloud** (yang membuat PR #1, #3, #4): `resepfoto.oziera.co.id`, `kitlab.myr.id`, `mayar.id`,
+- **Sesi remote/cloud** (yang membuat PR #1, #3, #4): `resepfoto.kitlab.id`, `kitlab.myr.id`, `mayar.id`,
   `web.mayar.id`, dan `ik.imagekit.io` **tidak bisa dijangkau** (403 pada CONNECT / HTTP 000). Agent di sana tidak bisa
   membaca database live, menyetel Mayar, atau melihat aset ImageKit — minta pemilik repo mengirim data sebagai
   lampiran file. Gambar yang ditempel di chat tidak tersimpan sebagai file; hanya lampiran yang mendarat di

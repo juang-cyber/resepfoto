@@ -81,7 +81,7 @@ function render(){
           [["tls", "STARTTLS (587)"], ["ssl", "SSL langsung (465)"], ["none", "Tanpa enkripsi"]]
             .map(([v, l]) => `<option value="${v}"${s.smtpSecure === v ? " selected" : ""}>${l}</option>`).join("")
         }</select></div>
-        <div class="field"><label for="smtp-user">Pengguna</label><input class="input" id="smtp-user" autocomplete="off" value="${esc(s.smtpUser || "")}" placeholder="no-reply@oziera.co.id"></div>
+        <div class="field"><label for="smtp-user">Pengguna</label><input class="input" id="smtp-user" autocomplete="off" value="${esc(s.smtpUser || "")}" placeholder="no-reply@kitlab.id"></div>
       </div>
       <div class="field"><label for="smtp-pass">Sandi SMTP</label><input class="input" id="smtp-pass" type="password" autocomplete="new-password" placeholder="${s.hasSmtpPass ? "•••••••• (tersimpan, isi untuk mengganti)" : "sandi mailbox"}"></div>
       <div class="field"><label for="mail-to">Kirim email tes ke</label><input class="input" id="mail-to" type="email" placeholder="${esc(s.adminEmail || "kamu@email.com")}"></div>
