@@ -80,8 +80,11 @@ echo "== jatah Standard dibekukan saat mendaftar =="
 require "config.php"; require "lib.php";
 $pdo = db(); $now = gmdate("c");
 $st = $pdo->prepare("INSERT OR IGNORE INTO prompts (id, ord, cat, title, descr, popular, tools, prompt, tips, image, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
-for ($i = 1; $i <= 30; $i++)  $st->execute(["bs$i", 1000 + $i, "Profesional", "BS $i", "", 1, "[]", "p", "", "", "2026-01-" . sprintf("%02d", $i) . "T00:00:00Z", $now]);
-for ($i = 1; $i <= 30; $i++)  $st->execute(["vr$i", 2000 + $i, "Tren Viral", "VR $i", "", 0, "[]", "p", "", "", "2026-02-" . sprintf("%02d", $i) . "T00:00:00Z", $now]);
+// tanggal 2030 supaya fixture ini PASTI lebih baru daripada resep seed,
+// yang created_at-nya adalah waktu impor (hari ini). Kalau tidak, seed yang
+// terpilih sebagai "terakhir diunggah" dan ujinya salah menuduh kode.
+for ($i = 1; $i <= 30; $i++)  $st->execute(["bs$i", 1000 + $i, "Profesional", "BS $i", "", 1, "[]", "p", "", "", "2030-01-" . sprintf("%02d", $i) . "T00:00:00Z", $now]);
+for ($i = 1; $i <= 30; $i++)  $st->execute(["vr$i", 2000 + $i, "Tren Viral", "VR $i", "", 0, "[]", "p", "", "", "2030-02-" . sprintf("%02d", $i) . "T00:00:00Z", $now]);
 for ($i = 1; $i <= 300; $i++) $st->execute(["rg$i", 3000 + $i, "Profesional", "RG $i", "", 0, "[]", "p", "", "", $now, $now]);')
 
 (cd "$T" && php -r '
@@ -135,8 +138,10 @@ echo $ra === $rb ? "sama" : "beda";')
 (cd "$T" && php -r '
 require "config.php"; require "lib.php";
 $now = gmdate("c"); $st = db()->prepare("INSERT OR IGNORE INTO prompts (id, ord, cat, title, descr, popular, tools, prompt, tips, image, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
-for ($i = 1; $i <= 50; $i++) $st->execute(["baruv$i", 40000 + $i, "Tren Viral", "Viral Baru $i", "", 0, "[]", "p", "", "", $now, $now]);
-for ($i = 1; $i <= 50; $i++) $st->execute(["barur$i", 41000 + $i, "Profesional", "Reguler Baru $i", "", 0, "[]", "p", "", "", $now, $now]);')
+// sengaja 2031: lebih baru daripada SEMUA yang ada, jadi kalau daftar beku
+// dihitung ulang, resep-resep ini pasti ikut masuk -- dan ujinya akan gagal.
+for ($i = 1; $i <= 50; $i++) $st->execute(["baruv$i", 40000 + $i, "Tren Viral", "Viral Baru $i", "", 0, "[]", "p", "", "", "2031-01-" . sprintf("%02d", $i % 28 + 1) . "T00:00:00Z", $now]);
+for ($i = 1; $i <= 50; $i++) $st->execute(["barur$i", 41000 + $i, "Profesional", "Reguler Baru $i", "", 0, "[]", "p", "", "", "2031-02-" . sprintf("%02d", $i % 28 + 1) . "T00:00:00Z", $now]);')
 r=$(cd "$T" && php -r '
 require "config.php"; require "lib.php";
 $m = findMember("beku@contoh.com");
