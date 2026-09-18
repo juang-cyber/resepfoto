@@ -336,10 +336,16 @@ function allowedPromptIds(array $rows, string $plan, string $seed, ?int $cap = n
     elseif ((string)$r['cat'] === VIRAL_CAT) $vir[] = $r['id'];
     else $reg[] = $r['id'];
   }
+  // Untuk Standard berbatas, jatah reguler diambil menurut URUTAN KURASI, bukan diacak.
+  // Kalau diacak per member, setiap resep baru ikut diundi ulang dan bisa MENGGESER resep
+  // yang sudah dimiliki member -- akses yang kemarin ada, besok hilang. Dengan urutan
+  // kurasi, resep baru selalu ber-ord lebih besar sehingga tidak pernah menggeser apa pun:
+  // koleksi Standard tetap, dan resep baru mengalir ke Premium saja.
+  $seedReg = ($plan === 'Standard' && $cap !== null) ? '' : $seed;
   $take = array_merge(
     pickStable($pop, $nPop, ''),                               // best seller: urutan kurasi
     pickStable($vir, $nVir, $nVir === 1 ? $seed : ''),         // jatah 1 (Trial) diacak per member
-    $nReg < 0 ? $reg : pickStable($reg, $nReg, $seed)
+    $nReg < 0 ? $reg : pickStable($reg, $nReg, $seedReg)
   );
   return array_fill_keys($take, true);
 }

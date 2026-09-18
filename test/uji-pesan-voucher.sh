@@ -126,6 +126,22 @@ hit(){ (cd "$T" && php -r "require \"config.php\"; require \"lib.php\"; \$rows =
 [ "$(hit 100)" = "100" ] && ok "Standard baru benar-benar membuka 100 resep" || no "seharusnya 100, dapat $(hit 100)"
 [ "$(hit null)" != "100" ] && ok "member lama membuka lebih dari 100 (tidak terpotong)" || no "member lama ikut terbatas 100"
 
+# resep yang sudah dimiliki TIDAK boleh hilang saat katalog bertambah
+(cd "$T" && php -r '
+require "config.php"; require "lib.php";
+$rows = db()->query("SELECT id, popular, cat FROM prompts ORDER BY ord, id")->fetchAll();
+file_put_contents("sebelum.json", json_encode(array_keys(allowedPromptIds($rows, "Standard", "seed", 100))));
+$now = gmdate("c"); $st = db()->prepare("INSERT OR IGNORE INTO prompts (id, ord, cat, title, descr, popular, tools, prompt, tips, image, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
+for ($i = 1; $i <= 120; $i++) $st->execute(["baru$i", 20000 + $i, "Profesional", "Baru $i", "", 0, "[]", "p", "", "", $now, $now]);')
+r=$(cd "$T" && php -r '
+require "config.php"; require "lib.php";
+$rows = db()->query("SELECT id, popular, cat FROM prompts ORDER BY ord, id")->fetchAll();
+$sesudah = allowedPromptIds($rows, "Standard", "seed", 100);
+$sebelum = json_decode(file_get_contents("sebelum.json"), true);
+$hilang = 0; foreach ($sebelum as $id) if (!isset($sesudah[$id])) $hilang++;
+echo $hilang;')
+[ "$r" = "0" ] && ok "tidak ada resep yang hilang setelah 120 resep baru ditambahkan" || no "$r resep hilang dari member setelah katalog bertambah"
+
 echo "== server uji =="
 (cd "$T" && php -S "127.0.0.1:$PORT" >/dev/null 2>&1) & SRV=$!
 for i in $(seq 1 30); do curl -sf "$BASE/api.php?a=me" >/dev/null 2>&1 && break; sleep 0.3; done
