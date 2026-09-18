@@ -282,7 +282,7 @@ try {
   switch ($a) {
     case 'me': {
       $who = currentUser();
-      $res = ['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => $who, 'cover' => coverConfig(), 'v' => 'admin-18'];
+      $res = ['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => $who, 'cover' => coverConfig(), 'v' => 'admin-19'];
       if (!$who && !empty($GLOBALS['rf_session_taken'])) $res['sessionTaken'] = true;
       out($res);
     }
@@ -762,7 +762,11 @@ try {
       if ($to === '') $to = setting('admin_email');
       if (!filter_var($to, FILTER_VALIDATE_EMAIL)) fail('Isi dan simpan email admin dulu.');
       try {
-        sendMailOrFail($to, 'Tes email ResepFoto', "Email dari server ResepFoto berhasil terkirim.\n\n" . siteUrl());
+        // Kirim memakai template & kerangka HTML yang SAMA dengan email pembeli, diisi
+        // data contoh. Dengan begitu tombol ini sekaligus jadi pratinjau tampilan email.
+        $contoh = ['name' => 'Budi Santoso', 'plan' => 'Premium', 'username' => 'budi@contoh.com',
+          'code' => 'RF-CNTH-2026', 'amount' => 79900, 'raw' => '', 'state' => 'aktif'];
+        sendMailOrFail($to, '[TES] ' . accessSubject($contoh), accessMessage($contoh), accessHtml($contoh));
       } catch (Throwable $e) { fail($e->getMessage()); }
       out(['ok' => true, 'to' => $to]);
     }
