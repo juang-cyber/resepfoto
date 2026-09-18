@@ -1193,6 +1193,10 @@ function go(to, fx="cube", dir){
   if (to === state.current) return;
   const from = $("#s-" + state.current), next = $("#s-" + to);
   if (!next) return;
+  // Catat tampilan SEBELUM berpindah supaya back mengembalikan ke sini.
+  // dir === -1 berarti kita sendiri sedang mundur -> jangan menumpuk entri.
+  // Layar login tidak dicatat: back dari beranda harus keluar situs, bukan balik ke login.
+  if (dir !== -1 && state.current !== "login") histPush();
   if (dir === undefined) dir = ORDER.indexOf(to) >= ORDER.indexOf(state.current) ? 1 : -1;
   if (animating) animating.forEach(a => a.finish());
   next.hidden = false; next.scrollTop = 0;
@@ -1211,6 +1215,52 @@ function jump(to){
   $$(".screen").forEach(s => s.hidden = s.id !== "s-" + to);
   state.current = to; syncTabbar();
 }
+/* ---------- riwayat browser ----------
+ * Tanpa ini, tombol back di HP langsung meninggalkan situs walaupun pengguna sedang
+ * di detail resep atau panel admin. Tiap perpindahan MAJU mencatat satu entri berisi
+ * tampilan saat itu; saat back ditekan, popstate memberikan tampilan tujuan dan kita
+ * pulihkan. Kalau riwayat app sudah habis, browser dibiarkan keluar seperti biasa —
+ * itu memang yang benar di beranda.
+ * Semua dibungkus try/catch: kalau History API bermasalah, app berperilaku persis
+ * seperti sebelum perubahan ini.
+ */
+let histSiap = false;
+function viewNow(){
+  return {screen: state.current, detailId: state.detailId, backTo: state.backTo};
+}
+function histInit(){
+  try { history.replaceState({rf: viewNow()}, ""); histSiap = true; } catch (e) {}
+}
+function histPush(){
+  if (!histSiap) { histInit(); return; }
+  try { history.pushState({rf: viewNow()}, ""); } catch (e) {}
+}
+function histApply(v){
+  try {
+    if (!v || !v.screen) return;
+    if (v.backTo) state.backTo = v.backTo;
+    if (v.screen === "detail"){
+      if (!v.detailId) return;
+      state.detailId = v.detailId; renderDetail();
+      if (state.current !== "detail") go("detail", "lift", -1);
+      return;
+    }
+    if (v.screen !== state.current) go(v.screen, "cube", -1);
+  } catch (e) {}
+}
+window.addEventListener("popstate", e => {
+  // Dibungkus try/catch: popstate bisa terpicu saat halaman dipulihkan dari cache
+  // sebelum seluruh skrip selesai dijalankan, dan variabel di bawah belum ada.
+  try {
+    // Sheet yang terbuka ditutup lebih dulu, dan kedalaman riwayat dikembalikan,
+    // supaya back berikutnya baru berpindah layar.
+    if (openSheetEl){ closeSheet(); histPush(); return; }
+  } catch (err) { return; }
+  const v = e.state && e.state.rf;
+  if (v) histApply(v);
+  // tanpa state: riwayat app habis -> jangan cegah, biarkan browser keluar
+});
+
 function syncTabbar(){
   $("#tabbar").classList.toggle("away", ["login","detail"].includes(state.current));
   $("#app").classList.toggle("wide", state.current === "admin");
@@ -1442,6 +1492,7 @@ $("#login-form").addEventListener("submit", async e => {
     $("#l-code").value = "";
     await loadData();
     go("home", "door", 1);
+    histInit();
     toast(isAdmin() ? t("login.asAdmin") : t("login.welcome", {n: (state.user.name || "").split(" ")[0]}));
   } catch (ex) {
     err.textContent = ex.message; err.hidden = false;
@@ -1533,7 +1584,11 @@ $("#see-all").addEventListener("click", () => $("#grid-title").scrollIntoView({b
   set(store.get("rf_cols", 2));
   el.addEventListener("input", () => set(el.value));
 })();
-$("#d-back").addEventListener("click", () => go(state.backTo || "home", "lift", -1));
+$("#d-back").addEventListener("click", () => {
+  // Pakai riwayat kalau ada, supaya entri yang dibuat saat membuka detail ikut termakan.
+  if (histSiap && history.state && history.state.rf){ history.back(); return; }
+  go(state.backTo || "home", "lift", -1);
+});
 $("#d-fav").addEventListener("click", () => toggleFav(state.detailId));
 
 async function copyText(t){
@@ -2225,6 +2280,7 @@ setupAppLinks();
       state.user = me.user;
       await loadData();
       jump("home");
+      histInit();
     } else if (me.sessionTaken){
       const err = $("#l-error"); err.textContent = t("login.taken"); err.hidden = false;
     }
