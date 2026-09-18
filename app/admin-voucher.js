@@ -104,7 +104,7 @@ function kartu(v){
       <span class="vou-state">${v.filled
         ? `Kode: <b style="font-family:var(--mono);color:var(--ink)">${esc(v.code)}</b>${v.active ? "" : " · nonaktif"}`
         : "Belum ada kode"}</span>
-      <button class="btn btn-ghost vou-toggle" type="button" data-open="${v.pct}">${terbuka ? "Tutup" : (v.filled ? "Ubah" : "Isi kode")}</button>
+      <button class="btn btn-ghost vou-toggle" type="button" data-vou-open="${v.pct}">${terbuka ? "Tutup" : (v.filled ? "Ubah" : "Isi kode")}</button>
     </div>
     <div class="vou-body"${terbuka ? "" : " hidden"}>
       <div class="field"><label for="vc-${v.pct}">Kode voucher di Mayar</label>
@@ -117,31 +117,31 @@ function kartu(v){
       <p class="vou-err" id="ve-${v.pct}" hidden></p>
       ${v.filled ? `
       <div class="vou-links">
-        <button type="button" data-link="${esc(linkFor(v.code, "Standard"))}">Salin link Standard (potongan ${v.pct}%)</button>
-        <button type="button" data-link="${esc(linkFor(v.code, "Premium"))}">Salin link Premium (potongan ${v.pct}%)</button>
-        <button type="button" data-wa="${v.pct}">Salin teks WhatsApp siap kirim</button>
+        <button type="button" data-vou-link="${esc(linkFor(v.code, "Standard"))}">Salin link Standard (potongan ${v.pct}%)</button>
+        <button type="button" data-vou-link="${esc(linkFor(v.code, "Premium"))}">Salin link Premium (potongan ${v.pct}%)</button>
+        <button type="button" data-vou-wa="${v.pct}">Salin teks WhatsApp siap kirim</button>
       </div>` : ""}
       <div class="vou-acts">
-        <button class="btn btn-primary" type="button" data-save="${v.pct}">Simpan</button>
-        ${v.filled ? `<button class="btn btn-ghost" type="button" data-clear="${v.pct}">Kosongkan</button>` : ""}
+        <button class="btn btn-primary" type="button" data-vou-save="${v.pct}">Simpan</button>
+        ${v.filled ? `<button class="btn btn-ghost" type="button" data-vou-clear="${v.pct}">Kosongkan</button>` : ""}
       </div>
     </div>
   </div>`;
 }
 
 function wire(){
-  box.querySelectorAll("[data-open]").forEach(el => {
-    const bukaTingkat = () => { const p = Number(el.dataset.open); buka = buka === p ? null : p; render(); };
+  box.querySelectorAll("[data-vou-open]").forEach(el => {
+    const bukaTingkat = () => { const p = Number(el.dataset.vouOpen); buka = buka === p ? null : p; render(); };
     el.onclick = bukaTingkat;
     el.onkeydown = e => { if (e.key === "Enter" || e.key === " "){ e.preventDefault(); bukaTingkat(); } };
   });
-  box.querySelectorAll("[data-link]").forEach(b => b.onclick = () => { copyText(b.dataset.link); toast("Link disalin"); });
-  box.querySelectorAll("[data-wa]").forEach(b => b.onclick = () => {
-    const v = (data.vouchers || []).find(x => x.pct === Number(b.dataset.wa));
+  box.querySelectorAll("[data-vou-link]").forEach(b => b.onclick = () => { copyText(b.dataset.vouLink); toast("Link disalin"); });
+  box.querySelectorAll("[data-vou-wa]").forEach(b => b.onclick = () => {
+    const v = (data.vouchers || []).find(x => x.pct === Number(b.dataset.vouWa));
     if (v){ copyText(waTextFor(v)); toast("Teks WhatsApp disalin"); }
   });
-  box.querySelectorAll("[data-save]").forEach(b => b.onclick = async () => {
-    const p = Number(b.dataset.save);
+  box.querySelectorAll("[data-vou-save]").forEach(b => b.onclick = async () => {
+    const p = Number(b.dataset.vouSave);
     const err = $("#ve-" + p, box); err.hidden = true;
     try {
       await api("voucher_save", {
@@ -154,9 +154,9 @@ function wire(){
       data = null; await load();
     } catch (e){ err.textContent = e.message; err.hidden = false; }
   });
-  box.querySelectorAll("[data-clear]").forEach(b => b.onclick = () => armDelete(b, async () => {
+  box.querySelectorAll("[data-vou-clear]").forEach(b => b.onclick = () => armDelete(b, async () => {
     try {
-      await api("voucher_delete", { pct: Number(b.dataset.clear) });
+      await api("voucher_delete", { pct: Number(b.dataset.vouClear) });
       toast("Kode dikosongkan — kuponnya di Mayar masih hidup");
       data = null; load();
     } catch (e){ toast(e.message, true); }
