@@ -34,6 +34,14 @@ function tr(string $msg): string {
     'Isi username dan kode akses dulu.' => 'Enter your username and access code first.',
     'Kode akses admin salah.' => 'Wrong admin access code.',
     'Sesi berakhir. Silakan masuk lagi.' => 'Your session has ended. Please sign in again.',
+    'Pesanan ini sudah aktif, tidak perlu pengingat.' => 'This order is already active; no reminder needed.',
+    'Pesanan ini sudah ditolak.' => 'This order was already rejected.',
+    'Pengingat untuk pesanan ini sudah dikirim 2 kali.' => 'A reminder for this order has already been sent twice.',
+    'Pengingat terakhir belum 24 jam. Tunggu dulu ya.' => 'The last reminder was less than 24 hours ago. Please wait.',
+    'Pengingat gagal dikirim lewat email maupun WhatsApp. Cek setelan SMTP dan Fonnte.' => 'The reminder could not be sent by email or WhatsApp. Check the SMTP and Fonnte settings.',
+    'Kode voucher harus 5-24 karakter, hanya huruf, angka, dan tanda minus.' => 'A voucher code must be 5-24 characters: letters, digits and hyphens only.',
+    'Persentase harus salah satu dari 10 sampai 90.' => 'The percentage must be one of 10 through 90.',
+    'Kode voucher ini sudah ada di daftar.' => 'That voucher code is already in the list.',
     'Akun ini baru saja dipakai masuk di perangkat lain. Satu akun hanya bisa aktif di satu perangkat.' => 'This account was just signed in on another device. One account can only be active on one device.',
     'Terjadi kesalahan di server. Coba lagi sebentar lagi.' => 'Something went wrong on the server. Please try again shortly.',
     'Terlalu banyak percobaan. Coba lagi 15 menit lagi.' => 'Too many attempts. Try again in 15 minutes.',
@@ -274,7 +282,7 @@ try {
   switch ($a) {
     case 'me': {
       $who = currentUser();
-      $res = ['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => $who, 'cover' => coverConfig(), 'v' => 'admin-17'];
+      $res = ['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => $who, 'cover' => coverConfig(), 'v' => 'admin-18'];
       if (!$who && !empty($GLOBALS['rf_session_taken'])) $res['sessionTaken'] = true;
       out($res);
     }
@@ -633,6 +641,8 @@ try {
       out(['ok' => true, 'orders' => array_map('publicOrder', $rows), 'log' => $log, 'settings' => [
         'hasToken' => setting('mayar_webhook_token') !== '',
         'adminEmail' => setting('admin_email'), 'mailFrom' => setting('mail_from', 'no-reply@kitlab.id'),
+        'msgPaidSubject' => msgTpl('msg_paid_subject', MSG_PAID_SUBJECT), 'msgPaid' => msgTpl('msg_paid', MSG_PAID),
+        'msgPendingSubject' => msgTpl('msg_pending_subject', MSG_PENDING_SUBJECT), 'msgPending' => msgTpl('msg_pending', MSG_PENDING),
         'webhookUrl' => siteUrl() . 'webhook-mayar.php',
         'autoWithoutToken' => setting('auto_without_token') === '1',
         'smtpHost' => setting('smtp_host'), 'smtpPort' => (int)setting('smtp_port', '587'),
@@ -661,6 +671,21 @@ try {
         $m['code_hash'] = password_hash($code, PASSWORD_DEFAULT); $m['code_hint'] = substr($code, -4);
         saveMember($m);
         updateOrder($id, ['code' => $code, 'note' => 'Kode akses dibuat ulang.']);
+      } elseif ($act === 'remind') {
+        // Pengingat untuk pesanan yang BELUM lunas. Pengaman: maksimal 2 kali per
+        // pesanan dan jeda minimal 24 jam, supaya tidak jadi spam dan tidak membakar
+        // kuota Fonnte. Penanda ditulis DULU baru dikirim, jadi klik ganda tidak
+        // menghasilkan dua pesan.
+        if ($o['state'] === 'aktif') fail('Pesanan ini sudah aktif, tidak perlu pengingat.');
+        if ($o['state'] === 'ditolak') fail('Pesanan ini sudah ditolak.');
+        if ((int)($o['reminder_count'] ?? 0) >= 2) fail('Pengingat untuk pesanan ini sudah dikirim 2 kali.');
+        $last = (string)($o['reminded_at'] ?? '');
+        if ($last !== '' && (time() - (int)strtotime($last)) < 86400) fail('Pengingat terakhir belum 24 jam. Tunggu dulu ya.');
+        updateOrder($id, ['reminded_at' => gmdate('c'), 'reminder_count' => (int)($o['reminder_count'] ?? 0) + 1]);
+        $em = sendPendingEmail($id); $wa = sendPendingWa($id);
+        if (!$em && !$wa) fail('Pengingat gagal dikirim lewat email maupun WhatsApp. Cek setelan SMTP dan Fonnte.');
+        $via = $em && $wa ? 'email & WhatsApp' : ($em ? 'email' : 'WhatsApp');
+        updateOrder($id, ['note' => 'Pengingat dikirim lewat ' . $via . '.']);
       } elseif ($act === 'reject') {
         if ($o['state'] === 'aktif') fail('Pesanan aktif tidak bisa ditolak. Nonaktifkan membernya dari tab Member.');
         updateOrder($id, ['state' => 'ditolak', 'note' => 'Ditolak admin.']);
@@ -698,6 +723,15 @@ try {
       }
       if (array_key_exists('smtpPass', $in) && trim((string)$in['smtpPass']) !== '') setSetting('smtp_pass', trim((string)$in['smtpPass']));
       if (!empty($in['clearSmtp'])) foreach (['smtp_host', 'smtp_user', 'smtp_pass'] as $k) setSetting($k, '');
+      // Template pesan. Ditulis pemilik dengan format WhatsApp; email dibentuk dari
+      // template yang sama. Kosongkan untuk kembali ke teks bawaan.
+      foreach (['msgPaidSubject' => 'msg_paid_subject', 'msgPaid' => 'msg_paid',
+                'msgPendingSubject' => 'msg_pending_subject', 'msgPending' => 'msg_pending'] as $in_k => $set_k) {
+        if (array_key_exists($in_k, $in)) {
+          $batas = strpos($set_k, 'subject') !== false ? 150 : 4000;
+          setSetting($set_k, mb_substr(trim((string)$in[$in_k]), 0, $batas));
+        }
+      }
       // WhatsApp (Fonnte)
       if (array_key_exists('fonnteToken', $in) && trim((string)$in['fonnteToken']) !== '') setSetting('fonnte_token', trim((string)$in['fonnteToken']));
       if (!empty($in['clearFonnte'])) setSetting('fonnte_token', '');
@@ -948,9 +982,11 @@ try {
       if ($src === '' && !empty($j['fbclid'])) $src = 'facebook';
       if ($src === '' && $refHost !== '' && $refHost !== strtolower((string)parse_url(siteUrl(), PHP_URL_HOST))) $src = preg_replace('/^(www\.|m\.|l\.|lm\.)/', '', $refHost);
       if ($src === '') $src = 'direct';
-      $pdo->prepare('INSERT INTO lt_events (ts, day, vid, sid, type, plan, src, med, camp, content, ref, device, page) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)')
+      $vou = strtoupper(preg_replace('/[^A-Za-z0-9-]/', '', (string)($j['vou'] ?? '')));
+      $pdo->prepare('INSERT INTO lt_events (ts, day, vid, sid, type, plan, src, med, camp, content, ref, device, page, vou) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
         ->execute([gmdate('c'), $day, $vid, cleanTag($j['sid'] ?? '', 32), $type, cleanTag($j['plan'] ?? '', 20), $src,
-          strtolower(cleanTag($j['med'] ?? '', 60)), cleanTag($j['camp'] ?? '', 80), cleanTag($j['content'] ?? '', 80), $refHost, deviceOf($ua), $page]);
+          strtolower(cleanTag($j['med'] ?? '', 60)), cleanTag($j['camp'] ?? '', 80), cleanTag($j['content'] ?? '', 80), $refHost, deviceOf($ua), $page,
+          mb_substr($vou, 0, 24)]);
       if ($type === 'view') $pdo->prepare('INSERT OR REPLACE INTO presence (vid, ts, page) VALUES (?,?,?)')->execute([$vid, time(), $page]);
       out(['ok' => true]);
     }
@@ -1124,6 +1160,43 @@ try {
       $amt = (int)preg_replace('/\D/', '', (string)($in['amount'] ?? '0'));
       if ($amt <= 0) db()->prepare('DELETE FROM ad_spend WHERE day = ? AND campaign = ?')->execute([$day, $camp]);
       else db()->prepare('INSERT OR REPLACE INTO ad_spend (day, campaign, amount, note) VALUES (?,?,?,?)')->execute([$day, $camp, $amt, str($in, 'note', 120)]);
+      out(['ok' => true]);
+    }
+
+    /* ---------- voucher ----------
+     * PENTING: endpoint ini TIDAK membuat, mengubah, atau mematikan kupon di Mayar.
+     * Potongan harga dihitung dan divalidasi Mayar lewat ?coupon= di link pembayaran.
+     * Tabel ini katalog + bahan pembuat link, supaya pemilik punya satu tempat melihat
+     * kode yang sedang beredar. Mematikan kampanye tetap dua langkah: di sini DAN di Mayar.
+     */
+    case 'vouchers': {
+      requireSuperAdmin();
+      $rows = db()->query('SELECT * FROM vouchers ORDER BY active DESC, pct DESC, code')->fetchAll();
+      out(['ok' => true, 'vouchers' => array_map('publicVoucher', $rows)]);
+    }
+
+    case 'voucher_save': {
+      requireSuperAdmin();
+      $in = input();
+      $code = strtoupper(str($in, 'code', 24));
+      if (!preg_match('/^[A-Z0-9-]{5,24}$/', $code)) fail('Kode voucher harus 5-24 karakter, hanya huruf, angka, dan tanda minus.');
+      $pct = (int)($in['pct'] ?? 0);
+      if (!in_array($pct, [10, 20, 30, 40, 50, 60, 70, 80, 90], true)) fail('Persentase harus salah satu dari 10 sampai 90.');
+      $q = db()->prepare('SELECT created_at FROM vouchers WHERE code = ?'); $q->execute([$code]);
+      $dibuat = (string)($q->fetchColumn() ?: '');
+      if (!empty($in['isNew']) && $dibuat !== '') fail('Kode voucher ini sudah ada di daftar.');
+      db()->prepare('INSERT OR REPLACE INTO vouchers (code, pct, note, active, created_at) VALUES (?,?,?,?,?)')
+        ->execute([$code, $pct, str($in, 'note', 160), !empty($in['active']) ? 1 : 0,
+          $dibuat !== '' ? $dibuat : gmdate('c')]);
+      $st = db()->prepare('SELECT * FROM vouchers WHERE code = ?'); $st->execute([$code]);
+      out(['ok' => true, 'voucher' => publicVoucher($st->fetch())]);
+    }
+
+    case 'voucher_delete': {
+      requireSuperAdmin();
+      $in = input();
+      $code = strtoupper(str($in, 'code', 24));
+      db()->prepare('DELETE FROM vouchers WHERE code = ?')->execute([$code]);
       out(['ok' => true]);
     }
 
