@@ -9,6 +9,8 @@ require_once __DIR__ . '/config.php';
 const PLAN_LIFETIME = ['Standard', 'Premium', 'Lifetime'];
 /** Tingkat diskon yang tersedia sebagai template voucher. */
 const VOUCHER_TIERS = [10, 20, 30, 40, 50, 60, 70, 80, 90];
+/** Jumlah resep yang didapat pembeli Standard BARU. Member lama tidak terpotong. */
+const STANDARD_CAP = 100;
 const PLAN_ALL = ['Standard', 'Premium', 'Lifetime', 'Bulanan', 'Tahunan'];
 // Paket resep tambahan di data/ — diimpor sekali per versi (lihat importPromptPacks()).
 const PROMPT_PACKS = ['pack2-prompts.json'];
@@ -94,6 +96,9 @@ function db(): PDO {
   if (!in_array('role', $mcols, true)) $pdo->exec("ALTER TABLE members ADD COLUMN role TEXT DEFAULT 'member'");
   if (!in_array('avatar', $mcols, true)) $pdo->exec('ALTER TABLE members ADD COLUMN avatar TEXT');
   if (!in_array('session_token', $mcols, true)) $pdo->exec('ALTER TABLE members ADD COLUMN session_token TEXT');
+  // Batas jumlah resep untuk member Standard. Sengaja dibiarkan NULL pada member yang
+  // sudah ada saat kolom ini dibuat, supaya akses mereka tidak berkurang.
+  if (!in_array('plan_cap', $mcols, true)) $pdo->exec('ALTER TABLE members ADD COLUMN plan_cap INTEGER');
   $ocols = array_column($pdo->query('PRAGMA table_info(orders)')->fetchAll(), 'name');
   if (!in_array('wa_sent', $ocols, true)) $pdo->exec('ALTER TABLE orders ADD COLUMN wa_sent INTEGER DEFAULT 0');
   if (!in_array('reminded_at', $ocols, true)) $pdo->exec('ALTER TABLE orders ADD COLUMN reminded_at TEXT');
@@ -282,8 +287,17 @@ function today(): string { return (new DateTime('now', new DateTimeZone('Asia/Ja
 const VIRAL_CAT = 'Tren Viral';
 
 /** Jatah per paket: [best seller, Tren Viral, regular]. -1 berarti semuanya. */
-function planQuota(string $plan): ?array {
-  $q = ['Trial' => [3, 1, 6], 'Standard' => [10, 10, -1]];
+/**
+ * Jatah katalog per paket: [best seller, Tren Viral, reguler]. -1 = semua.
+ * $cap = batas TOTAL resep untuk member Standard. Diisi dari kolom members.plan_cap:
+ *   - null  -> member Standard lama, aturan sebelumnya (semua resep reguler)
+ *   - angka -> pembeli baru, totalnya dibatasi persis segitu
+ * Pembedanya dengan Premium tetap sama: Premium bebas, termasuk semua Tren Viral
+ * dan semua resep yang ditambahkan kemudian.
+ */
+function planQuota(string $plan, ?int $cap = null): ?array {
+  if ($plan === 'Standard') return $cap === null ? [10, 10, -1] : [10, 10, max(0, $cap - 20)];
+  $q = ['Trial' => [3, 1, 6]];
   return isset($q[$plan]) ? $q[$plan] : null;         // null = paket bebas (Premium dsb.)
 }
 
@@ -306,8 +320,8 @@ function pickStable(array $ids, int $n, string $seed): array {
  * Ember-nya saling lepas dan best seller menang: resep yang popular DAN Tren Viral
  * dihitung sebagai best seller, tidak dua kali.
  */
-function allowedPromptIds(array $rows, string $plan, string $seed): ?array {
-  $q = planQuota($plan);
+function allowedPromptIds(array $rows, string $plan, string $seed, ?int $cap = null): ?array {
+  $q = planQuota($plan, $cap);
   if ($q === null) return null;
   list($nPop, $nVir, $nReg) = $q;
   $pop = $vir = $reg = [];
@@ -334,6 +348,7 @@ function publicMember(array $m): array {
     'active' => (bool)$m['active'], 'codeHint' => $m['code_hint'], 'status' => memberStatus($m),
     'email' => $m['email'] ?? '', 'phone' => $m['phone'] ?? '', 'role' => $m['role'] ?? 'member',
     'avatar' => $m['avatar'] ?? '',
+    'planCap' => isset($m['plan_cap']) && $m['plan_cap'] !== null ? (int)$m['plan_cap'] : null,
     'createdAt' => $m['created_at'], 'lastLogin' => $m['last_login']];
 }
 function findMember(string $username): ?array {
@@ -352,10 +367,18 @@ function saveMember(array $m, ?PDO $pdo = null): void {
     $q->execute([$m['username']]);
     $tok = (string)($q->fetchColumn() ?: '');
   }
-  $pdo->prepare('INSERT OR REPLACE INTO members (username, name, code_hash, code_hint, plan, expires, active, created_at, last_login, email, phone, role, avatar, session_token)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)')->execute([
+  if (array_key_exists('plan_cap', $m)) {
+    $cap = $m['plan_cap'] === null ? null : (int)$m['plan_cap'];
+  } else {
+    $q2 = $pdo->prepare('SELECT plan_cap FROM members WHERE username = ?');
+    $q2->execute([$m['username']]);
+    $v = $q2->fetchColumn();
+    $cap = ($v === false || $v === null) ? null : (int)$v;
+  }
+  $pdo->prepare('INSERT OR REPLACE INTO members (username, name, code_hash, code_hint, plan, expires, active, created_at, last_login, email, phone, role, avatar, session_token, plan_cap)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')->execute([
     $m['username'], $m['name'], $m['code_hash'], $m['code_hint'], $m['plan'], $m['expires'] ?? '', (int)$m['active'],
-    $m['created_at'], $m['last_login'] ?? null, $m['email'] ?? '', $m['phone'] ?? '', $m['role'] ?? 'member', $m['avatar'] ?? '', $tok]);
+    $m['created_at'], $m['last_login'] ?? null, $m['email'] ?? '', $m['phone'] ?? '', $m['role'] ?? 'member', $m['avatar'] ?? '', $tok, $cap]);
 }
 /** Token sesi acak. Dipakai saat login, dan saat sengaja memutus semua sesi lama. */
 function newSessionToken(): string { return bin2hex(random_bytes(16)); }
@@ -439,7 +462,7 @@ function fulfillOrder(string $id, bool $sendEmail = true): array {
   }
   if ($existing) {
     $m = $existing;
-    if ($plan === 'Premium') $m['plan'] = 'Premium';
+    if ($plan === 'Premium') { $m['plan'] = 'Premium'; $m['plan_cap'] = null; }   // naik paket -> batas dilepas
     $m['active'] = 1; $m['expires'] = in_array($m['plan'], PLAN_LIFETIME, true) ? '' : $m['expires'];
     $m['code_hash'] = password_hash($code, PASSWORD_DEFAULT); $m['code_hint'] = substr($code, -4);
     $m['session_token'] = newSessionToken(); // kode baru -> token diganti, semua perangkat lama terputus
@@ -450,7 +473,8 @@ function fulfillOrder(string $id, bool $sendEmail = true): array {
     $username = usernameFromEmail((string)$o['email'], (string)$o['name']);
     saveMember(['username' => $username, 'name' => $o['name'] ?: $username, 'code_hash' => password_hash($code, PASSWORD_DEFAULT),
       'code_hint' => substr($code, -4), 'plan' => $plan, 'expires' => '', 'active' => 1, 'created_at' => gmdate('c'),
-      'last_login' => null, 'email' => $o['email'], 'phone' => $o['phone'], 'session_token' => newSessionToken()]);
+      'last_login' => null, 'email' => $o['email'], 'phone' => $o['phone'], 'session_token' => newSessionToken(),
+      'plan_cap' => $plan === 'Standard' ? STANDARD_CAP : null]);
   }
   updateOrder($id, ['state' => 'aktif', 'username' => $username, 'code' => $code]);
   if ($sendEmail) { sendAccessEmail($id); sendAccessWa($id); }

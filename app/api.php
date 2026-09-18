@@ -282,7 +282,7 @@ try {
   switch ($a) {
     case 'me': {
       $who = currentUser();
-      $res = ['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => $who, 'cover' => coverConfig(), 'v' => 'admin-20'];
+      $res = ['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => $who, 'cover' => coverConfig(), 'v' => 'admin-21'];
       if (!$who && !empty($GLOBALS['rf_session_taken'])) $res['sessionTaken'] = true;
       out($res);
     }
@@ -348,11 +348,12 @@ try {
       // Yang membedakan paket adalah isi resepnya, bukan ada/tidaknya kartu di katalog.
       $rows = db()->query('SELECT * FROM prompts ORDER BY ord, id')->fetchAll();
       $isAdmin = $u['role'] === 'admin';
-      $allow = $isAdmin ? null : allowedPromptIds($rows, (string)$u['plan'], (string)$u['username']);
+      $cap = isset($u['planCap']) && $u['planCap'] !== null ? (int)$u['planCap'] : null;
+      $allow = $isAdmin ? null : allowedPromptIds($rows, (string)$u['plan'], (string)$u['username'], $cap);
       $res = ['ok' => true, 'prompts' => array_map(function (array $r) use ($isAdmin, $allow) {
         return rowToPrompt($r, $isAdmin, $allow !== null && !isset($allow[$r['id']]));
       }, $rows)];
-      $res['quota'] = $isAdmin ? null : planQuota((string)$u['plan']);
+      $res['quota'] = $isAdmin ? null : planQuota((string)$u['plan'], $cap);
       if ($isAdmin) $res['authors'] = promptAuthors(db());
       out($res);
     }

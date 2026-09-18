@@ -74,6 +74,58 @@ echo "== paket tetap benar walau nominal terdiskon =="
 cek 'echo planFromProduct("ResepFoto Premium", 7990) === "Premium" ? 1 : 0;'     "diskon 90% tetap Premium (nama dibaca dulu)"
 cek 'echo planFromProduct("ResepFoto Standard", 4990) === "Standard" ? 1 : 0;'   "diskon 90% tetap Standard"
 
+echo "== batas resep paket Standard =="
+cek 'echo planQuota("Standard", null) === [10,10,-1] ? 1 : 0;'                   "member Standard lama: aturan lama dipertahankan"
+cek 'echo planQuota("Standard", 100) === [10,10,80] ? 1 : 0;'                    "Standard baru: 10+10+80 = 100"
+cek 'echo planQuota("Premium", 100) === null ? 1 : 0;'                           "Premium tetap bebas"
+cek 'echo planQuota("Trial") === [3,1,6] ? 1 : 0;'                               "Trial tidak berubah"
+
+# pembeli BARU Standard harus dapat batas; Premium tidak
+(cd "$T" && php -r '
+require "config.php"; require "lib.php";
+$now = gmdate("c"); $pdo = db();
+foreach ([["UJI-S","Standard","ResepFoto Standard",49900,"s@contoh.com"],["UJI-M","Premium","ResepFoto Premium",79900,"m@contoh.com"]] as $x) {
+  $pdo->prepare("INSERT INTO orders (id, source, event, status, verified, state, plan, product, amount, name, email, phone, username, code, emailed, note, raw, created_at, updated_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+    ->execute([$x[0],"mayar","payment.received","success",1,"lunas",$x[1],$x[2],$x[3],"Uji",$x[4],"",null,null,0,"","{}",$now,$now]);
+  fulfillOrder($x[0], false);
+}')
+cap(){ (cd "$T" && php -r "require \"config.php\"; require \"lib.php\"; \$m=findMember(\"$1\"); echo \$m && \$m['plan_cap'] !== null ? (int)\$m['plan_cap'] : 'null';"); }
+[ "$(cap s@contoh.com)" = "100" ] && ok "pembeli Standard baru dibatasi 100" || no "batas Standard baru salah: $(cap s@contoh.com)"
+[ "$(cap m@contoh.com)" = "null" ] && ok "pembeli Premium tanpa batas" || no "Premium seharusnya tanpa batas: $(cap m@contoh.com)"
+
+# simpan profil TIDAK boleh menghilangkan batas
+(cd "$T" && php -r 'require "config.php"; require "lib.php"; $m=findMember("s@contoh.com"); $m["name"]="Ganti Nama"; saveMember($m);')
+[ "$(cap s@contoh.com)" = "100" ] && ok "batas bertahan saat simpan profil" || no "batas hilang saat simpan profil"
+
+# member Standard LAMA (plan_cap NULL) tetap tanpa batas
+(cd "$T" && php -r '
+require "config.php"; require "lib.php";
+saveMember(["username"=>"lama@contoh.com","name"=>"Member Lama","code_hash"=>password_hash("RF-LAMA-0001", PASSWORD_DEFAULT),
+"code_hint"=>"0001","plan"=>"Standard","expires"=>"","active"=>1,"created_at"=>gmdate("c"),"last_login"=>null,
+"email"=>"lama@contoh.com","phone"=>"","role"=>"member","avatar"=>"","plan_cap"=>null]);')
+[ "$(cap lama@contoh.com)" = "null" ] && ok "member Standard lama tidak ikut dibatasi" || no "member lama ikut terpotong"
+
+# naik ke Premium harus melepas batas
+(cd "$T" && php -r '
+require "config.php"; require "lib.php";
+$now = gmdate("c");
+db()->prepare("INSERT INTO orders (id, source, event, status, verified, state, plan, product, amount, name, email, phone, username, code, emailed, note, raw, created_at, updated_at)
+  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+  ->execute(["UJI-UP","mayar","payment.received","success",1,"lunas","Premium","ResepFoto Premium",79900,"Uji","s@contoh.com","",null,null,0,"","{}",$now,$now]);
+fulfillOrder("UJI-UP", false);')
+[ "$(cap s@contoh.com)" = "null" ] && ok "naik ke Premium melepas batas" || no "batas masih menempel sesudah naik Premium"
+
+# jumlah resep yang benar-benar terbuka untuk Standard baru
+(cd "$T" && php -r '
+require "config.php"; require "lib.php";
+$pdo = db(); $now = gmdate("c");
+$st = $pdo->prepare("INSERT OR IGNORE INTO prompts (id, ord, cat, title, descr, popular, tools, prompt, tips, image, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
+for ($i = 1; $i <= 200; $i++) $st->execute(["uji$i", 9000 + $i, "Profesional", "Uji $i", "", 0, "[]", "p", "", "", $now, $now]);')
+hit(){ (cd "$T" && php -r "require \"config.php\"; require \"lib.php\"; \$rows = db()->query('SELECT id, popular, cat FROM prompts')->fetchAll(); \$a = allowedPromptIds(\$rows, 'Standard', 'seed', $1); echo \$a === null ? 'semua' : count(\$a);"); }
+[ "$(hit 100)" = "100" ] && ok "Standard baru benar-benar membuka 100 resep" || no "seharusnya 100, dapat $(hit 100)"
+[ "$(hit null)" != "100" ] && ok "member lama membuka lebih dari 100 (tidak terpotong)" || no "member lama ikut terbatas 100"
+
 echo "== server uji =="
 (cd "$T" && php -S "127.0.0.1:$PORT" >/dev/null 2>&1) & SRV=$!
 for i in $(seq 1 30); do curl -sf "$BASE/api.php?a=me" >/dev/null 2>&1 && break; sleep 0.3; done
