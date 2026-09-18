@@ -31,7 +31,8 @@ css.textContent = `
 .vou-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .vou-pct{background:var(--accent);color:var(--accent-ink);border-radius:12px;padding:4px 12px;font-size:14px;font-weight:800;min-width:56px;text-align:center}
 .vou-tier:not(.on) .vou-pct{background:var(--line);color:var(--muted)}
-.vou-state{font-size:12px;color:var(--muted)}
+.vou-state{font-size:12px;color:var(--muted);flex:1}
+.vou-toggle{height:32px;padding:0 12px;font-size:12px;font-weight:700;flex:none}
 .vou-body{margin-top:10px;display:grid;gap:8px}
 .vou-body[hidden]{display:none}
 .vou-code{font-family:var(--mono);text-transform:uppercase;letter-spacing:.04em}
@@ -50,7 +51,7 @@ function syncTabVisibility(){
   if (btn) btn.hidden = !isSuper();
   if (!isSuper() && state.seg === "voucher") state.seg = "prompts";
 }
-document.addEventListener("rf:admin-render", syncTabVisibility);
+window.addEventListener("rf:admin-render", syncTabVisibility);
 
 function linkFor(code, plan){ return CHECKOUT[plan] + "?coupon=" + encodeURIComponent(code); }
 function waTextFor(v){
@@ -98,11 +99,12 @@ function kartu(v){
   const terbuka = buka === v.pct;
   return `
   <div class="vou-tier${v.active ? " on" : ""}">
-    <div class="vou-top" data-open="${v.pct}" role="button" tabindex="0" style="cursor:pointer">
+    <div class="vou-top">
       <span class="vou-pct">${v.pct}%</span>
       <span class="vou-state">${v.filled
         ? `Kode: <b style="font-family:var(--mono);color:var(--ink)">${esc(v.code)}</b>${v.active ? "" : " · nonaktif"}`
-        : "Belum ada kode — klik untuk mengisi"}</span>
+        : "Belum ada kode"}</span>
+      <button class="btn btn-ghost vou-toggle" type="button" data-open="${v.pct}">${terbuka ? "Tutup" : (v.filled ? "Ubah" : "Isi kode")}</button>
     </div>
     <div class="vou-body"${terbuka ? "" : " hidden"}>
       <div class="field"><label for="vc-${v.pct}">Kode voucher di Mayar</label>
@@ -111,7 +113,7 @@ function kartu(v){
       <div class="field"><label for="vn-${v.pct}">Catatan (untuk Anda sendiri)</label>
         <input class="input" id="vn-${v.pct}" maxlength="160" value="${esc(v.note)}"
                placeholder="mis. kolaborasi @akunfoto, berlaku sampai 30 Sep"></div>
-      <label class="switch"><input type="checkbox" id="va-${v.pct}"${v.active ? " checked" : ""}> <span>Aktif</span></label>
+      <label class="check"><input type="checkbox" id="va-${v.pct}"${v.active ? " checked" : ""}> Aktif</label>
       <p class="vou-err" id="ve-${v.pct}" hidden></p>
       ${v.filled ? `
       <div class="vou-links">
