@@ -282,7 +282,7 @@ try {
   switch ($a) {
     case 'me': {
       $who = currentUser();
-      $res = ['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => $who, 'cover' => coverConfig(), 'v' => 'admin-21'];
+      $res = ['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => $who, 'cover' => coverConfig(), 'v' => 'admin-22'];
       if (!$who && !empty($GLOBALS['rf_session_taken'])) $res['sessionTaken'] = true;
       out($res);
     }
@@ -349,7 +349,8 @@ try {
       $rows = db()->query('SELECT * FROM prompts ORDER BY ord, id')->fetchAll();
       $isAdmin = $u['role'] === 'admin';
       $cap = isset($u['planCap']) && $u['planCap'] !== null ? (int)$u['planCap'] : null;
-      $allow = $isAdmin ? null : allowedPromptIds($rows, (string)$u['plan'], (string)$u['username'], $cap);
+      $beku = isset($u['allowIds']) && is_array($u['allowIds']) ? $u['allowIds'] : null;
+      $allow = $isAdmin ? null : allowedPromptIds($rows, (string)$u['plan'], (string)$u['username'], $cap, $beku);
       $res = ['ok' => true, 'prompts' => array_map(function (array $r) use ($isAdmin, $allow) {
         return rowToPrompt($r, $isAdmin, $allow !== null && !isset($allow[$r['id']]));
       }, $rows)];

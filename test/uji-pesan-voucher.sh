@@ -74,73 +74,107 @@ echo "== paket tetap benar walau nominal terdiskon =="
 cek 'echo planFromProduct("ResepFoto Premium", 7990) === "Premium" ? 1 : 0;'     "diskon 90% tetap Premium (nama dibaca dulu)"
 cek 'echo planFromProduct("ResepFoto Standard", 4990) === "Standard" ? 1 : 0;'   "diskon 90% tetap Standard"
 
-echo "== batas resep paket Standard =="
-cek 'echo planQuota("Standard", null) === [10,10,-1] ? 1 : 0;'                   "member Standard lama: aturan lama dipertahankan"
-cek 'echo planQuota("Standard", 100) === [7,5,88] ? 1 : 0;'                      "Standard baru: 7 best seller + 5 viral + 88 reguler = 100"
-cek 'echo planQuota("Premium", 100) === null ? 1 : 0;'                           "Premium tetap bebas"
-cek 'echo planQuota("Trial") === [3,1,6] ? 1 : 0;'                               "Trial tidak berubah"
+echo "== jatah Standard dibekukan saat mendaftar =="
+# katalog uji: 30 best seller, 30 Tren Viral, 300 reguler -- cukup untuk menguji batas
+(cd "$T" && php -r '
+require "config.php"; require "lib.php";
+$pdo = db(); $now = gmdate("c");
+$st = $pdo->prepare("INSERT OR IGNORE INTO prompts (id, ord, cat, title, descr, popular, tools, prompt, tips, image, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
+for ($i = 1; $i <= 30; $i++)  $st->execute(["bs$i", 1000 + $i, "Profesional", "BS $i", "", 1, "[]", "p", "", "", "2026-01-" . sprintf("%02d", $i) . "T00:00:00Z", $now]);
+for ($i = 1; $i <= 30; $i++)  $st->execute(["vr$i", 2000 + $i, "Tren Viral", "VR $i", "", 0, "[]", "p", "", "", "2026-02-" . sprintf("%02d", $i) . "T00:00:00Z", $now]);
+for ($i = 1; $i <= 300; $i++) $st->execute(["rg$i", 3000 + $i, "Profesional", "RG $i", "", 0, "[]", "p", "", "", $now, $now]);')
 
-# pembeli BARU Standard harus dapat batas; Premium tidak
 (cd "$T" && php -r '
 require "config.php"; require "lib.php";
 $now = gmdate("c"); $pdo = db();
-foreach ([["UJI-S","Standard","ResepFoto Standard",49900,"s@contoh.com"],["UJI-M","Premium","ResepFoto Premium",79900,"m@contoh.com"]] as $x) {
+foreach ([["ORD-S","Standard","ResepFoto Standard",49900,"beku@contoh.com"],["ORD-M","Premium","ResepFoto Premium",79900,"prem@contoh.com"]] as $x) {
   $pdo->prepare("INSERT INTO orders (id, source, event, status, verified, state, plan, product, amount, name, email, phone, username, code, emailed, note, raw, created_at, updated_at)
     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
     ->execute([$x[0],"mayar","payment.received","success",1,"lunas",$x[1],$x[2],$x[3],"Uji",$x[4],"",null,null,0,"","{}",$now,$now]);
   fulfillOrder($x[0], false);
 }')
-cap(){ (cd "$T" && php -r "require \"config.php\"; require \"lib.php\"; \$m=findMember(\"$1\"); echo \$m && \$m['plan_cap'] !== null ? (int)\$m['plan_cap'] : 'null';"); }
-[ "$(cap s@contoh.com)" = "100" ] && ok "pembeli Standard baru dibatasi 100" || no "batas Standard baru salah: $(cap s@contoh.com)"
-[ "$(cap m@contoh.com)" = "null" ] && ok "pembeli Premium tanpa batas" || no "Premium seharusnya tanpa batas: $(cap m@contoh.com)"
 
-# simpan profil TIDAK boleh menghilangkan batas
-(cd "$T" && php -r 'require "config.php"; require "lib.php"; $m=findMember("s@contoh.com"); $m["name"]="Ganti Nama"; saveMember($m);')
-[ "$(cap s@contoh.com)" = "100" ] && ok "batas bertahan saat simpan profil" || no "batas hilang saat simpan profil"
+mq(){ (cd "$T" && php -r "require \"config.php\"; require \"lib.php\"; \$m=findMember(\"$1\"); \$p=publicMember(\$m); $2"); }
+[ "$(mq beku@contoh.com 'echo is_array($p["allowIds"]) ? count($p["allowIds"]) : "null";')" = "100" ] \
+  && ok "pembeli Standard baru dibekukan tepat 100 resep" || no "jumlah resep beku salah"
+[ "$(mq prem@contoh.com 'echo $p["allowIds"] === null ? "null" : "ada";')" = "null" ] \
+  && ok "Premium tidak dibekukan (bebas)" || no "Premium seharusnya tanpa daftar beku"
 
-# member Standard LAMA (plan_cap NULL) tetap tanpa batas
-(cd "$T" && php -r '
-require "config.php"; require "lib.php";
-saveMember(["username"=>"lama@contoh.com","name"=>"Member Lama","code_hash"=>password_hash("RF-LAMA-0001", PASSWORD_DEFAULT),
-"code_hint"=>"0001","plan"=>"Standard","expires"=>"","active"=>1,"created_at"=>gmdate("c"),"last_login"=>null,
-"email"=>"lama@contoh.com","phone"=>"","role"=>"member","avatar"=>"","plan_cap"=>null]);')
-[ "$(cap lama@contoh.com)" = "null" ] && ok "member Standard lama tidak ikut dibatasi" || no "member lama ikut terpotong"
+# best seller & viral harus diambil dari yang TERAKHIR diunggah
+[ "$(mq beku@contoh.com 'echo in_array("bs30", $p["allowIds"], true) && in_array("bs24", $p["allowIds"], true) ? 1 : 0;')" = "1" ] \
+  && ok "best seller diambil dari yang terakhir diunggah" || no "best seller bukan yang terbaru"
+[ "$(mq beku@contoh.com 'echo in_array("bs1", $p["allowIds"], true) ? 0 : 1;')" = "1" ] \
+  && ok "best seller lama tidak ikut" || no "best seller lama ikut terbawa"
+[ "$(mq beku@contoh.com 'echo in_array("vr30", $p["allowIds"], true) && in_array("vr26", $p["allowIds"], true) ? 1 : 0;')" = "1" ] \
+  && ok "Tren Viral diambil dari yang terakhir diunggah" || no "viral bukan yang terbaru"
+[ "$(mq beku@contoh.com '$n=0; foreach ($p["allowIds"] as $id) if (strpos($id, "bs") === 0) $n++; echo $n;')" = "7" ] \
+  && ok "tepat 7 best seller" || no "jumlah best seller salah"
+[ "$(mq beku@contoh.com '$n=0; foreach ($p["allowIds"] as $id) if (strpos($id, "vr") === 0) $n++; echo $n;')" = "5" ] \
+  && ok "tepat 5 Tren Viral" || no "jumlah viral salah"
+[ "$(mq beku@contoh.com '$n=0; foreach ($p["allowIds"] as $id) if (strpos($id, "bs") !== 0 && strpos($id, "vr") !== 0) $n++; echo $n;')" = "88" ] \
+  && ok "sisanya 88 resep reguler" || no "jumlah reguler salah"
 
-# naik ke Premium harus melepas batas
+# reguler harus ACAK: dua member berbeda tidak boleh dapat daftar yang sama persis
 (cd "$T" && php -r '
 require "config.php"; require "lib.php";
 $now = gmdate("c");
 db()->prepare("INSERT INTO orders (id, source, event, status, verified, state, plan, product, amount, name, email, phone, username, code, emailed, note, raw, created_at, updated_at)
   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
-  ->execute(["UJI-UP","mayar","payment.received","success",1,"lunas","Premium","ResepFoto Premium",79900,"Uji","s@contoh.com","",null,null,0,"","{}",$now,$now]);
-fulfillOrder("UJI-UP", false);')
-[ "$(cap s@contoh.com)" = "null" ] && ok "naik ke Premium melepas batas" || no "batas masih menempel sesudah naik Premium"
-
-# jumlah resep yang benar-benar terbuka untuk Standard baru
-(cd "$T" && php -r '
-require "config.php"; require "lib.php";
-$pdo = db(); $now = gmdate("c");
-$st = $pdo->prepare("INSERT OR IGNORE INTO prompts (id, ord, cat, title, descr, popular, tools, prompt, tips, image, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
-for ($i = 1; $i <= 200; $i++) $st->execute(["uji$i", 9000 + $i, "Profesional", "Uji $i", "", 0, "[]", "p", "", "", $now, $now]);')
-hit(){ (cd "$T" && php -r "require \"config.php\"; require \"lib.php\"; \$rows = db()->query('SELECT id, popular, cat FROM prompts')->fetchAll(); \$a = allowedPromptIds(\$rows, 'Standard', 'seed', $1); echo \$a === null ? 'semua' : count(\$a);"); }
-[ "$(hit 100)" = "100" ] && ok "Standard baru benar-benar membuka 100 resep" || no "seharusnya 100, dapat $(hit 100)"
-[ "$(hit null)" != "100" ] && ok "member lama membuka lebih dari 100 (tidak terpotong)" || no "member lama ikut terbatas 100"
-
-# resep yang sudah dimiliki TIDAK boleh hilang saat katalog bertambah
-(cd "$T" && php -r '
-require "config.php"; require "lib.php";
-$rows = db()->query("SELECT id, popular, cat FROM prompts ORDER BY ord, id")->fetchAll();
-file_put_contents("sebelum.json", json_encode(array_keys(allowedPromptIds($rows, "Standard", "seed", 100))));
-$now = gmdate("c"); $st = db()->prepare("INSERT OR IGNORE INTO prompts (id, ord, cat, title, descr, popular, tools, prompt, tips, image, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
-for ($i = 1; $i <= 120; $i++) $st->execute(["baru$i", 20000 + $i, "Profesional", "Baru $i", "", 0, "[]", "p", "", "", $now, $now]);')
+  ->execute(["ORD-S2","mayar","payment.received","success",1,"lunas","Standard","ResepFoto Standard",49900,"Uji","beku2@contoh.com","",null,null,0,"","{}",$now,$now]);
+fulfillOrder("ORD-S2", false);')
 r=$(cd "$T" && php -r '
 require "config.php"; require "lib.php";
+$a = json_decode(findMember("beku@contoh.com")["allow_ids"], true);
+$b = json_decode(findMember("beku2@contoh.com")["allow_ids"], true);
+$ra = array_values(array_filter($a, function($x){ return strpos($x,"bs")!==0 && strpos($x,"vr")!==0; }));
+$rb = array_values(array_filter($b, function($x){ return strpos($x,"bs")!==0 && strpos($x,"vr")!==0; }));
+echo $ra === $rb ? "sama" : "beda";')
+[ "$r" = "beda" ] && ok "jatah reguler diacak per member" || no "dua member dapat reguler identik"
+
+# DIKUNCI SELAMANYA: tambah resep baru, daftar member tidak boleh berubah sedikit pun
+(cd "$T" && php -r '
+require "config.php"; require "lib.php";
+$now = gmdate("c"); $st = db()->prepare("INSERT OR IGNORE INTO prompts (id, ord, cat, title, descr, popular, tools, prompt, tips, image, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
+for ($i = 1; $i <= 50; $i++) $st->execute(["baruv$i", 40000 + $i, "Tren Viral", "Viral Baru $i", "", 0, "[]", "p", "", "", $now, $now]);
+for ($i = 1; $i <= 50; $i++) $st->execute(["barur$i", 41000 + $i, "Profesional", "Reguler Baru $i", "", 0, "[]", "p", "", "", $now, $now]);')
+r=$(cd "$T" && php -r '
+require "config.php"; require "lib.php";
+$m = findMember("beku@contoh.com");
+$ids = json_decode($m["allow_ids"], true);
 $rows = db()->query("SELECT id, popular, cat FROM prompts ORDER BY ord, id")->fetchAll();
-$sesudah = allowedPromptIds($rows, "Standard", "seed", 100);
-$sebelum = json_decode(file_get_contents("sebelum.json"), true);
-$hilang = 0; foreach ($sebelum as $id) if (!isset($sesudah[$id])) $hilang++;
-echo $hilang;')
-[ "$r" = "0" ] && ok "tidak ada resep yang hilang setelah 120 resep baru ditambahkan" || no "$r resep hilang dari member setelah katalog bertambah"
+$a = allowedPromptIds($rows, "Standard", $m["username"], (int)$m["plan_cap"], $ids);
+$baru = 0; foreach (array_keys($a) as $id) if (strpos($id, "baru") === 0) $baru++;
+echo count($a), "/", $baru;')
+[ "$r" = "100/0" ] && ok "sesudah 100 resep baru: tetap 100, nol resep baru masuk" || no "daftar beku berubah: $r"
+
+# naik ke Premium melepas daftar beku
+(cd "$T" && php -r '
+require "config.php"; require "lib.php";
+$now = gmdate("c");
+db()->prepare("INSERT INTO orders (id, source, event, status, verified, state, plan, product, amount, name, email, phone, username, code, emailed, note, raw, created_at, updated_at)
+  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+  ->execute(["ORD-UP","mayar","payment.received","success",1,"lunas","Premium","ResepFoto Premium",79900,"Uji","beku@contoh.com","",null,null,0,"","{}",$now,$now]);
+fulfillOrder("ORD-UP", false);')
+[ "$(mq beku@contoh.com 'echo $p["allowIds"] === null ? "null" : "ada";')" = "null" ] \
+  && ok "naik ke Premium melepas daftar beku" || no "daftar beku masih menempel sesudah naik Premium"
+
+# simpan profil tidak boleh menghapus daftar beku
+(cd "$T" && php -r 'require "config.php"; require "lib.php"; $m=findMember("beku2@contoh.com"); $m["name"]="Ganti"; saveMember($m);')
+[ "$(mq beku2@contoh.com 'echo is_array($p["allowIds"]) ? count($p["allowIds"]) : "null";')" = "100" ] \
+  && ok "daftar beku bertahan saat simpan profil" || no "daftar beku hilang saat simpan profil"
+
+# member lama (tanpa daftar beku) tidak terpotong
+(cd "$T" && php -r '
+require "config.php"; require "lib.php";
+saveMember(["username"=>"lama@contoh.com","name"=>"Lama","code_hash"=>password_hash("RF-LAMA-0001", PASSWORD_DEFAULT),
+"code_hint"=>"0001","plan"=>"Standard","expires"=>"","active"=>1,"created_at"=>gmdate("c"),"last_login"=>null,
+"email"=>"lama@contoh.com","phone"=>"","role"=>"member","avatar"=>"","plan_cap"=>null,"allow_ids"=>null]);')
+r=$(cd "$T" && php -r '
+require "config.php"; require "lib.php";
+$rows = db()->query("SELECT id, popular, cat FROM prompts")->fetchAll();
+$a = allowedPromptIds($rows, "Standard", "lama@contoh.com", null, null);
+echo count($a) > 150 ? "banyak" : count($a);')
+[ "$r" = "banyak" ] && ok "member Standard lama tidak ikut dibatasi" || no "member lama ikut terpotong: $r"
 
 echo "== server uji =="
 (cd "$T" && php -S "127.0.0.1:$PORT" >/dev/null 2>&1) & SRV=$!
