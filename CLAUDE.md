@@ -106,9 +106,22 @@ Tanpa token cocok, pesanan tetap tercatat tapi hanya `notifyAdmin()` yang jalan 
   - `admin` — member dengan `role='admin'`. Hanya tab **Resep, Member, Cover** (tab lain disembunyikan via
     `superOnly`, dan endpoint-nya ditolak server dengan `requireSuperAdmin()`).
   - `member` — lihat/salin resep, atur foto profil sendiri. **Jatah katalog per paket** ada di `lib.php`
-    (`planQuota()` + `allowedPromptIds()`): `Trial` = 3 best seller + 1 Tren Viral + 6 regular; `Standard` =
-    10 best seller + 10 Tren Viral + semua regular; `Premium` dan paket lain bebas. Aturan lama "Standard hanya
-    melihat resep yang ada saat akun dibuat" **sudah dihapus** (17 Sep 2026).
+    (`planQuota()`, `allowedPromptIds()`, `freezeStandardIds()`):
+    - `Premium` dan paket lain: **bebas**, semua resep termasuk yang ditambahkan kemudian.
+    - `Standard` **pembeli baru** (sejak 18 Sep 2026): koleksinya **dibekukan saat mendaftar** dan dikunci
+      selamanya — `STANDARD_CAP` = 100 resep, komposisi `STANDARD_MIX` = 7 best seller + 5 Tren Viral
+      (keduanya diambil dari resep yang **terakhir diunggah** saat itu) + sisanya resep reguler **acak**.
+      Daftar id-nya disimpan di `members.allow_ids` (JSON) dan **tidak pernah dihitung ulang**: koleksinya tidak
+      bertambah dan tidak berkurang, jadi resep baru — termasuk tren viral baru — hanya mengalir ke Premium.
+      Acak + beku memang tidak bisa dihitung ulang tiap permintaan; itu sebabnya harus disimpan.
+    - `Standard` **member lama** (`allow_ids` NULL): tetap memakai aturan sebelumnya (10 best seller +
+      10 Tren Viral + semua reguler). Sengaja tidak diubah supaya akses yang sudah dibeli tidak berkurang.
+    - `Trial`: 3 best seller + 1 Tren Viral + 6 reguler, dihitung dinamis (gratis, tidak perlu dibekukan).
+    - Naik ke Premium lewat `fulfillOrder()` **melepas** `plan_cap` dan `allow_ids`.
+    - **Jangan** menghitung ulang jatah Standard dari katalog terkini. Kalau jatah dibatasi lalu dipilih dengan
+      `pickStable()` ber-seed, setiap resep baru ikut diundi ulang dan bisa MENGGESER resep yang sudah dimiliki
+      member — akses yang kemarin ada, besok hilang. Itu pernah terjadi dan ditangkap uji regresi di
+      `test/uji-pesan-voucher.sh`.
     Resep di luar jatah tetap tampil sebagai thumbnail bertanda gembok, tapi `prompt`/`tips` **tidak pernah
     dikirim** ke klien — dikosongkan di `rowToPrompt()`. Pemilihannya deterministik (jatah kurasi dari `ord`,
     jatah acak Trial di-seed username) supaya katalog tidak berubah tiap halaman dimuat.
@@ -133,7 +146,7 @@ Tanpa token cocok, pesanan tetap tercatat tapi hanya `notifyAdmin()` yang jalan 
 ## Data
 Tabel: `prompts, prompts_trash, members, attempts, settings, orders, webhook_log, ai_log, prompt_tests, events,
 lt_events, presence, ad_spend, vouchers`.
-Kolom penting `members`: `username, name, code_hash, code_hint, plan, expires, active, email, phone, role, avatar`.
+Kolom penting `members`: `username, name, code_hash, code_hint, plan, expires, active, email, phone, role, avatar, session_token, plan_cap, allow_ids`.
 Kolom penting `prompts`: `id, ord, cat, title, descr, popular, tools, prompt, tips, image, created_at,
 updated_at, cat_en, title_en, descr_en, tips_en, created_by, qc_status, result_status, en_only`.
 `qc_status` = `''|lolos|review|gagal`, `result_status` = `''|cocok|kurang` — dipakai menyaring di panel admin,
