@@ -51,6 +51,11 @@ function db(): PDO {
   // dan file gambarnya sengaja TIDAK ikut dihapus sampai sampahnya benar-benar dikosongkan.
   $pdo->exec('CREATE TABLE IF NOT EXISTS prompts_trash (id TEXT PRIMARY KEY, data TEXT, deleted_at TEXT, deleted_by TEXT)');
   $pdo->exec('CREATE TABLE IF NOT EXISTS ad_spend (day TEXT, campaign TEXT, amount INTEGER, note TEXT, PRIMARY KEY (day, campaign))');
+  // Katalog kode voucher. CATATAN PENTING: tabel ini TIDAK memotong harga apa pun.
+  // Potongan dihitung dan divalidasi oleh Mayar lewat parameter ?coupon= pada link
+  // pembayaran. Baris di sini hanya catatan + bahan pembuat link, sehingga menghapus
+  // baris di sini TIDAK mematikan kupon di Mayar.
+  $pdo->exec('CREATE TABLE IF NOT EXISTS vouchers (code TEXT PRIMARY KEY, pct INTEGER, note TEXT, active INTEGER DEFAULT 1, created_at TEXT)');
   // migrasi kolom baru
   $cols = array_column($pdo->query('PRAGMA table_info(prompts)')->fetchAll(), 'name');
   if (!in_array('created_at', $cols, true)) {
@@ -70,6 +75,10 @@ function db(): PDO {
   if (!in_array('session_token', $mcols, true)) $pdo->exec('ALTER TABLE members ADD COLUMN session_token TEXT');
   $ocols = array_column($pdo->query('PRAGMA table_info(orders)')->fetchAll(), 'name');
   if (!in_array('wa_sent', $ocols, true)) $pdo->exec('ALTER TABLE orders ADD COLUMN wa_sent INTEGER DEFAULT 0');
+  if (!in_array('reminded_at', $ocols, true)) $pdo->exec('ALTER TABLE orders ADD COLUMN reminded_at TEXT');
+  if (!in_array('reminder_count', $ocols, true)) $pdo->exec('ALTER TABLE orders ADD COLUMN reminder_count INTEGER DEFAULT 0');
+  $ltcols = array_column($pdo->query('PRAGMA table_info(lt_events)')->fetchAll(), 'name');
+  if (!in_array('vou', $ltcols, true)) $pdo->exec('ALTER TABLE lt_events ADD COLUMN vou TEXT');
   // kolom terjemahan Inggris
   if (!in_array('title_en', $cols, true)) {
     foreach (['cat_en', 'title_en', 'descr_en', 'tips_en'] as $c) $pdo->exec("ALTER TABLE prompts ADD COLUMN $c TEXT DEFAULT ''");
@@ -379,7 +388,13 @@ function publicOrder(array $o): array {
     'plan' => $o['plan'], 'product' => $o['product'], 'amount' => (int)$o['amount'], 'name' => $o['name'], 'email' => $o['email'],
     'phone' => $o['phone'], 'username' => $o['username'], 'code' => $o['code'], 'emailed' => (bool)$o['emailed'],
     'waSent' => (bool)($o['wa_sent'] ?? 0),
-    'note' => $o['note'], 'createdAt' => $o['created_at'], 'updatedAt' => $o['updated_at']];
+    'note' => $o['note'], 'createdAt' => $o['created_at'], 'updatedAt' => $o['updated_at'],
+    'reminderCount' => (int)($o['reminder_count'] ?? 0), 'remindedAt' => (string)($o['reminded_at'] ?? '')];
+}
+/** Satu baris voucher untuk panel admin. */
+function publicVoucher(array $v): array {
+  return ['code' => $v['code'], 'pct' => (int)$v['pct'], 'note' => (string)($v['note'] ?? ''),
+    'active' => (bool)$v['active'], 'createdAt' => (string)($v['created_at'] ?? '')];
 }
 function updateOrder(string $id, array $fields): void {
   $fields['updated_at'] = gmdate('c');
@@ -420,15 +435,149 @@ function fulfillOrder(string $id, bool $sendEmail = true): array {
   return findOrder($id);
 }
 
-function accessMessage(array $o): string {
-  $first = trim(explode(' ', (string)$o['name'])[0]) ?: 'Kak';
-  return "Halo $first! Terima kasih sudah membeli ResepFoto {$o['plan']}.\n\n"
-    . "Link: " . siteUrl() . "\n"
-    . "Username: {$o['username']}\n"
-    . "Kode akses: {$o['code']}\n"
-    . "Paket: {$o['plan']} (akses selamanya)\n\n"
-    . "Simpan pesan ini ya. Selamat mencoba!";
+/* ---------- template pesan ke pembeli ----------
+ * SATU template per kejadian, ditulis dengan format WhatsApp (*tebal*, _miring_,
+ * daftar bernomor). Dari satu sumber itu dihasilkan tiga keluaran:
+ *   - WhatsApp                         : apa adanya
+ *   - email HTML                       : tandanya jadi <strong>/<em>/<ol>
+ *   - email teks & tombol salin panel  : tandanya dibuang
+ * Dengan begitu isi ketiganya tidak mungkin berbeda.
+ */
+const MSG_PAID_SUBJECT = 'Akses ResepFoto kamu sudah aktif';
+const MSG_PAID = "Halo *Kak {nama_depan}*! \u{2728}\nSelamat datang di *ResepFoto {paket}*.\nAkses Kakak sudah aktif dan bisa langsung digunakan.\n\n*Detail akun*\n1. Website: {situs}\n2. Username: {username}\n3. Kode akses: *{kode}*\n4. Paket: {paket} \u{2014} akses selamanya\n\n_Mohon simpan informasi akses ini dengan baik ya, Kak._\n\nKalau suka dengan hasilnya, jangan lupa share di sosial media dan tag kami ya, Kak. Dukungan Kakak sangat berarti untuk membantu ResepFoto terus berkembang.\n\nTerima kasih dan selamat berkreasi! \u{1F4F8}\u{2728}";
+const MSG_PENDING_SUBJECT = 'Pesanan ResepFoto kamu belum selesai';
+const MSG_PENDING = "Halo *Kak {nama_depan}*! \u{2728}\nTerima kasih sudah memilih *ResepFoto {paket}*.\n\nPesanan Kakak _belum selesai_ \u{2014} tinggal satu langkah lagi:\n\n1. Buka halaman pembayaran: {link_bayar}\n2. Pilih metode: Virtual Account, QRIS, atau kartu\n3. Selesaikan pembayaran sebesar *{nominal}*\n\nSetelah pembayaran terkonfirmasi, *akses Kakak langsung dikirim otomatis* ke WhatsApp dan email ini.\n\nKalau ada kendala, balas pesan ini ya, Kak. \u{1F4F8}\u{2728}";
+
+/** Ambil template dari panel admin; kalau kosong pakai bawaan. */
+function msgTpl(string $key, string $default): string {
+  $v = trim(setting($key));
+  return $v !== '' ? $v : $default;
 }
+/** Link pembayaran dari payload Mayar kalau ada; kalau tidak, halaman promo. */
+function orderPayLink(array $o): string {
+  $raw = json_decode((string)($o['raw'] ?? ''), true);
+  if (is_array($raw)) {
+    $d = is_array($raw['data'] ?? null) ? $raw['data'] : $raw;
+    foreach (['link', 'paymentUrl', 'payment_url', 'invoiceUrl', 'invoice_url', 'url'] as $k) {
+      $v = (string)($d[$k] ?? '');
+      if (strpos($v, 'https://') === 0) return $v;
+    }
+  }
+  return siteUrl() . '/promo';
+}
+/** Nilai pengganti untuk placeholder {..} di template. */
+function msgVars(array $o): array {
+  $nama = trim((string)($o['name'] ?? ''));
+  $first = trim(explode(' ', $nama)[0]);
+  $amount = (int)($o['amount'] ?? 0);
+  return [
+    '{nama}'       => $nama !== '' ? $nama : 'Kak',
+    '{nama_depan}' => $first !== '' ? $first : 'Kak',
+    '{paket}'      => (string)($o['plan'] ?? ''),
+    '{username}'   => (string)($o['username'] ?? ''),
+    '{kode}'       => (string)($o['code'] ?? ''),
+    '{situs}'      => siteUrl(),
+    '{nominal}'    => $amount > 0 ? 'Rp' . number_format($amount, 0, ',', '.') : '',
+    '{link_bayar}' => orderPayLink($o),
+  ];
+}
+/** Isi placeholder sekali jalan (strtr, bukan str_replace berantai). */
+function renderMsg(string $tpl, array $vars): string { return strtr($tpl, $vars); }
+/** Buang tanda format WhatsApp — untuk email versi teks dan tombol salin di panel. */
+function waStrip(string $s): string {
+  $s = preg_replace('/\*([^\*\n]+)\*/u', '$1', $s);
+  $s = preg_replace('/(?<![A-Za-z0-9])_([^_\n]+)_(?![A-Za-z0-9])/u', '$1', $s);
+  return preg_replace('/~([^~\n]+)~/u', '$1', $s);
+}
+/** Ubah format WhatsApp jadi HTML aman: escape dulu, baru tandanya diterjemahkan. */
+function waToHtml(string $s): string {
+  $inline = function (string $t): string {
+    $t = htmlspecialchars($t, ENT_QUOTES, 'UTF-8');
+    $t = preg_replace('~(https?://[^\s<]+)~u', '<a href="$1" style="color:#2856D8">$1</a>', $t);
+    $t = preg_replace('/\*([^\*\n]+)\*/u', '<strong>$1</strong>', $t);
+    $t = preg_replace('/(?<![A-Za-z0-9])_([^_\n]+)_(?![A-Za-z0-9])/u', '<em>$1</em>', $t);
+    return preg_replace('/~([^~\n]+)~/u', '<del>$1</del>', $t);
+  };
+  // Jenis tiap baris. Satu blok boleh campur: judul lalu daftar, seperti
+  // "*Detail akun*" yang langsung diikuti "1. Website: ..." tanpa baris kosong.
+  $jenis = function (string $b): string {
+    if (preg_match('/^\d+[.)]\s+/', $b)) return 'ol';
+    if (preg_match('/^[-\x{2022}]\s+/u', $b)) return 'ul';
+    return 'p';
+  };
+  $out = '';
+  foreach (preg_split("/\n[ \t]*\n/", str_replace("\r\n", "\n", $s)) as $blok) {
+    $baris = array_values(array_filter(array_map('rtrim', explode("\n", $blok)), function ($x) { return $x !== ''; }));
+    if (!$baris) continue;
+    $i = 0; $n = count($baris);
+    while ($i < $n) {
+      $j = $jenis($baris[$i]);
+      $grup = [];
+      while ($i < $n && $jenis($baris[$i]) === $j) { $grup[] = $baris[$i]; $i++; }
+      if ($j === 'p') {
+        $out .= '<p style="margin:0 0 14px;color:#44506A;line-height:1.6">' . implode('<br>', array_map($inline, $grup)) . '</p>';
+        continue;
+      }
+      $out .= '<' . $j . ' style="margin:0 0 16px;padding-left:22px;color:#44506A;line-height:1.7">';
+      foreach ($grup as $b) {
+        $isi = preg_replace($j === 'ol' ? '/^\d+[.)]\s+/' : '/^[-\x{2022}]\s+/u', '', $b);
+        $out .= '<li style="margin:0 0 6px">' . $inline($isi) . '</li>';
+      }
+      $out .= '</' . $j . '>';
+    }
+  }
+  return $out;
+}
+/** Kerangka email: logo di atas, isi di kartu putih. Gaya inline — syarat Gmail. */
+function emailShell(string $preheader, string $isiHtml): string {
+  $situs = siteUrl();
+  $pre = htmlspecialchars($preheader, ENT_QUOTES, 'UTF-8');
+  $font = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+  return '<!doctype html><html lang="id"><head><meta charset="utf-8">'
+    . '<meta name="viewport" content="width=device-width,initial-scale=1">'
+    . '<meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light">'
+    . '<title>ResepFoto</title></head>'
+    . '<body style="margin:0;padding:0;background:#F5F7FC">'
+    . '<div style="display:none;max-height:0;overflow:hidden;opacity:0">' . $pre . '</div>'
+    . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F5F7FC;padding:28px 12px">'
+    . '<tr><td align="center">'
+    . '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%">'
+    . '<tr><td align="center" style="padding:0 0 22px">'
+    . '<a href="' . $situs . '" style="text-decoration:none"><img src="' . $situs . '/brand/email-logo.png" width="190" alt="ResepFoto" style="display:block;border:0;width:190px;max-width:70%;height:auto"></a>'
+    . '</td></tr>'
+    . '<tr><td style="background:#FFFFFF;border:1px solid #E4E9F4;border-radius:18px;padding:30px 28px;font-family:' . $font . ';font-size:15px">'
+    . $isiHtml
+    . '</td></tr>'
+    . '<tr><td align="center" style="padding:20px 8px 0;font-family:' . $font . ';font-size:12px;color:#8A93A6;line-height:1.6">'
+    . '&copy; ' . date('Y') . ' ResepFoto &middot; <a href="' . $situs . '" style="color:#8A93A6">resepfoto.kitlab.id</a><br>'
+    . 'Email ini dikirim otomatis, mohon tidak dibalas.'
+    . '</td></tr></table></td></tr></table></body></html>';
+}
+/** Tombol ajakan untuk email. */
+function emailButton(string $url, string $teks): string {
+  return '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 20px"><tr>'
+    . '<td style="background:#2856D8;border-radius:12px"><a href="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '"'
+    . ' style="display:inline-block;padding:13px 26px;color:#FFFFFF;text-decoration:none;font-weight:600;font-size:15px">'
+    . htmlspecialchars($teks, ENT_QUOTES, 'UTF-8') . '</a></td></tr></table>';
+}
+
+/* --- tiga keluaran untuk pesanan yang sudah lunas --- */
+function accessWa(array $o): string { return renderMsg(msgTpl('msg_paid', MSG_PAID), msgVars($o)); }
+function accessMessage(array $o): string { return waStrip(accessWa($o)); }
+function accessHtml(array $o): string {
+  return emailShell('Akses ResepFoto kamu sudah aktif.',
+    waToHtml(accessWa($o)) . emailButton(siteUrl(), 'Buka ResepFoto'));
+}
+function accessSubject(array $o): string { return renderMsg(msgTpl('msg_paid_subject', MSG_PAID_SUBJECT), msgVars($o)); }
+
+/* --- tiga keluaran untuk pengingat sebelum bayar --- */
+function pendingWa(array $o): string { return renderMsg(msgTpl('msg_pending', MSG_PENDING), msgVars($o)); }
+function pendingMessage(array $o): string { return waStrip(pendingWa($o)); }
+function pendingHtml(array $o): string {
+  return emailShell('Pesanan ResepFoto kamu belum selesai.',
+    waToHtml(pendingWa($o)) . emailButton(orderPayLink($o), 'Lanjutkan pembayaran'));
+}
+function pendingSubject(array $o): string { return renderMsg(msgTpl('msg_pending_subject', MSG_PENDING_SUBJECT), msgVars($o)); }
 /* ---------- email ---------- */
 /** Alamat pengirim; harus di domain sendiri supaya SPF & DKIM cocok. */
 function mailFrom(): string {
@@ -440,41 +589,59 @@ function mailSubject(string $s): string { return '=?UTF-8?B?' . base64_encode($s
  * Header RFC 5322 lengkap. Tanpa MIME-Version, Date dan Message-ID penyaring
  * spam memberi nilai buruk walaupun SPF & DKIM sudah benar.
  */
-function mailHeaders(?string $from = null): string {
+function mailHeaders(?string $from = null, string $boundary = ''): string {
   $from = $from ?: mailFrom();
   $domain = ltrim((string)strrchr($from, '@'), '@') ?: 'kitlab.id';
+  // Dengan boundary -> multipart/alternative (teks + HTML). Tanpa boundary -> teks polos
+  // seperti sebelumnya. MAIL FROM / -f sengaja TIDAK disentuh: itu yang membuat SPF lolos.
+  $ctype = $boundary !== ''
+    ? "Content-Type: multipart/alternative; boundary=\"$boundary\"\r\n"
+    : "Content-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n";
   return "From: ResepFoto <$from>\r\n"
     . "Reply-To: $from\r\n"
     . 'Date: ' . date('r') . "\r\n"
     . 'Message-ID: <' . bin2hex(random_bytes(12)) . '@' . $domain . ">\r\n"
     . "MIME-Version: 1.0\r\n"
-    . "Content-Type: text/plain; charset=UTF-8\r\n"
-    . "Content-Transfer-Encoding: base64\r\n"
+    . $ctype
     . "Auto-Submitted: auto-generated\r\n"
     . 'X-Mailer: ResepFoto';
 }
+/** Rakit isi pesan. Ada HTML -> dua bagian; tanpa HTML -> base64 teks seperti dulu. */
+function mimeBody(string $text, ?string $html, string $boundary): string {
+  if ($html === null || $boundary === '') return chunk_split(base64_encode($text));
+  return "--$boundary\r\n"
+    . "Content-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n"
+    . chunk_split(base64_encode($text))
+    . "\r\n--$boundary\r\n"
+    . "Content-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n"
+    . chunk_split(base64_encode($html))
+    . "\r\n--$boundary--\r\n";
+}
+/** Boundary acak untuk satu pesan. */
+function mimeBoundary(): string { return 'rf' . bin2hex(random_bytes(10)); }
 /**
  * Kirim email. Pakai SMTP kalau smtp_host diisi di panel admin; kalau tidak,
  * mail() dengan envelope sender (-f) supaya Return-Path sejajar dengan From —
  * itu syarat SPF/DMARC lolos dan email tidak dianggap spam.
  * Melempar RuntimeException berisi sebab yang aman ditampilkan ke admin.
  */
-function sendMailOrFail(string $to, string $subject, string $body): void {
+function sendMailOrFail(string $to, string $subject, string $body, ?string $html = null): void {
   if (!filter_var($to, FILTER_VALIDATE_EMAIL)) throw new RuntimeException('Alamat tujuan tidak valid.');
   $from = mailFrom();
-  if (setting('smtp_host') !== '') { smtpSend($to, $subject, $body, $from); return; }
-  $headers = mailHeaders($from);
-  $enc = chunk_split(base64_encode($body));
+  if (setting('smtp_host') !== '') { smtpSend($to, $subject, $body, $from, $html); return; }
+  $boundary = $html !== null ? mimeBoundary() : '';
+  $headers = mailHeaders($from, $boundary);
+  $enc = mimeBody($body, $html, $boundary);
   $subj = mailSubject($subject);
   if (@mail($to, $subj, $enc, $headers, '-f' . $from)) return;
   if (@mail($to, $subj, $enc, $headers)) return;          // sebagian host melarang parameter -f
   throw new RuntimeException('Server menolak mengirim email (fungsi mail() gagal).');
 }
-function sendMail(string $to, string $subject, string $body): bool {
-  try { sendMailOrFail($to, $subject, $body); return true; } catch (Throwable $e) { return false; }
+function sendMail(string $to, string $subject, string $body, ?string $html = null): bool {
+  try { sendMailOrFail($to, $subject, $body, $html); return true; } catch (Throwable $e) { return false; }
 }
 /** Klien SMTP minimal: AUTH LOGIN, STARTTLS (587) atau SSL langsung (465). */
-function smtpSend(string $to, string $subject, string $body, string $from): void {
+function smtpSend(string $to, string $subject, string $body, string $from, ?string $html = null): void {
   $host = setting('smtp_host');
   $port = (int)setting('smtp_port', '587'); if ($port <= 0) $port = 587;
   $secure = strtolower(setting('smtp_secure', 'tls'));
@@ -511,7 +678,8 @@ function smtpSend(string $to, string $subject, string $body, string $from): void
   $cmd('MAIL FROM:<' . $from . '>', '250');
   $cmd('RCPT TO:<' . $to . '>', '250');
   $cmd('DATA', '354');
-  $msg = mailHeaders($from) . "\r\nTo: <$to>\r\nSubject: " . mailSubject($subject) . "\r\n\r\n" . chunk_split(base64_encode($body));
+  $boundary = $html !== null ? mimeBoundary() : '';
+  $msg = mailHeaders($from, $boundary) . "\r\nTo: <$to>\r\nSubject: " . mailSubject($subject) . "\r\n\r\n" . mimeBody($body, $html, $boundary);
   fwrite($fp, preg_replace('/^\./m', '..', $msg) . "\r\n.\r\n");
   $cmd('', '250', 'kirim');
   @fwrite($fp, "QUIT\r\n");
@@ -520,9 +688,24 @@ function smtpSend(string $to, string $subject, string $body, string $from): void
 function sendAccessEmail(string $id): bool {
   $o = findOrder($id);
   if (!$o || !$o['email'] || !filter_var($o['email'], FILTER_VALIDATE_EMAIL) || !$o['code']) return false;
-  $ok = sendMail((string)$o['email'], 'Akses ResepFoto kamu sudah aktif', accessMessage($o));
+  $ok = sendMail((string)$o['email'], accessSubject($o), accessMessage($o), accessHtml($o));
   updateOrder($id, ['emailed' => $ok ? 1 : 0, 'note' => $ok ? 'Email akses terkirim.' : 'Email gagal dikirim server. Kirim manual via WA.']);
   return $ok;
+}
+
+/* ---------- pengingat sebelum bayar ----------
+ * Sengaja TIDAK memakai ulang sendAccessEmail/sendAccessWa: keduanya mensyaratkan
+ * kode akses, yang justru belum ada pada pesanan yang belum lunas.
+ */
+function sendPendingEmail(string $id): bool {
+  $o = findOrder($id);
+  if (!$o || !$o['email'] || !filter_var($o['email'], FILTER_VALIDATE_EMAIL)) return false;
+  return sendMail((string)$o['email'], pendingSubject($o), pendingMessage($o), pendingHtml($o));
+}
+function sendPendingWa(string $id): bool {
+  $o = findOrder($id);
+  if (!$o || !$o['phone'] || setting('fonnte_token') === '') return false;
+  return waSend((string)$o['phone'], pendingWa($o));
 }
 
 /* ---------- WhatsApp (Fonnte) ---------- */
@@ -567,7 +750,7 @@ function waSend(string $phone, string $message): bool {
 function sendAccessWa(string $id): bool {
   $o = findOrder($id);
   if (!$o || !$o['phone'] || !$o['code'] || setting('fonnte_token') === '') return false;
-  $ok = waSend((string)$o['phone'], accessMessage($o));
+  $ok = waSend((string)$o['phone'], accessWa($o));
   updateOrder($id, ['wa_sent' => $ok ? 1 : 0]);
   return $ok;
 }

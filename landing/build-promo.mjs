@@ -140,7 +140,7 @@ const trk = (() => {
   const url = TRACK_URL + "?a=lt";
   const send = (type, extra = {}) => {
     fbSend(type, extra);
-    const body = JSON.stringify({type, vid, sid, page: "promo", ref: document.referrer, ...utm, ...extra});
+    const body = JSON.stringify({type, vid, sid, page: "promo", ref: document.referrer, vou: store.get("rfp_voucher", ""), ...utm, ...extra});
     try { if (navigator.sendBeacon && navigator.sendBeacon(url, new Blob([body], {type: "text/plain"}))) return; } catch {}
     fetch(url, {method: "POST", body, keepalive: true, credentials: "omit", headers: {"Content-Type": "text/plain"}}).catch(() => {});
   };

@@ -92,6 +92,28 @@ function render(){
       </div>
     </details>
 
+    <details class="set-card" style="margin-top:12px">
+      <summary style="cursor:pointer;font-weight:700">Teks pesan ke pembeli</summary>
+      <p class="muted" style="font-size:12px;margin:8px 0">
+        Tulis sekali di sini, dipakai untuk <b>email dan WhatsApp sekaligus</b>. Pakai format WhatsApp:
+        <code>*tebal*</code>, <code>_miring_</code>, dan daftar bernomor <code>1.</code> — di email semuanya
+        otomatis jadi tebal, miring, dan daftar rapi. Kosongkan kolom untuk kembali ke teks bawaan.<br><br>
+        Isian yang diganti otomatis: <code>{nama}</code> <code>{nama_depan}</code> <code>{paket}</code>
+        <code>{username}</code> <code>{kode}</code> <code>{situs}</code> <code>{nominal}</code> <code>{link_bayar}</code>
+      </p>
+      <div class="field"><label for="tpl-paid-sub">Judul email — sesudah bayar</label>
+        <input class="input" id="tpl-paid-sub" maxlength="150" value="${esc(s.msgPaidSubject || "")}"></div>
+      <div class="field"><label for="tpl-paid">Pesan — sesudah bayar</label>
+        <textarea class="input" id="tpl-paid" rows="12" style="font-family:var(--mono);font-size:12px;line-height:1.5">${esc(s.msgPaid || "")}</textarea></div>
+      <div class="field"><label for="tpl-pend-sub">Judul email — pengingat belum bayar</label>
+        <input class="input" id="tpl-pend-sub" maxlength="150" value="${esc(s.msgPendingSubject || "")}"></div>
+      <div class="field"><label for="tpl-pend">Pesan — pengingat belum bayar</label>
+        <textarea class="input" id="tpl-pend" rows="12" style="font-family:var(--mono);font-size:12px;line-height:1.5">${esc(s.msgPending || "")}</textarea></div>
+      <div class="ord-actions">
+        <button class="main" id="tpl-save">Simpan teks pesan</button>
+      </div>
+    </details>
+
     <details class="set-card" style="margin-top:12px"${s.hasFonnte ? " open" : ""}>
       <summary style="cursor:pointer;font-weight:700">WhatsApp otomatis ${s.hasFonnte ? `<span class="pill ok">Fonnte aktif</span>` : `<span class="pill warn">belum aktif</span>`}</summary>
       <p class="muted" style="font-size:12px;margin:8px 0">Kalau token diisi, detail akses ikut dikirim ke WhatsApp pembeli begitu pembayaran lunas. Token perangkat ada di Fonnte → Device.</p>
@@ -129,7 +151,15 @@ function card(o){
     act.push(`<button data-act="resend" data-id="${esc(o.id)}">Kirim ulang email</button>`);
     act.push(`<button data-act="newcode" data-id="${esc(o.id)}">Buat kode baru</button>`);
   }
-  if (o.state === "perlu_cek" || o.state === "belum_lunas") act.push(`<button class="warn" data-act="reject" data-id="${esc(o.id)}">Tolak</button>`);
+  if (o.state === "perlu_cek" || o.state === "belum_lunas"){
+    // Pengingat sengaja manual, bukan otomatis: pemilik yang memutuskan kapan pantas
+    // mengirim. Server membatasi 2 kali per pesanan dengan jeda 24 jam.
+    const sisa = 2 - (o.reminderCount || 0);
+    act.push(sisa > 0
+      ? `<button data-act="remind" data-id="${esc(o.id)}">Kirim pengingat${o.reminderCount ? ` (${sisa} lagi)` : ""}</button>`
+      : `<button disabled title="Sudah dikirim 2 kali">Pengingat habis</button>`);
+    act.push(`<button class="warn" data-act="reject" data-id="${esc(o.id)}">Tolak</button>`);
+  }
   return `<div class="ord-card">
     <div class="ord-top"><div><strong>${esc(o.name || "(tanpa nama)")} · ${esc(o.plan)}</strong><small>${esc(o.email)}${o.phone ? " · " + esc(o.phone) : ""}</small></div><span class="ord-amt">${rp(o.amount)}</span></div>
     <div class="row" style="gap:6px;flex-wrap:wrap"><span class="pill ${cls}">${label}</span>${o.verified ? `<span class="pill ok">Terverifikasi</span>` : ""}${o.username ? `<span class="pill">@${esc(o.username)}</span>` : ""}${o.state === "aktif" ? `<span class="pill ${o.emailed ? "ok" : "warn"}">${o.emailed ? "Email terkirim" : "Email belum terkirim"}</span>` : ""}${o.state === "aktif" && o.phone ? `<span class="pill ${o.waSent ? "ok" : "warn"}">${o.waSent ? "WA terkirim" : "WA belum terkirim"}</span>` : ""}<span class="pill">${esc(when(o.createdAt))}</span></div>
@@ -139,10 +169,10 @@ function card(o){
   </div>`;
 }
 
-function msgFor(o){
-  const first = (o.name || "Kak").split(" ")[0];
-  return `Halo ${first}! Terima kasih sudah membeli ResepFoto ${o.plan}.\n\nLink: ${location.origin}/\nUsername: ${o.username}\nKode akses: ${o.code}\nPaket: ${o.plan} (akses selamanya)\n\nSimpan pesan ini ya. Selamat mencoba!`;
-}
+/* Teks pesan TIDAK dibuat ulang di sini. Server sudah mengirimnya lewat field
+   `message` pada respons orders/order_action, dibentuk dari template yang sama
+   dengan email dan WhatsApp — supaya ketiganya tidak mungkin berbeda isi. */
+function msgFor(o){ return o.message || ""; }
 function waLink(o){
   let p = String(o.phone || "").replace(/[^0-9]/g, "");
   if (p.startsWith("0")) p = "62" + p.slice(1);
@@ -167,6 +197,16 @@ function bind(){
   };
   const smtpClr = $("#smtp-clear");
   if (smtpClr) smtpClr.onclick = async () => { try { await api("settings_save", {clearSmtp: true}); toast("Kembali ke pengiriman server"); data = null; load(); } catch (e) { toast(e.message, true); } };
+  $("#tpl-save").onclick = async () => {
+    try {
+      await api("settings_save", {
+        msgPaidSubject: $("#tpl-paid-sub").value, msgPaid: $("#tpl-paid").value,
+        msgPendingSubject: $("#tpl-pend-sub").value, msgPending: $("#tpl-pend").value
+      });
+      toast("Teks pesan disimpan");
+      data = null; load();
+    } catch (e){ toast(e.message, true); }
+  };
   $("#set-test").onclick = async () => {
     try { const r = await api("test_email", {to: $("#mail-to").value.trim()}); toast("Email tes terkirim ke " + r.to); }
     catch (e) { toast(e.message, true); }
