@@ -22,6 +22,7 @@ app/            ← yang di-deploy ke document root website
   admin-reports.js  tab Pengguna & Iklan (laporan)        [super admin]
   admin-team.js     tab Admin (kelola akun admin)         [super admin]
   admin-cover.js    tab Cover (foto/teks halaman login)   [admin & super]
+  admin-voucher.js  tab Voucher (katalog kode + pembuat link) [super admin]
   webhook-mayar.php webhook pembayaran Mayar
   terima-kasih.html halaman sesudah bayar
   img/          foto contoh resep bawaan (p01…p66.jpg, 4:5) — ikut ter-deploy
@@ -131,14 +132,43 @@ Tanpa token cocok, pesanan tetap tercatat tapi hanya `notifyAdmin()` yang jalan 
 
 ## Data
 Tabel: `prompts, prompts_trash, members, attempts, settings, orders, webhook_log, ai_log, prompt_tests, events,
-lt_events, presence, ad_spend`.
+lt_events, presence, ad_spend, vouchers`.
 Kolom penting `members`: `username, name, code_hash, code_hint, plan, expires, active, email, phone, role, avatar`.
 Kolom penting `prompts`: `id, ord, cat, title, descr, popular, tools, prompt, tips, image, created_at,
 updated_at, cat_en, title_en, descr_en, tips_en, created_by, qc_status, result_status, en_only`.
 `qc_status` = `''|lolos|review|gagal`, `result_status` = `''|cocok|kurang` — dipakai menyaring di panel admin,
 tidak pernah tampil ke member. Resep yang dihapus pindah ke tabel **`prompts_trash`** (barisnya disimpan utuh
 sebagai JSON); gambar dan galeri tesnya baru benar-benar dibuang saat sampah dikosongkan.
-Kunci `settings`: `admin_hash, admin_avatar, admin_email, mail_from, mayar_webhook_token, auto_without_token, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass, fonnte_token, admin_wa, meta_pixel_id, gemini_api_key, gemini_model, gemini_image_model, cover_title, cover_sub, cover_title_en, cover_sub_en, cover_chip, cover_img1..3`.
+Kunci `settings`: `admin_hash, admin_avatar, admin_email, mail_from, mayar_webhook_token, auto_without_token, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass, fonnte_token, admin_wa, meta_pixel_id, gemini_api_key, gemini_model, gemini_image_model, cover_title, cover_sub, cover_title_en, cover_sub_en, cover_chip, cover_img1..3, msg_paid_subject, msg_paid, msg_pending_subject, msg_pending`.
+
+**Satu template, tiga kanal.** Teks pesan ke pembeli ditulis SEKALI di Admin -> Pesanan -> "Teks pesan ke
+pembeli", dengan format WhatsApp (`*tebal*`, `_miring_`, daftar bernomor). Dari satu template itu `lib.php`
+menghasilkan tiga keluaran: `accessWa()` (apa adanya), `accessHtml()` (tanda formatnya jadi `<strong>`/`<em>`/`<ol>`,
+dibungkus `emailShell()` berlogo), dan `accessMessage()` (tanda formatnya dibuang — dipakai email versi teks dan
+tombol salin di panel). Trio yang sama ada untuk pengingat: `pendingWa/pendingHtml/pendingMessage`. **Jangan
+membuat teks pesan langsung di JavaScript** — panel memakai field `message` dari server supaya tidak pernah beda.
+Placeholder: `{nama} {nama_depan} {paket} {username} {kode} {situs} {nominal} {link_bayar}`.
+
+**Email HTML.** `mailHeaders($from, $boundary)` memakai `multipart/alternative` kalau boundary diisi, dan
+`mimeBody()` merakit bagian teks + HTML. `MAIL FROM` dan `-f` sengaja tidak disentuh — itu yang membuat SPF lolos.
+Logo email: `app/brand/email-logo.png` (PNG, karena Gmail tidak merender SVG).
+
+**Pengingat sebelum bayar.** Aksi `remind` di `order_action`, tombol per pesanan di tab Pesanan. Sengaja **manual**,
+bukan otomatis: event pengingat Mayar terpicu 29 menit setelah checkout gagal dan tidak bisa diatur, jadi kirim
+otomatis berisiko dianggap spam sekaligus membakar kuota Fonnte. Pengaman server: maksimal 2 kali per pesanan,
+jeda minimal 24 jam, penanda ditulis sebelum pengiriman (kolom `orders.reminded_at`, `orders.reminder_count`).
+
+**Voucher — panel ini TIDAK memotong harga.** Kuponnya milik Mayar; potongan dihitung dan divalidasi di halaman
+pembayaran Mayar lewat parameter `?coupon=KODE` pada link. Tabel `vouchers` hanya katalog + bahan pembuat link,
+sehingga menghapus baris di panel **tidak** mematikan kupon di Mayar. Aturan yang harus dipegang:
+- Setiap kode dibuat **dua kali**: di Mayar (Diskon dan Kupon; tipe persentase, reusable, **wajib** isi batas
+  pemakaian dan tanggal kedaluwarsa) lalu dicatat di panel.
+- Mematikan kampanye juga **dua langkah**: nonaktifkan di panel DAN di Mayar.
+- Kode voucher pasti menyebar — rem satu-satunya ada di batas pemakaian & kedaluwarsa di Mayar.
+- **Tidak ada endpoint pengecek kode di server kita**, dan jangan dibuat: itu akan jadi mesin penebak kupon.
+  Konsekuensinya total di halaman kita tidak berubah; kolom voucher diberi kalimat penjelas soal itu.
+- Halaman kita tidak pernah menghitung atau menampilkan harga terdiskon (`#sum-total` tidak disentuh), supaya
+  tidak pernah terjadi angka di halaman berbeda dengan yang ditagih Mayar.
 
 **Email & WhatsApp.** `sendMail()` di `lib.php` memakai SMTP kalau `smtp_host` diisi, kalau tidak `mail()` dengan
 envelope sender (`-f`) supaya Return-Path sejajar dengan `From` — itu syarat SPF/DMARC lolos. Header wajib
@@ -173,7 +203,7 @@ paket **Standard** yang mendaftar sebelum itu tidak otomatis melihatnya.
 | publik | `me` (juga mengembalikan `cover` & `v`), `login`, `logout`, `recent_orders` (pesanan asli + aktivitas keranjang asli, keduanya anonim), `lt` (tracking halaman iklan), `live` (`?page=` opsional), `pixel` (Meta Pixel ID untuk `/promo`) |
 | user | `prompts`, `track`, `avatar_save` (admin boleh isi `username` untuk member lain) |
 | admin | `prompt_save`, `prompt_review` (ubah status QC/hasil dari daftar), `prompt_cover_from_test` (hasil tes jadi gambar contoh), `prompt_delete` (→ tempat sampah), `trash`, `trash_restore`, `trash_purge`, `members`, `member_save` (FormData, boleh `avatar`/`clearAvatar`), `member_delete`, `cover_save`, `ai_analyze`, `ai_ocr`, `prompt_tests`, `prompt_test_add/generate/update/delete` |
-| super | `admins`, `admin_save`, `admin_delete`, `admin_change_code`, `orders`, `order_action`, `settings_save`, `test_email`, `test_wa`, `ai_settings`, `ai_settings_save`, `ai_test`, `report_users`, `report_ads`, `ad_spend_save` |
+| super | `admins`, `admin_save`, `admin_delete`, `admin_change_code`, `orders`, `order_action` (`approve/resend/newcode/remind/reject`), `settings_save`, `test_email`, `test_wa`, `ai_settings`, `ai_settings_save`, `ai_test`, `report_users`, `report_ads`, `ad_spend_save`, `vouchers`, `voucher_save`, `voucher_delete` |
 
 ## Fitur yang sudah ada (jangan dibuat ulang)
 Login & katalog resep (kategori, cari, favorit, populer), detail resep + salin prompt (tombol pil), tombol Buka Gemini/ChatGPT dengan deep-link app (Android `intent://` + fallback Play Store; iOS Universal Link + tautan App Store), section **Tren viral** di bawah best seller, **slider ukuran thumbnail** 1–5 kolom, panduan & FAQ, profil (foto: upload → **editor crop 1:1** → simpan; klik foto → lightbox), bahasa & tema.

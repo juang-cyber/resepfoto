@@ -404,6 +404,11 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
 .sum .tot{font-weight:800;font-size:16px;padding-top:6px;border-top:1px dashed var(--line)}
 .pays{display:flex;gap:6px;margin-top:14px;flex-wrap:wrap}
 .pays span{font-size:12px;font-weight:700;padding:6px 10px;border-radius:99px;background:var(--tint);color:var(--blue-d)}
+.vou{margin-top:14px}
+.vou label{display:block;font-size:12.5px;font-weight:700;margin-bottom:6px}
+.vou input{width:100%;height:46px;border-radius:14px;border:1px solid var(--line);background:var(--card);padding:0 14px;font-size:14px;font-family:inherit;letter-spacing:.06em;text-transform:uppercase;color:inherit}
+.vou input:focus{outline:2px solid var(--blue);outline-offset:1px}
+.vou .hint{font-size:11.5px;color:var(--muted);margin:6px 2px 0;line-height:1.5}
 
 /* toast + confetti */
 .toast{position:fixed;left:50%;top:calc(16px + env(safe-area-inset-top,0px));transform:translate(-50%,-220%);visibility:hidden;z-index:80;background:var(--ink);color:#fff;padding:11px 16px;border-radius:14px;font-weight:700;font-size:13px;transition:transform .4s cubic-bezier(.2,.9,.3,1.2);max-width:calc(100% - 32px)}
@@ -816,6 +821,11 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
   <label class="opt"><input type="radio" name="plan" value="standard" id="co-standard"><span class="grow"><strong>Standard</strong><small>Resep saat beli · akses selamanya</small></span><span class="p"><s>Rp 150.000</s>Rp 49.900</span></label>
   <label class="opt"><input type="radio" name="plan" value="premium" id="co-premium" checked><span class="grow"><strong>Premium</strong><small>+ update resep & tren viral</small></span><span class="p"><s>Rp 299.000</s>Rp 79.900</span></label>
  <div class="pays"><span>QRIS</span><span>Transfer bank</span><span>E-wallet</span></div>
+  <div class="vou">
+    <label for="co-vou">Punya kode voucher? (opsional)</label>
+    <input id="co-vou" maxlength="24" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="mis. HEMAT20">
+    <p class="hint">Potongannya dihitung di halaman pembayaran Mayar, jadi totalnya baru berubah di langkah berikutnya.</p>
+  </div>
   <div class="sum"><div><span>Paket</span><span id="sum-plan">Premium</span></div><div><span>Akses</span><span>Selamanya</span></div><div class="tot"><span>Total</span><span id="sum-total">Rp 79.900</span></div></div>
   <button class="btn btn-main btn-block" id="co-send" style="margin-top:14px">Lanjut ke pembayaran</button>
   <p class="honest"><svg class="ico"><use href="#i-info"/></svg>Akses dikirim ke email setelah lunas.</p>
@@ -862,6 +872,15 @@ const $$ = (s, r=document) => [...r.querySelectorAll(s)];
 const rp = n => "Rp " + Math.round(n).toLocaleString("id-ID");
 const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const store = { get(k,d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch{ return d; } }, set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} } };
+/* Kode voucher. Sengaja TIDAK divalidasi di sini: endpoint pengecek kode akan jadi
+   mesin penebak kupon. Kodenya hanya diteruskan ke Mayar lewat ?coupon=, dan Mayar
+   yang memutuskan berlaku atau tidak. */
+function voucherCode(){
+  const el = document.getElementById("co-vou");
+  const v = ((el && el.value) || "").trim().toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 24);
+  store.set("rfp_voucher", v);
+  return v;
+}
 let plan = store.get("rfp_plan", "premium");
 if (!PLANS[plan]) plan = "premium";
 
@@ -1211,9 +1230,11 @@ $("#sheet").addEventListener("touchend", e => { if (sy !== null && e.changedTouc
 $("#co-send").addEventListener("click", () => {
   const url = CHECKOUT[plan];
   trk("pay", {plan});
+  const vou = voucherCode();
+  const payUrl = vou ? url + (url.includes("?") ? "&" : "?") + "coupon=" + encodeURIComponent(vou) : url;
   confetti();
   toast("Membuka halaman pembayaran " + PLANS[plan].name + "…");
-  setTimeout(() => { const w = window.open(url, "_blank", "noopener"); if (!w) location.href = url; }, reduce ? 0 : 450);
+  setTimeout(() => { const w = window.open(payUrl, "_blank", "noopener"); if (!w) location.href = payUrl; }, reduce ? 0 : 450);
 });
 
 /* ---- confetti ---- */
@@ -1447,7 +1468,7 @@ const trk = (() => {
   const url = TRACK_URL + "?a=lt";
   const send = (type, extra = {}) => {
     fbSend(type, extra);
-    const body = JSON.stringify({type, vid, sid, page: "promo", ref: document.referrer, ...utm, ...extra});
+    const body = JSON.stringify({type, vid, sid, page: "promo", ref: document.referrer, vou: store.get("rfp_voucher", ""), ...utm, ...extra});
     try { if (navigator.sendBeacon && navigator.sendBeacon(url, new Blob([body], {type: "text/plain"}))) return; } catch {}
     fetch(url, {method: "POST", body, keepalive: true, credentials: "omit", headers: {"Content-Type": "text/plain"}}).catch(() => {});
   };

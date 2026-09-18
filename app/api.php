@@ -638,7 +638,14 @@ try {
       requireSuperAdmin();
       $rows = db()->query('SELECT * FROM orders ORDER BY created_at DESC LIMIT 200')->fetchAll();
       $log = db()->query('SELECT ts, ip, event, verified, headers, note FROM webhook_log ORDER BY id DESC LIMIT 15')->fetchAll();
-      out(['ok' => true, 'orders' => array_map('publicOrder', $rows), 'log' => $log, 'settings' => [
+      // Teks siap salin dibentuk di server dari template yang sama dengan email & WA,
+      // supaya tombol "Salin pesan WA" tidak pernah berbeda isi dengan yang dikirim.
+      $daftar = array_map(function ($r) {
+        $o = publicOrder($r);
+        $o['message'] = $r['state'] === 'aktif' ? accessMessage($r) : pendingMessage($r);
+        return $o;
+      }, $rows);
+      out(['ok' => true, 'orders' => $daftar, 'log' => $log, 'settings' => [
         'hasToken' => setting('mayar_webhook_token') !== '',
         'adminEmail' => setting('admin_email'), 'mailFrom' => setting('mail_from', 'no-reply@kitlab.id'),
         'msgPaidSubject' => msgTpl('msg_paid_subject', MSG_PAID_SUBJECT), 'msgPaid' => msgTpl('msg_paid', MSG_PAID),
