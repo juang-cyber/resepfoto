@@ -11,6 +11,8 @@ const PLAN_LIFETIME = ['Standard', 'Premium', 'Lifetime'];
 const VOUCHER_TIERS = [10, 20, 30, 40, 50, 60, 70, 80, 90];
 /** Jumlah resep yang didapat pembeli Standard BARU. Member lama tidak terpotong. */
 const STANDARD_CAP = 100;
+/** Komposisi jatah Standard baru: [best seller, Tren Viral]. Sisanya resep reguler. */
+const STANDARD_MIX = [7, 5];
 const PLAN_ALL = ['Standard', 'Premium', 'Lifetime', 'Bulanan', 'Tahunan'];
 // Paket resep tambahan di data/ — diimpor sekali per versi (lihat importPromptPacks()).
 const PROMPT_PACKS = ['pack2-prompts.json'];
@@ -296,7 +298,11 @@ const VIRAL_CAT = 'Tren Viral';
  * dan semua resep yang ditambahkan kemudian.
  */
 function planQuota(string $plan, ?int $cap = null): ?array {
-  if ($plan === 'Standard') return $cap === null ? [10, 10, -1] : [10, 10, max(0, $cap - 20)];
+  if ($plan === 'Standard') {
+    if ($cap === null) return [10, 10, -1];                       // member lama: aturan sebelumnya
+    list($nPop, $nVir) = STANDARD_MIX;
+    return [$nPop, $nVir, max(0, $cap - $nPop - $nVir)];          // sisanya resep reguler
+  }
   $q = ['Trial' => [3, 1, 6]];
   return isset($q[$plan]) ? $q[$plan] : null;         // null = paket bebas (Premium dsb.)
 }

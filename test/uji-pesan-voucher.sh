@@ -76,7 +76,7 @@ cek 'echo planFromProduct("ResepFoto Standard", 4990) === "Standard" ? 1 : 0;'  
 
 echo "== batas resep paket Standard =="
 cek 'echo planQuota("Standard", null) === [10,10,-1] ? 1 : 0;'                   "member Standard lama: aturan lama dipertahankan"
-cek 'echo planQuota("Standard", 100) === [10,10,80] ? 1 : 0;'                    "Standard baru: 10+10+80 = 100"
+cek 'echo planQuota("Standard", 100) === [7,5,88] ? 1 : 0;'                      "Standard baru: 7 best seller + 5 viral + 88 reguler = 100"
 cek 'echo planQuota("Premium", 100) === null ? 1 : 0;'                           "Premium tetap bebas"
 cek 'echo planQuota("Trial") === [3,1,6] ? 1 : 0;'                               "Trial tidak berubah"
 
