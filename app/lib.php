@@ -67,6 +67,7 @@ function db(): PDO {
   if (!in_array('phone', $mcols, true)) $pdo->exec('ALTER TABLE members ADD COLUMN phone TEXT');
   if (!in_array('role', $mcols, true)) $pdo->exec("ALTER TABLE members ADD COLUMN role TEXT DEFAULT 'member'");
   if (!in_array('avatar', $mcols, true)) $pdo->exec('ALTER TABLE members ADD COLUMN avatar TEXT');
+  if (!in_array('session_token', $mcols, true)) $pdo->exec('ALTER TABLE members ADD COLUMN session_token TEXT');
   $ocols = array_column($pdo->query('PRAGMA table_info(orders)')->fetchAll(), 'name');
   if (!in_array('wa_sent', $ocols, true)) $pdo->exec('ALTER TABLE orders ADD COLUMN wa_sent INTEGER DEFAULT 0');
   // kolom terjemahan Inggris
@@ -311,11 +312,23 @@ function findMember(string $username): ?array {
 }
 function saveMember(array $m, ?PDO $pdo = null): void {
   $pdo = $pdo ?: db();
-  $pdo->prepare('INSERT OR REPLACE INTO members (username, name, code_hash, code_hint, plan, expires, active, created_at, last_login, email, phone, role, avatar)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)')->execute([
+  // INSERT OR REPLACE menulis ulang seluruh baris, jadi session_token harus ikut disertakan.
+  // Pemanggil biasa (mis. simpan profil / ganti foto) tidak mengirimnya -> pertahankan nilai lama
+  // supaya member tidak ikut ter-logout. Kirim 'session_token' => '' untuk sengaja memutus sesi.
+  if (array_key_exists('session_token', $m)) {
+    $tok = (string)$m['session_token'];
+  } else {
+    $q = $pdo->prepare('SELECT session_token FROM members WHERE username = ?');
+    $q->execute([$m['username']]);
+    $tok = (string)($q->fetchColumn() ?: '');
+  }
+  $pdo->prepare('INSERT OR REPLACE INTO members (username, name, code_hash, code_hint, plan, expires, active, created_at, last_login, email, phone, role, avatar, session_token)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)')->execute([
     $m['username'], $m['name'], $m['code_hash'], $m['code_hint'], $m['plan'], $m['expires'] ?? '', (int)$m['active'],
-    $m['created_at'], $m['last_login'] ?? null, $m['email'] ?? '', $m['phone'] ?? '', $m['role'] ?? 'member', $m['avatar'] ?? '']);
+    $m['created_at'], $m['last_login'] ?? null, $m['email'] ?? '', $m['phone'] ?? '', $m['role'] ?? 'member', $m['avatar'] ?? '', $tok]);
 }
+/** Token sesi acak. Dipakai saat login, dan saat sengaja memutus semua sesi lama. */
+function newSessionToken(): string { return bin2hex(random_bytes(16)); }
 function genCode(): string {
   $a = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; $n = '23456789'; $s = 'RF-';
   for ($i = 0; $i < 4; $i++) $s .= $a[random_int(0, strlen($a) - 1)];
@@ -337,10 +350,20 @@ function planFromProduct(string $product, int $amount): ?string {
   if (strpos($p, 'standard') !== false || strpos($p, 'standar') !== false) return 'Standard';
   return $amount >= 90000 ? 'Premium' : 'Standard';
 }
+/**
+ * Username member = alamat email lengkap (huruf kecil), supaya pembeli tidak perlu
+ * menghafal apa pun selain kode akses. Kalau email kosong atau tidak valid, jatuh
+ * kembali ke nama seperti sebelumnya.
+ */
 function usernameFromEmail(string $email, string $name): string {
-  $base = strtolower(explode('@', $email)[0] ?? '');
-  if ($base === '') $base = strtolower($name);
-  $base = preg_replace('/[^a-z0-9._-]/', '', $base);
+  $e = strtolower(trim($email));
+  if ($e !== '' && strlen($e) <= 120 && filter_var($e, FILTER_VALIDATE_EMAIL)) {
+    if (!findMember($e) && $e !== strtolower(ADMIN_USER)) return $e;
+    $parts = explode('@', $e, 2); $i = 1;
+    do { $i++; $u = $parts[0] . $i . '@' . $parts[1]; } while (findMember($u) || $u === strtolower(ADMIN_USER));
+    return $u;
+  }
+  $base = preg_replace('/[^a-z0-9._-]/', '', strtolower($name));
   $base = trim(substr($base, 0, 20), '._-');
   if (strlen($base) < 3) $base = 'member' . $base;
   $u = $base; $i = 1;
@@ -381,6 +404,7 @@ function fulfillOrder(string $id, bool $sendEmail = true): array {
     if ($plan === 'Premium') $m['plan'] = 'Premium';
     $m['active'] = 1; $m['expires'] = in_array($m['plan'], PLAN_LIFETIME, true) ? '' : $m['expires'];
     $m['code_hash'] = password_hash($code, PASSWORD_DEFAULT); $m['code_hint'] = substr($code, -4);
+    $m['session_token'] = newSessionToken(); // kode baru -> token diganti, semua perangkat lama terputus
     if (!$m['phone'] && $o['phone']) $m['phone'] = $o['phone'];
     saveMember($m);
     $username = $m['username'];
@@ -388,7 +412,7 @@ function fulfillOrder(string $id, bool $sendEmail = true): array {
     $username = usernameFromEmail((string)$o['email'], (string)$o['name']);
     saveMember(['username' => $username, 'name' => $o['name'] ?: $username, 'code_hash' => password_hash($code, PASSWORD_DEFAULT),
       'code_hint' => substr($code, -4), 'plan' => $plan, 'expires' => '', 'active' => 1, 'created_at' => gmdate('c'),
-      'last_login' => null, 'email' => $o['email'], 'phone' => $o['phone']]);
+      'last_login' => null, 'email' => $o['email'], 'phone' => $o['phone'], 'session_token' => newSessionToken()]);
   }
   updateOrder($id, ['state' => 'aktif', 'username' => $username, 'code' => $code]);
   if ($sendEmail) { sendAccessEmail($id); sendAccessWa($id); }
