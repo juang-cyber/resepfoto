@@ -31,6 +31,8 @@ app/            ← yang di-deploy ke document root website
   data/         seed-prompts.json, seed-en.json, pack2-prompts.json (database .sqlite TIDAK di repo)
   uploads/      hanya .htaccess (file upload TIDAK di repo)
 brand/          logo, ikon, og-image
+                og-image.jpg = desain kiriman pemilik (18 Sep 2026), 1200x630. JANGAN di-render ulang
+                dari brand/source/og.html — file itu desain lama dan akan menimpa versi ini
 landing/        index.html → di-deploy otomatis ke /promo (dibangkitkan dari mockup.html oleh
                 build-promo.mjs — JANGAN diedit tangan); mockup.html = sumber desain, tidak ikut
                 ter-deploy; img/ ikut ke /promo → baca landing/CLAUDE.md
