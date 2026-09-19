@@ -6,10 +6,10 @@
  *   1. "Buat kupon di Mayar" (dianjurkan) memanggil API Mayar dan benar-benar
  *      membuat kuponnya, lengkap dengan kuota dan tanggal kedaluwarsa.
  *   2. "Catat kode yang sudah ada" hanya menyimpan kode ke katalog lokal. Tidak
- *      membuat apa pun di Mayar. Kalau kodenya ternyata tidak ada di sana, link
- *      ?coupon= diabaikan diam-diam dan pembeli membayar harga penuh — tanpa pesan
- *      error di mana pun. Itu pernah terjadi: panel menampilkan "aktif" padahal
- *      dashboard Mayar kosong sama sekali.
+ *      membuat apa pun di Mayar. Kalau kodenya ternyata tidak ada di sana, halaman
+ *      bayar menolak dengan "Gagal! Kode diskon ini tidak ditemukan." dan harga tetap
+ *      penuh. Pembelinya tahu; yang tidak tahu justru panel ini. Itu pernah terjadi:
+ *      panel menampilkan "aktif" padahal dashboard Mayar kosong sama sekali.
  *
  * TINGKAT DIBACA DARI DUA ANGKA TERAKHIR KODE. HEMAT30, DISKON30, dan PROMO30
  * semuanya tingkat 30%. Jadi satu tingkat boleh punya beberapa alias, dan panel
@@ -211,9 +211,9 @@ function formBuat(v, punyaKey){
     <details class="vou-manual">
       <summary>Atau catat kode yang sudah dibuat manual di Mayar</summary>
       <p class="vou-hint risk">Ini <b>tidak membuat apa pun di Mayar</b> — hanya menyimpan kodenya di sini.
-         Kalau kodenya belum ada di Mayar, linknya tetap terbuka tapi harga <b>tidak terpotong</b>, dan
-         tidak ada pesan error di mana pun. Pakai ini hanya untuk kode yang sudah kamu buat manual di
-         dashboard Mayar, dan cek dulu di Mayar → Diskon dan Kupon.</p>
+         Kalau kodenya belum ada di sana, pembeli melihat <b>"Gagal! Kode diskon ini tidak ditemukan."</b>
+         di halaman bayar dan harganya tetap penuh, sementara panel ini tetap menampilkannya aktif.
+         Pakai ini hanya untuk kode yang sudah kamu buat manual — cek dulu di Mayar → Diskon dan Kupon.</p>
       <label class="check"><input type="checkbox" id="va-${v.pct}"${v.active ? " checked" : ""}> Aktif</label>
       <div class="vou-acts">
         <button class="btn btn-ghost" type="button" data-vou-save="${v.pct}">Catat kode saja</button>

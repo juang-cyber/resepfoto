@@ -193,9 +193,10 @@ bukan yang kita kirim — kalau Mayar hanya menerima sebagian, panel harus jujur
 
 **KEJADIAN NYATA (19 Sep 2026) — jangan ulangi.** Tab Voucher menampilkan `HEMAT90` "aktif", tapi dashboard
 Mayar → Diskon dan Kupon **kosong sama sekali**. Kodenya cuma dicatat lewat `voucher_save`, tidak pernah dibuat
-di Mayar. Akibatnya `?coupon=HEMAT90` diabaikan **diam-diam**: halaman bayar tampil harga penuh, tanpa error di
-mana pun, dan panel tetap bilang "aktif". Ingat: **"aktif" di panel hanya berarti "tercatat"**. Bukti bahwa sebuah
-kupon sungguh ada hanya dua: `diMayar: true` (punya `mayar_id`), atau kelihatan di dashboard Mayar.
+di Mayar. Halaman bayar menolaknya dengan *"Gagal! Kode diskon ini tidak ditemukan."* dan harga tetap penuh —
+jadi **pembelinya tahu**, yang tidak tahu justru panel kita: statusnya tetap "aktif". Ingat: **"aktif" di panel
+hanya berarti "tercatat"**. Bukti bahwa sebuah kupon sungguh ada cuma dua: `diMayar: true` (punya `mayar_id`),
+atau kelihatan di dashboard Mayar.
 
 **Bentuk payload `POST /coupon/create` mengikuti contoh curl resmi** di
 <https://docs.mayar.id/api-reference/discount/create>: `discount` sebuah **objek**, sementara `coupon` (array)

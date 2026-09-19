@@ -598,6 +598,16 @@ function mayarApi(string $method, string $path, ?array $json = null): array {
   if ($sc < 200 || $sc >= 300) {
     $pesan = trim((string)($j['messages'] ?? $j['message'] ?? ''));
     if ($pesan === '' && ($sc === 401 || $sc === 403)) $pesan = 'API key ditolak — pastikan key-nya bertipe Read & Write.';
+    // Mayar membalas "Validation Error" tanpa menyebut field mana yang salah di 'messages';
+    // rinciannya ada di sisa objek. Tanpa diteruskan, setiap tebakan bentuk payload berarti
+    // satu siklus deploy — mahal sekali. Isinya jawaban Mayar, bukan data kita: tidak ada
+    // API key atau rahasia di sana, dan endpoint ini hanya untuk super admin.
+    $sisa = $j;
+    unset($sisa['messages'], $sisa['message'], $sisa['statusCode']);
+    $rinci = $sisa ? (string)json_encode($sisa, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : '';
+    if ($rinci !== '' && $rinci !== '[]' && $rinci !== '{}' && $rinci !== 'null') {
+      $pesan = ($pesan !== '' ? $pesan : 'HTTP ' . $sc) . ' — ' . mb_substr($rinci, 0, 400);
+    }
     throw new RuntimeException('Mayar menolak: ' . ($pesan !== '' ? $pesan : 'HTTP ' . $sc));
   }
   return $j;
