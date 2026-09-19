@@ -259,6 +259,17 @@ sebab yang kelihatan. `mayarCouponRows()` menerima ketiga bentuk yang masuk akal
 buka `api.php?a=mayar_coupons&q=ResepFoto` (super admin) — endpoint itu menampilkan jawaban mentah Mayar,
 dan dibuat justru karena menebak bentuk lewat siklus deploy 10 menit sangat mahal.
 
+**JANGAN pakai "Sekali pakai per kode" (`type: onetime`).** Terbukti 19 Sep 2026: dengan tipe itu Mayar
+membuat kampanye diskonnya tapi **tidak memasang kodenya sama sekali** — halaman bayar menolak dengan
+"Kode diskon ini tidak ditemukan", dan kampanye kosongnya tidak bisa dihapus, hanya dimatikan lewat dashboard.
+Sembilan kupon `reusable` berhasil, satu `onetime` gagal begini. Centangnya sekarang mati secara bawaan dan
+diberi peringatan; pembatasan pemakaian tetap ada lewat `totalCoupons` (kuota).
+
+**Adopsi wajib membuktikan kodenya menempel, bukan cuma namanya cocok.** `mayarFindCoupon()` memeriksa
+`coupons[].code` di jawaban daftar. Tanpa itu, kampanye kosong hasil kasus di atas akan "diangkat" ke panel
+dan dipajang sebagai kupon sah, padahal pembeli akan ditolak di halaman bayar — kegagalan yang jauh lebih
+buruk daripada sekadar gagal membuat.
+
 **Penamaan kupon yang dipakai sekarang (19 Sep 2026):** satu alias per tingkat, `RFHEMAT10` … `RFHEMAT80`,
 ditambah `HEMAT90` yang lebih dulu dibuat. Semuanya kuota 100, `reusable`, berlaku sampai 19 Sep 2027, dan
 berlaku untuk semua produk. Ingat tiap alias = satu diskon berkuota sendiri: menambah tiga alias ke satu

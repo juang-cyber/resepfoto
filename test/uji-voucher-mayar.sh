@@ -90,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $path === '/coupon/create') {
   // Simpan supaya GET /coupons bisa menemukannya lagi — itu yang dipakai panel untuk
   // mengangkat diskon yatim.
   $simpan = json_decode((string)@file_get_contents($dir . '/mock.db.json'), true) ?: [];
-  $simpan[] = ['id' => $id, 'name' => (string)($j['name'] ?? ''), 'totalUsage' => 0];
+  $simpan[] = ['id' => $id, 'name' => (string)($j['name'] ?? ''), 'totalUsage' => 0, 'coupons' => $cs];
   file_put_contents($dir . '/mock.db.json', json_encode($simpan));
   echo json_encode(['statusCode' => 200, 'data' => ['id' => $id, 'coupons' => $cs]]); exit;
 }
@@ -105,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $path === '/coupons') {
   foreach ($simpan as $r) {
     if ($cari === '' || stripos((string)$r['name'], $cari) !== false) {
       $hasil[] = ['id' => $r['id'], 'name' => $r['name'], 'status' => 'active',
-        'totalUsage' => (int)$r['totalUsage'], 'products' => []];
+        'totalUsage' => (int)$r['totalUsage'], 'products' => [], 'coupons' => $r['coupons'] ?? []];
     }
   }
   echo json_encode(['statusCode' => 200, 'data' => ['coupons' => $hasil], 'hasMore' => false]); exit;
@@ -316,7 +316,8 @@ echo "== diskon yatim diangkat, bukan dibuat kembar =="
 (cd "$T" && php -r 'require "config.php"; require "lib.php";
 db()->prepare("UPDATE vouchers SET code=\x27\x27, codes=\x27\x27, mayar_id=\x27\x27, mayar_ids=\x27\x27, active=0 WHERE pct=40")->execute();')
 php -r '$f=$argv[1]; $d=json_decode(file_get_contents($f),true)?:[];
-$d[]=["id"=>"disc-yatim-40","name"=>"ResepFoto 40% - RFYATIM40","totalUsage"=>12];
+$d[]=["id"=>"disc-yatim-40","name"=>"ResepFoto 40% - RFYATIM40","totalUsage"=>12,
+"coupons"=>[["code"=>"RFYATIM40","type"=>"reusable","isActive"=>true]]];
 file_put_contents($f, json_encode($d));' "$T/mock.db.json"
 : > "$T/mock.log"
 r=$(postb "$S" voucher_create "{\"codes\":\"RFYATIM40\",\"quota\":5,\"expires\":\"$EXP\"}")
@@ -328,6 +329,31 @@ $s=db()->prepare("SELECT mayar_id FROM vouchers WHERE pct=40"); $s->execute(); e
 [ "$mid40" = "disc-yatim-40" ] && ok "id dari Mayar tersimpan ($mid40)" || no "id salah: '$mid40'"
 r=$(postb "$S" voucher_sync '{"pct":40}')
 echo "$r" | grep -q '"used":12' && ok "jumlah pemakaian dibaca dari daftar Mayar" || no "used tidak terbaca: $r"
+
+echo "== kampanye tanpa kode TIDAK boleh diangkat =="
+# Kampanye bisa ada di Mayar tanpa satu pun kode menempel (terjadi 19 Sep 2026 dengan
+# type onetime). Mengangkatnya berarti panel memajang kupon yang di halaman bayar
+# ditolak. Nama cocok saja tidak cukup — kodenya harus benar-benar ada.
+php -r '$f=$argv[1]; $d=json_decode(file_get_contents($f),true)?:[];
+$d[]=["id"=>"disc-kosong-95","name"=>"ResepFoto 95% - RFKOSONG95","totalUsage"=>0,"coupons"=>[]];
+file_put_contents($f, json_encode($d));' "$T/mock.db.json"
+: > "$T/mock.log"
+r=$(postb "$S" voucher_create "{\"codes\":\"RFKOSONG95\",\"quota\":5,\"expires\":\"$EXP\"}")
+echo "$r" | grep -q '"ok":true' && ok "tetap diproses, tidak berhenti di kampanye kosong" || no "gagal: $r"
+n=$(grep -c '"path":"/coupon/create"' "$T/mock.log" || true)
+[ "$n" = "1" ] && ok "kampanye tanpa kode diabaikan, kode dibuat baru" || no "seharusnya 1 pembuatan, dapat $n"
+mid95=$(cd "$T" && php -r 'require "config.php"; require "lib.php";
+$s=db()->prepare("SELECT mayar_id FROM vouchers WHERE pct=95"); $s->execute(); echo (string)$s->fetchColumn();')
+[ "$mid95" != "disc-kosong-95" ] && ok "id yang tersimpan bukan kampanye kosong ($mid95)" || no "malah mengangkat kampanye kosong"
+
+echo "== sekali pakai: sebabnya disebut =="
+# Mayar membalas 2xx tapi tanpa kode. Untuk type onetime, pesannya harus menyebut
+# pilihan itu sebagai tersangka utama — tanpa itu admin tidak tahu harus mengubah apa.
+echo 'tanpakode' > "$T/mock.mode"
+r=$(postb "$S" voucher_create "{\"codes\":\"RFSEKALI30\",\"quota\":5,\"expires\":\"$EXP\",\"onetime\":true}")
+echo "$r" | grep -q 'Sekali pakai per kode' && ok "pilihan sekali pakai disebut sebagai penyebab" || no "sebab tidak disebut: $r"
+echo "$r" | grep -q 'tidak bisa dihapus\|Matikan diskon' && ok "admin diberi tahu harus mematikannya di Mayar" || no "tindak lanjut tidak jelas: $r"
+echo 'ok' > "$T/mock.mode"
 
 echo "== baca balik status dari Mayar =="
 : > "$T/mock.log"

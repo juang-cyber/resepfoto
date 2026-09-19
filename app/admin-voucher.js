@@ -204,7 +204,11 @@ function formBuat(v, punyaKey){
       <div class="field"><label for="vx-${v.pct}">Berlaku sampai</label>
         <input class="input" id="vx-${v.pct}" type="date" value="${esc(v.expires || tanggalDefault())}"></div>
     </div>
-    <label class="check"><input type="checkbox" id="vo-${v.pct}" checked> Sekali pakai per kode</label>
+    <label class="check"><input type="checkbox" id="vo-${v.pct}"> Sekali pakai per kode</label>
+    <p class="vou-hint">Biarkan <b>tidak dicentang</b>. Terbukti 19 Sep 2026: dengan pilihan ini API Mayar
+       membuat diskonnya tapi <b>tidak memasang kodenya</b>, sehingga halaman bayar menolak dengan "Kode diskon
+       ini tidak ditemukan" — dan diskon kosongnya tidak bisa dihapus, hanya bisa dimatikan dari dashboard.
+       Pembatasan pemakaian tetap ada lewat kuota di atas.</p>
     <div class="field"><label for="vn-${v.pct}">Catatan (untuk Anda sendiri)</label>
       <input class="input" id="vn-${v.pct}" maxlength="160" value="${esc(v.note)}"
              placeholder="mis. kolaborasi @akunfoto"></div>

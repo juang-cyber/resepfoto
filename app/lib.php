@@ -725,7 +725,14 @@ function mayarFindCoupon(int $pct, string $code): string {
     try { $j = mayarApi('GET', '/coupons?limit=100&search=' . rawurlencode($kunci), null, true); }
     catch (Throwable $e) { continue; }
     foreach (mayarCouponRows($j) as $r) {
-      if (isset($r['name']) && $r['name'] === $nama && (string)$r['id'] !== '') return (string)$r['id'];
+      if (!isset($r['name']) || $r['name'] !== $nama || (string)$r['id'] === '') continue;
+      // Nama cocok BELUM CUKUP. Kampanye bisa ada tanpa kode sama sekali — terjadi
+      // 19 Sep 2026 saat membuat dengan type "onetime": diskon 95% terbentuk, kodenya
+      // tidak, dan halaman bayar menolak dengan "Kode diskon ini tidak ditemukan".
+      // Mengangkat kampanye seperti itu berarti panel memajang kupon palsu.
+      foreach (($r['coupons'] ?? []) as $c) {
+        if (isset($c['code']) && strcasecmp((string)$c['code'], $code) === 0) return (string)$r['id'];
+      }
     }
   }
   return '';
@@ -800,9 +807,14 @@ function mayarCreateCoupon(array $codes, int $pct, int $quota, string $expires, 
     $id = (string)($d['id'] ?? '');
     $kode = mayarCouponCodes($d);
     if ($id === '' || !in_array($code, $kode, true)) {
-      return mayarCouponGagal($ids, $jadi, $bentuk, 'Mayar menerima permintaan tapi tidak mengembalikan kode "'
-        . $code . '"' . ($id !== '' ? ' (diskon ' . $id . ')' : '') . '. Dihentikan supaya tidak menumpuk diskon '
-        . 'tanpa kode — periksa di Mayar → Diskon dan Kupon, matikan yang kosong.');
+      $sebab = 'Mayar menerima permintaan tapi tidak mengembalikan kode "' . $code . '"'
+        . ($id !== '' ? ' (diskon ' . $id . ')' : '') . '. Diskonnya terbentuk TANPA kode, jadi di halaman bayar '
+        . 'akan ditolak "Kode diskon ini tidak ditemukan". Matikan diskon itu di Mayar → Diskon dan Kupon.';
+      if ($tipe === 'onetime') {
+        $sebab .= ' Penyebab paling sering: pilihan "Sekali pakai per kode". API Mayar tidak memasang kode untuk '
+          . 'tipe itu — buat ulang tanpa centang tersebut.';
+      }
+      return mayarCouponGagal($ids, $jadi, $bentuk, $sebab);
     }
     $ids[] = $id;
     foreach ($kode as $k) if (!in_array($k, $jadi, true)) $jadi[] = $k;
