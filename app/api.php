@@ -330,7 +330,7 @@ try {
   switch ($a) {
     case 'me': {
       $who = currentUser();
-      $res = ['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => $who, 'cover' => coverConfig(), 'v' => 'admin-30'];
+      $res = ['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => $who, 'cover' => coverConfig(), 'v' => 'admin-31'];
       if (!$who && !empty($GLOBALS['rf_session_taken'])) $res['sessionTaken'] = true;
       out($res);
     }
@@ -1467,9 +1467,9 @@ try {
       catch (Throwable $e) { fail($e->getMessage(), 502); }
       // Yang disimpan adalah kode yang DIAKUI Mayar lewat responsnya, bukan yang kita kirim.
       $jadi = $r['codes'];
-      db()->prepare('UPDATE vouchers SET code = ?, codes = ?, note = ?, active = 1, quota = ?, expires = ?, kind = ?, mayar_id = ?, synced_at = ?, updated_at = ? WHERE pct = ?')
+      db()->prepare('UPDATE vouchers SET code = ?, codes = ?, note = ?, active = 1, quota = ?, expires = ?, kind = ?, mayar_id = ?, mayar_ids = ?, synced_at = ?, updated_at = ? WHERE pct = ?')
         ->execute([$jadi[0], json_encode(array_values($jadi)), str($in, 'note', 160), $quota, $exp, $onetime ? 'onetime' : 'reusable',
-          $r['id'], gmdate('c'), gmdate('c'), $pct]);
+          $r['id'], json_encode(array_values($r['ids'])), gmdate('c'), gmdate('c'), $pct]);
       $st = db()->prepare('SELECT * FROM vouchers WHERE pct = ?'); $st->execute([$pct]);
       out(['ok' => true, 'voucher' => publicVoucher($st->fetch())]);
     }
@@ -1480,11 +1480,22 @@ try {
       if (!in_array($pct, VOUCHER_TIERS, true)) fail('Persentase harus salah satu dari 10 sampai 90.');
       $st = db()->prepare('SELECT * FROM vouchers WHERE pct = ?'); $st->execute([$pct]);
       $v = $st->fetch();
-      if (!$v || (string)($v['mayar_id'] ?? '') === '') fail('Tingkat ini belum punya kupon yang dibuat lewat panel.');
-      try { $d = mayarCouponDetail((string)$v['mayar_id']); }
-      catch (Throwable $e) { fail($e->getMessage(), 502); }
-      $kuota = isset($d['totalCoupons']) ? (int)$d['totalCoupons'] : (int)$v['quota'];
-      $aktif = isset($d['coupons'][0]['isActive']) ? (bool)$d['coupons'][0]['isActive'] : (bool)$v['active'];
+      $ids = $v ? voucherMayarIds($v) : [];
+      if (!$ids) fail('Tingkat ini belum punya kupon yang dibuat lewat panel.');
+      // Satu tingkat bisa punya beberapa diskon (satu per alias). Kuota diambil dari
+      // yang terakhir dibaca, dan tingkat dianggap aktif hanya kalau SEMUA aliasnya aktif —
+      // satu alias mati sudah cukup untuk membuat link yang beredar berhenti bekerja.
+      $kuota = (int)$v['quota']; $aktif = null;
+      try {
+        foreach ($ids as $idDiskon) {
+          $d = mayarCouponDetail($idDiskon);
+          if (isset($d['totalCoupons'])) $kuota = (int)$d['totalCoupons'];
+          if (isset($d['coupons'][0]['isActive'])) {
+            $aktif = ($aktif === null ? true : $aktif) && (bool)$d['coupons'][0]['isActive'];
+          }
+        }
+      } catch (Throwable $e) { fail($e->getMessage(), 502); }
+      if ($aktif === null) $aktif = (bool)$v['active'];
       db()->prepare('UPDATE vouchers SET quota = ?, active = ?, synced_at = ?, updated_at = ? WHERE pct = ?')
         ->execute([$kuota, $aktif ? 1 : 0, gmdate('c'), gmdate('c'), $pct]);
       $st->execute([$pct]);
@@ -1532,7 +1543,7 @@ try {
       $in = input();
       $pct = (int)($in['pct'] ?? 0);
       if (!in_array($pct, VOUCHER_TIERS, true)) fail('Persentase harus salah satu dari 10 sampai 90.');
-      db()->prepare("UPDATE vouchers SET code = '', codes = '', note = '', active = 0, quota = 0, expires = '', kind = '', mayar_id = '', synced_at = '', updated_at = ? WHERE pct = ?")
+      db()->prepare("UPDATE vouchers SET code = '', codes = '', note = '', active = 0, quota = 0, expires = '', kind = '', mayar_id = '', mayar_ids = '', synced_at = '', updated_at = ? WHERE pct = ?")
         ->execute([gmdate('c'), $pct]);
       out(['ok' => true]);
     }

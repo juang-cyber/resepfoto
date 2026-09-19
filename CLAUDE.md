@@ -151,13 +151,14 @@ lt_events, presence, ad_spend, vouchers`.
 Kolom penting `members`: `username, name, code_hash, code_hint, plan, expires, active, email, phone, role, avatar, session_token, plan_cap, allow_ids`.
 Kolom penting `prompts`: `id, ord, cat, title, descr, popular, tools, prompt, tips, image, created_at,
 updated_at, cat_en, title_en, descr_en, tips_en, created_by, qc_status, result_status, en_only`.
-Kolom `vouchers`: `pct (PK), code, codes, note, active, quota, expires, kind, mayar_id, synced_at, updated_at` —
-`codes` adalah JSON daftar semua alias satu tingkat (`code` tetap ada sebagai alias utama, dipakai baris lama) —
+Kolom `vouchers`: `pct (PK), code, codes, note, active, quota, expires, kind, mayar_id, mayar_ids, synced_at, updated_at` —
+`codes` adalah JSON daftar semua alias satu tingkat dan `mayar_ids` JSON daftar id diskonnya (satu diskon per
+alias); `code`/`mayar_id` tetap ada sebagai yang utama, dipakai baris lama —
 `mayar_id` terisi hanya untuk kupon yang dibuat lewat API, dan itulah pembeda "dibuat di Mayar" vs "sekadar dicatat".
 `qc_status` = `''|lolos|review|gagal`, `result_status` = `''|cocok|kurang` — dipakai menyaring di panel admin,
 tidak pernah tampil ke member. Resep yang dihapus pindah ke tabel **`prompts_trash`** (barisnya disimpan utuh
 sebagai JSON); gambar dan galeri tesnya baru benar-benar dibuang saat sampah dikosongkan.
-Kunci `settings`: `admin_hash, admin_avatar, admin_email, mail_from, mayar_webhook_token, auto_without_token, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass, fonnte_token, admin_wa, meta_pixel_id, mayar_api_key, gemini_api_key, gemini_model, gemini_image_model, cover_title, cover_sub, cover_title_en, cover_sub_en, cover_chip, cover_img1..3, msg_paid_subject, msg_paid, msg_pending_subject, msg_pending`.
+Kunci `settings`: `admin_hash, admin_avatar, admin_email, mail_from, mayar_webhook_token, auto_without_token, mayar_coupon_shape, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass, fonnte_token, admin_wa, meta_pixel_id, mayar_api_key, gemini_api_key, gemini_model, gemini_image_model, cover_title, cover_sub, cover_title_en, cover_sub_en, cover_chip, cover_img1..3, msg_paid_subject, msg_paid, msg_pending_subject, msg_pending`.
 
 **Satu template, tiga kanal.** Teks pesan ke pembeli ditulis SEKALI di Admin -> Pesanan -> "Teks pesan ke
 pembeli", dengan format WhatsApp (`*tebal*`, `_miring_`, daftar bernomor). Dari satu template itu `lib.php`
@@ -186,10 +187,12 @@ hanya boleh menempel di satu tingkat.
 **Tingkat dibaca dari DUA ANGKA TERAKHIR kode** (`voucherTierFromCode()` di `lib.php`, dan salinan aturan yang
 sama di `admin-voucher.js`): `HEMAT30`, `DISKON30`, `PROMO30` semuanya tingkat 30%. Klien tidak menentukan
 persennya — `pct` yang dikirim UI hanya dicocokkan, dan ditolak kalau berbeda. Kode yang tidak berakhiran salah
-satu tingkat (mis. `HEMAT100`, `RF2026`) ditolak. Satu tingkat boleh punya **beberapa alias sekaligus** karena
-satu diskon di Mayar memang bisa memuat banyak kode: `coupon` di payload adalah array, dan responsnya
-mengembalikan `coupons[]`. Yang disimpan ke `vouchers.codes` adalah kode yang **diakui Mayar lewat responsnya**,
-bukan yang kita kirim — kalau Mayar hanya menerima sebagian, panel harus jujur soal itu.
+satu tingkat (mis. `HEMAT100`, `RF2026`) ditolak. Satu tingkat boleh punya **beberapa alias**, dan tiap alias
+menjadi **satu diskon tersendiri di Mayar** — bukan satu diskon berisi banyak kode, karena bentuk yang diterima
+Mayar hanya memuat satu kode per permintaan. Id-nya dikumpulkan di `vouchers.mayar_ids`, dan `voucher_sync`
+membaca semuanya: tingkat dianggap aktif hanya kalau **semua** aliasnya aktif, karena satu alias mati sudah
+cukup membuat link yang sudah beredar berhenti bekerja. Yang disimpan ke `vouchers.codes` adalah kode yang
+**diakui Mayar lewat responsnya**, bukan yang kita kirim.
 
 **KEJADIAN NYATA (19 Sep 2026) — jangan ulangi.** Tab Voucher menampilkan `HEMAT90` "aktif", tapi dashboard
 Mayar → Diskon dan Kupon **kosong sama sekali**. Kodenya cuma dicatat lewat `voucher_save`, tidak pernah dibuat
@@ -198,13 +201,22 @@ jadi **pembelinya tahu**, yang tidak tahu justru panel kita: statusnya tetap "ak
 hanya berarti "tercatat"**. Bukti bahwa sebuah kupon sungguh ada cuma dua: `diMayar: true` (punya `mayar_id`),
 atau kelihatan di dashboard Mayar.
 
-**Bentuk payload `POST /coupon/create` mengikuti contoh curl resmi** di
-<https://docs.mayar.id/api-reference/discount/create>: `discount` sebuah **objek**, sementara `coupon` (array)
-dan `products` **sejajar** dengannya di tingkat atas. Daftar field di halaman yang sama menyebut `discount`
-"array of object" dan menaruh `coupon` di dalamnya — kedua keterangan itu bertentangan, dan yang dipakai adalah
-contoh curl-nya. Jangan kembalikan ke bentuk bersarang tanpa mengujinya ke API asli; uji tiruan di
-`test/uji-voucher-mayar.sh` hanya membuktikan bentuk yang kita kirim sendiri. `products: []` berarti **berlaku
-untuk semua produk** — responsnya membalas `discountProductType: "all"`.
+**Bentuk payload `POST /coupon/create` DICARI, bukan ditebak.** Dokumentasi Mayar bertentangan dengan dirinya
+sendiri: contoh curl di <https://docs.mayar.id/api-reference/discount/create> menulis `discount` sebagai **objek**
+dengan `coupon` (objek) dan `products` **sejajar** di tingkat atas, sementara daftar field di halaman yang sama
+menyebut `discount` "array of object" dan menaruh `coupon` **di dalamnya**. Percobaan 19 Sep 2026 dengan bentuk
+contoh curl + `coupon` array dijawab **"Validation Error"**.
+
+Karena itu `mayarCreateCoupon()` mencoba empat bentuk berurutan (`MAYAR_SHAPES`) dan berhenti di yang pertama
+diterima. Ini aman: permintaan yang **ditolak tidak membuat apa pun**, dan pencarian berhenti begitu satu
+berhasil — jadi paling banyak satu diskon terbentuk. Bentuk yang menang disimpan di setting
+**`mayar_coupon_shape`** supaya pembuatan berikutnya langsung tepat; **kosongkan setting itu kalau Mayar
+mengubah API-nya**. Kalau sebuah permintaan dijawab 2xx tapi kodenya tidak ada di jawaban, prosesnya berhenti
+saat itu juga dan melapor — diskon tanpa kode adalah sampah yang **tidak bisa dihapus**.
+
+`products: []` berarti **berlaku untuk semua produk** — responsnya membalas `discountProductType: "all"`.
+`mayarApi()` meneruskan sisa objek jawaban Mayar (maks 400 karakter) ke pesan error, karena tanpa itu satu
+tebakan bentuk payload berarti satu siklus deploy penuh.
 
 Ada **dua jalur**, dan bedanya harus jelas saat menulis UI atau dokumentasi:
 - `voucher_create` (dianjurkan) **membuat kupon sungguhan di Mayar** lewat `POST /hl/v1/coupon/create`, lengkap

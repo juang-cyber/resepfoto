@@ -54,14 +54,28 @@ header('Content-Type: application/json');
 if ($mode === '401') { http_response_code(401); echo json_encode(['statusCode' => 401, 'messages' => '']); exit; }
 if ($mode === 'sampah') { echo '<html>bukan json</html>'; exit; }
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $path === '/coupon/create') {
-  // Memantulkan kode yang diterima. Mode 'sebagian' hanya mengakui kode pertama —
-  // itu meniru kemungkinan Mayar menolak alias kedua dan seterusnya.
+  // Mayar asli menolak bentuk payload yang salah dengan "Validation Error" dan TIDAK
+  // membuat apa pun. Mock ini menirunya: hanya satu bentuk yang diakui, dibaca dari
+  // mock.bentuk, supaya pencarian bentuk di mayarCreateCoupon() benar-benar teruji.
   $j = json_decode($body, true);
-  $kirim = isset($j['coupon']) && is_array($j['coupon']) ? $j['coupon'] : [];
-  if ($mode === 'sebagian') $kirim = array_slice($kirim, 0, 1);
+  $terima = trim(@file_get_contents($dir . '/mock.bentuk') ?: '') ?: 'coupon-objek';
+  $d = isset($j['discount']) ? $j['discount'] : null;
+  $c = isset($j['coupon']) ? $j['coupon'] : null;
+  $bentuk = 'lain'; $kode = [];
+  if (isset($d['discountType']) && isset($c['code']))          { $bentuk = 'coupon-objek'; $kode[] = $c['code']; }
+  elseif (isset($d['discountType']) && isset($c[0]['code']))   { $bentuk = 'coupon-array'; foreach ($c as $x) $kode[] = $x['code']; }
+  elseif (isset($d[0]['discountType']) && isset($c['code']))   { $bentuk = 'diskon-array'; $kode[] = $c['code']; }
+  elseif (isset($d[0]['coupon'][0]['code']))                   { $bentuk = 'bersarang';    foreach ($d[0]['coupon'] as $x) $kode[] = $x['code']; }
+  if ($bentuk !== $terima) {
+    http_response_code(400);
+    echo json_encode(['statusCode' => 400, 'messages' => 'Validation Error',
+      'error' => ['field' => 'coupon', 'diterima' => $bentuk]]); exit;
+  }
+  if ($mode === 'tanpakode') $kode = [];   // 2xx tapi tanpa kode = diskon sampah
   $cs = [];
-  foreach ($kirim as $c) $cs[] = ['code' => $c['code'] ?? '', 'type' => $c['type'] ?? '', 'isActive' => true];
-  echo json_encode(['statusCode' => 200, 'data' => ['id' => 'disc-uji-abc123', 'coupons' => $cs]]); exit;
+  foreach ($kode as $k) $cs[] = ['code' => $k, 'type' => 'reusable', 'isActive' => true];
+  echo json_encode(['statusCode' => 200, 'data' => [
+    'id' => 'disc-' . substr(md5(implode(',', $kode)), 0, 8), 'coupons' => $cs]]); exit;
 }
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && strpos($path, '/coupon/') === 0) {
   // kuota & status sengaja BEDA dari yang dikirim saat membuat, supaya terbukti
@@ -153,7 +167,9 @@ echo "$r" | grep -q '"diMayar":true' && ok "panel menandai kupon benar-benar dib
 echo "$r" | grep -q '"code":"UJICOBA10"' && ok "kode tersimpan" || no "kode tidak tersimpan: $r"
 mid=$(cd "$T" && php -r 'require "config.php"; require "lib.php";
 $s=db()->prepare("SELECT mayar_id FROM vouchers WHERE pct=10"); $s->execute(); echo (string)$s->fetchColumn();')
-[ "$mid" = "disc-uji-abc123" ] && ok "id diskon dari Mayar tersimpan ($mid)" || no "mayar_id salah: '$mid'"
+case "$mid" in disc-*) ok "id diskon dari Mayar tersimpan ($mid)" ;; *) no "mayar_id salah: '$mid'" ;; esac
+shape=$(cd "$T" && php -r 'require "config.php"; require "lib.php"; echo setting("mayar_coupon_shape");')
+[ "$shape" = "coupon-objek" ] && ok "bentuk payload yang diterima diingat ($shape)" || no "bentuk tidak tersimpan: '$shape'"
 
 echo "== bentuk permintaan ke Mayar =="
 L="$(cat "$T/mock.log")"
@@ -171,7 +187,7 @@ echo "$B" | grep -q "\"expiredAt\":\"${EXP}T23:59:59.000Z\"" && ok "kedaluwarsa 
 # Bentuk ini mengikuti contoh curl di docs.mayar.id/api-reference/discount/create:
 # discount sebuah OBJEK, sementara coupon dan products sejajar dengannya di tingkat atas.
 echo "$B" | grep -q '"discount":{"discountType"' && ok "discount dikirim sebagai objek, bukan array" || no "bentuk discount salah: $B"
-echo "$B" | grep -q '"coupon":\[{' && ok "coupon sejajar discount dan berbentuk array" || no "bentuk coupon salah: $B"
+echo "$B" | grep -q '"coupon":{"code"' && ok "coupon sejajar discount dan berbentuk objek" || no "bentuk coupon salah: $B"
 echo "$B" | grep -q '"products":\[\]' && ok "products kosong = berlaku semua produk" || no "products salah: $B"
 
 echo "== pengaman kupon kembar =="
@@ -180,6 +196,40 @@ code=$(postc "$S" voucher_create "{\"pct\":10,\"code\":\"UJILAIN10\",\"quota\":1
 code=$(postc "$S" voucher_create "{\"pct\":20,\"code\":\"UJICOBA10\",\"quota\":1,\"expires\":\"$EXP\"}")
 [ "$code" != "200" ] && ok "kode sama di tingkat lain ditolak" || no "kode kembar seharusnya ditolak"
 
+echo "== mencari bentuk payload yang diterima =="
+# Mayar hanya mengakui bentuk 'bersarang' kali ini. Panel harus mencobanya berurutan,
+# dan percobaan yang ditolak tidak boleh membuat apa pun.
+(cd "$T" && php -r 'require "config.php"; require "lib.php"; setSetting("mayar_coupon_shape", "");')
+echo 'bersarang' > "$T/mock.bentuk"
+: > "$T/mock.log"
+r=$(postb "$S" voucher_create "{\"codes\":\"COBA80\",\"quota\":3,\"expires\":\"$EXP\"}")
+echo "$r" | grep -q '"ok":true' && ok "bentuk ketemu setelah beberapa percobaan" || no "gagal menemukan bentuk: $r"
+n=$(grep -c '"path":"/coupon/create"' "$T/mock.log")
+[ "$n" -gt 1 ] && ok "beberapa bentuk dicoba berurutan ($n percobaan)" || no "seharusnya lebih dari satu percobaan, dapat $n"
+shape=$(cd "$T" && php -r 'require "config.php"; require "lib.php"; echo setting("mayar_coupon_shape");')
+[ "$shape" = "bersarang" ] && ok "bentuk yang berhasil diingat ($shape)" || no "bentuk tidak diingat: '$shape'"
+
+echo "== semua bentuk ditolak =="
+(cd "$T" && php -r 'require "config.php"; require "lib.php"; setSetting("mayar_coupon_shape", "");')
+echo 'tidak-ada-yang-cocok' > "$T/mock.bentuk"
+r=$(postb "$S" voucher_create "{\"codes\":\"COBA50\",\"quota\":3,\"expires\":\"$EXP\"}")
+echo "$r" | grep -q 'Semua bentuk payload ditolak' && ok "ditolak dengan pesan yang menyebutkan sebabnya" || no "pesan tidak jelas: $r"
+echo "$r" | grep -q 'Validation Error' && ok "rincian penolakan Mayar ikut diteruskan" || no "rincian Mayar hilang: $r"
+kosong=$(cd "$T" && php -r 'require "config.php"; require "lib.php";
+$s=db()->prepare("SELECT code FROM vouchers WHERE pct=50"); $s->execute(); echo (string)$s->fetchColumn();')
+[ -z "$kosong" ] && ok "tingkat tetap kosong setelah semua bentuk ditolak" || no "tingkat malah terisi: '$kosong'"
+
+echo "== Mayar menjawab 2xx tapi tanpa kode =="
+echo 'coupon-objek' > "$T/mock.bentuk"
+(cd "$T" && php -r 'require "config.php"; require "lib.php"; setSetting("mayar_coupon_shape", "coupon-objek");')
+echo 'tanpakode' > "$T/mock.mode"
+r=$(postb "$S" voucher_create "{\"codes\":\"COBA20\",\"quota\":3,\"expires\":\"$EXP\"}")
+echo "$r" | grep -q 'tidak mengembalikan kode' && ok "diskon tanpa kode dilaporkan, bukan disimpan diam-diam" || no "pesan salah: $r"
+kosong=$(cd "$T" && php -r 'require "config.php"; require "lib.php";
+$s=db()->prepare("SELECT code FROM vouchers WHERE pct=20"); $s->execute(); echo (string)$s->fetchColumn();')
+[ -z "$kosong" ] && ok "tingkat tidak terisi oleh diskon tanpa kode" || no "tingkat malah terisi: '$kosong'"
+echo 'ok' > "$T/mock.mode"
+
 echo "== tingkat dibaca dari dua angka terakhir kode =="
 tolak "{\"codes\":\"HEMAT45\",\"quota\":1,\"expires\":\"$EXP\"}"          "akhiran bukan tingkat (45)"
 tolak "{\"codes\":\"HEMAT100\",\"quota\":1,\"expires\":\"$EXP\"}"         "akhiran 00 bukan tingkat"
@@ -187,24 +237,24 @@ tolak "{\"codes\":\"RFKODE\",\"quota\":1,\"expires\":\"$EXP\"}"           "kode 
 tolak "{\"codes\":\"HEMAT30, DISKON40\",\"quota\":1,\"expires\":\"$EXP\"}" "dua kode beda tingkat"
 tolak "{\"pct\":20,\"codes\":\"HEMAT30\",\"quota\":1,\"expires\":\"$EXP\"}" "kode 30 dipasang di tingkat 20"
 
-echo "== satu tingkat, banyak alias =="
+echo "== satu tingkat, banyak alias = satu diskon per alias =="
 : > "$T/mock.log"
 r=$(postb "$S" voucher_create "{\"codes\":\"hemat60, diskon60 promo60\",\"quota\":100,\"expires\":\"$EXP\"}")
 echo "$r" | grep -q '"ok":true' && ok "tiga alias dibuat sekaligus" || no "gagal: $r"
 echo "$r" | grep -q '"pct":60' && ok "tingkat 60% disimpulkan dari kodenya sendiri" || no "tingkat salah: $r"
-B3="$(php -r '$b=""; foreach(file($argv[1]) as $l){$j=json_decode($l,true); if(($j["path"]??"")==="/coupon/create") $b=$j["body"]??"";} echo $b;' "$T/mock.log")"
-echo "$B3" | grep -q '"code":"HEMAT60"'  && ok "alias 1 terkirim huruf besar"  || no "HEMAT60 tidak terkirim: $B3"
-echo "$B3" | grep -q '"code":"DISKON60"' && ok "alias 2 terkirim"              || no "DISKON60 tidak terkirim: $B3"
-echo "$B3" | grep -q '"code":"PROMO60"'  && ok "alias 3 terkirim"              || no "PROMO60 tidak terkirim: $B3"
+n=$(grep -c '"path":"/coupon/create"' "$T/mock.log")
+[ "$n" = "3" ] && ok "tiga permintaan terpisah, satu per alias" || no "seharusnya 3 permintaan, dapat $n"
+ALL="$(php -r '$o=""; foreach(file($argv[1]) as $l){$j=json_decode($l,true); if(($j["path"]??"")==="/coupon/create") $o.=($j["body"]??"")."
+";} echo $o;' "$T/mock.log")"
+echo "$ALL" | grep -q '"code":"HEMAT60"'  && ok "alias 1 terkirim huruf besar"  || no "HEMAT60 tidak terkirim"
+echo "$ALL" | grep -q '"code":"DISKON60"' && ok "alias 2 terkirim"              || no "DISKON60 tidak terkirim"
+echo "$ALL" | grep -q '"code":"PROMO60"'  && ok "alias 3 terkirim"              || no "PROMO60 tidak terkirim"
 echo "$r" | grep -q '"codes":\["HEMAT60","DISKON60","PROMO60"\]' && ok "ketiganya tersimpan di panel" || no "daftar kode salah: $r"
+ids=$(cd "$T" && php -r 'require "config.php"; require "lib.php";
+$s=db()->prepare("SELECT mayar_ids FROM vouchers WHERE pct=60"); $s->execute(); echo (string)$s->fetchColumn();')
+[ "$(echo "$ids" | grep -o 'disc-' | wc -l | tr -d " ")" = "3" ] && ok "tiga id diskon tersimpan ($ids)" || no "mayar_ids salah: $ids"
 code=$(postc "$S" voucher_create "{\"codes\":\"PROMO60\",\"quota\":1,\"expires\":\"$EXP\"}")
 [ "$code" != "200" ] && ok "alias yang sudah dipakai tingkat lain ditolak" || no "seharusnya ditolak, dapat $code"
-
-echo "== kalau Mayar cuma mengakui sebagian alias =="
-echo 'sebagian' > "$T/mock.mode"
-r=$(postb "$S" voucher_create "{\"codes\":\"hemat70, diskon70\",\"quota\":5,\"expires\":\"$EXP\"}")
-echo "$r" | grep -q '"codes":\["HEMAT70"\]' && ok "panel menyimpan kode yang DIAKUI Mayar, bukan yang dikirim" || no "panel mengarang kode: $r"
-echo 'ok' > "$T/mock.mode"
 
 echo "== baca balik status dari Mayar =="
 : > "$T/mock.log"
@@ -212,7 +262,7 @@ r=$(postb "$S" voucher_sync '{"pct":10}')
 echo "$r" | grep -q '"ok":true' && ok "voucher_sync berhasil" || no "voucher_sync gagal: $r"
 L="$(cat "$T/mock.log")"
 echo "$L" | grep -q '"method":"GET"' && ok "sync memakai GET" || no "metode sync salah: $L"
-echo "$L" | grep -q '"path":"/coupon/disc-uji-abc123"' && ok "sync memakai id, bukan kode" || no "path sync salah: $L"
+echo "$L" | grep -q '"path":"/coupon/disc-' && ok "sync memakai id, bukan kode" || no "path sync salah: $L"
 echo "$r" | grep -q '"quota":7' && ok "kuota diperbarui dari jawaban Mayar (1 -> 7)" || no "kuota tidak ikut jawaban Mayar: $r"
 echo "$r" | grep -q '"active":false' && ok "status aktif diambil dari Mayar" || no "isActive tidak terbaca: $r"
 echo "$r" | grep -q '"syncedAt":""' && no "syncedAt tidak terisi" || ok "syncedAt terisi"
