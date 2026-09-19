@@ -693,11 +693,18 @@ function mayarCouponName(int $pct, string $code): string { return 'ResepFoto ' .
  */
 function mayarFindCoupon(int $pct, string $code): string {
   $nama = mayarCouponName($pct, $code);
-  try { $j = mayarApi('GET', '/coupons?limit=25&search=' . rawurlencode($nama), null, true); }
-  catch (Throwable $e) { return ''; }
-  $rows = isset($j['data']['coupons']) && is_array($j['data']['coupons']) ? $j['data']['coupons'] : [];
-  foreach ($rows as $r) {
-    if (isset($r['name'], $r['id']) && $r['name'] === $nama && (string)$r['id'] !== '') return (string)$r['id'];
+  // Kata kunci sengaja TIDAK memakai nama lengkap. Terbukti 19 Sep 2026: mencari
+  // "ResepFoto 90% - HEMAT90" tidak mengembalikan apa-apa padahal kampanyenya ada,
+  // sementara "ResepFoto " berhasil — tanda % (dan mungkin spasi/strip) merusak
+  // pencarian di sisi Mayar. Jadi cari dengan kata yang aman, lalu cocokkan nama
+  // persis di sini. Kode dicoba lebih dulu karena paling sempit hasilnya.
+  foreach ([$code, 'ResepFoto'] as $kunci) {
+    try { $j = mayarApi('GET', '/coupons?limit=100&search=' . rawurlencode($kunci), null, true); }
+    catch (Throwable $e) { continue; }
+    $rows = isset($j['data']['coupons']) && is_array($j['data']['coupons']) ? $j['data']['coupons'] : [];
+    foreach ($rows as $r) {
+      if (isset($r['name'], $r['id']) && $r['name'] === $nama && (string)$r['id'] !== '') return (string)$r['id'];
+    }
   }
   return '';
 }

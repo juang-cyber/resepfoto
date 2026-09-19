@@ -97,6 +97,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $path === '/coupon/create') {
 // Daftar kampanye (v2). Panel memakainya untuk mencari diskon yang sudah ada.
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && $path === '/coupons') {
   $cari = (string)($_GET['search'] ?? '');
+  // Mayar asli tidak menemukan apa pun kalau kata kuncinya memuat '%' — itu yang
+  // membuat pencarian dengan nama lengkap ("ResepFoto 90% - HEMAT90") gagal diam-diam.
+  if (strpos($cari, '%') !== false) { echo json_encode(['statusCode' => 200, 'data' => ['coupons' => []], 'hasMore' => false]); exit; }
   $simpan = json_decode((string)@file_get_contents($dir . '/mock.db.json'), true) ?: [];
   $hasil = [];
   foreach ($simpan as $r) {
