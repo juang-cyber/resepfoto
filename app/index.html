@@ -945,6 +945,17 @@ const icon = (id, s="") => `<svg class="ico" ${s ? `style="${s}"` : ""}><use hre
 const sorted = () => state.prompts.slice().sort((a,b) => (a.order ?? 999) - (b.order ?? 999));
 const cats = () => [...new Set(sorted().map(p => p.cat).filter(Boolean))];
 const findPrompt = id => state.prompts.find(p => p.id === id);
+// created_at/updated_at disimpan sebagai ISO 8601 penuh (gmdate("c")), bukan
+// YYYY-MM-DD, jadi tidak boleh lewat fmtDate yang menempelkan "T00:00:00".
+const fmtStamp = (d, withTime) => {
+  if (!d) return "";
+  const x = new Date(d);
+  if (isNaN(x.getTime())) return "";
+  const loc = lang === "en" ? "en-GB" : "id-ID";
+  const opt = {day:"numeric", month:"short", year:"numeric"};
+  if (withTime){ opt.hour = "2-digit"; opt.minute = "2-digit"; }
+  return x.toLocaleString(loc, opt);
+};
 const fmtDate = d => d ? new Date(d + "T00:00:00").toLocaleDateString(lang === "en" ? "en-GB" : "id-ID", {day:"numeric", month:"short", year:"numeric"}) : t("date.forever");
 const isAdmin = () => state.user?.role === "admin";
 const isSuper = () => state.user?.adminRole === "super_admin";
@@ -997,7 +1008,7 @@ const I18N = {
     "adm.stRecipes":"Resep", "adm.stActive":"Member aktif", "adm.stExpired":"Kedaluwarsa",
     "adm.emptyPT":"Belum ada resep", "adm.emptyPP":"Ketuk + untuk menambah resep pertama.",
     "adm.searchPh":"Cari judul, kategori, atau isi prompt…", "adm.resetFilter":"Reset filter", "adm.countOf":"{n} dari {m} resep", "adm.countAll":"{n} resep · {c} kategori",
-    "adm.noEn":"Belum ada EN", "adm.by":"Ditambahkan oleh", "adm.noMatchT":"Tidak ada yang cocok", "adm.noMatchP":"Coba kata lain atau reset filter.",
+    "adm.noEn":"Belum ada EN", "adm.by":"Ditambahkan oleh", "adm.uploaded":"Diunggah", "adm.noMatchT":"Tidak ada yang cocok", "adm.noMatchP":"Coba kata lain atau reset filter.",
     "detail.noApp":"Belum punya aplikasinya?", "detail.onStore":"di App Store", "crop.title":"Sesuaikan foto", "crop.apply":"Pakai foto", "crop.hint":"Geser untuk atur posisi, tarik slider untuk zoom. Foto dipotong 1:1.",
     "avatar.updated":"Foto profil diperbarui", "avatar.tooBig":"Foto terlalu besar. Maksimal 8 MB.", "avatar.change":"Ubah foto profil", "lb.close":"Tutup",
     "adm.emptyMT":"Belum ada member", "adm.emptyMP":"Ketuk + untuk menambah pembeli pertama.",
@@ -1065,7 +1076,7 @@ const I18N = {
     "adm.stRecipes":"Recipes", "adm.stActive":"Active members", "adm.stExpired":"Expired",
     "adm.emptyPT":"No recipes yet", "adm.emptyPP":"Tap + to add the first recipe.",
     "adm.searchPh":"Search title, category, or prompt text…", "adm.resetFilter":"Reset filters", "adm.countOf":"{n} of {m} recipes", "adm.countAll":"{n} recipes · {c} categories",
-    "adm.noEn":"No EN yet", "adm.by":"Added by", "adm.noMatchT":"Nothing matches", "adm.noMatchP":"Try another word or reset the filters.",
+    "adm.noEn":"No EN yet", "adm.by":"Added by", "adm.uploaded":"Uploaded", "adm.noMatchT":"Nothing matches", "adm.noMatchP":"Try another word or reset the filters.",
     "detail.noApp":"Don't have the app?", "detail.onStore":"on the App Store", "crop.title":"Adjust photo", "crop.apply":"Use photo", "crop.hint":"Drag to reposition, use the slider to zoom. The photo is cropped 1:1.",
     "avatar.updated":"Profile photo updated", "avatar.tooBig":"Photo is too large. Max 8 MB.", "avatar.change":"Change profile photo", "lb.close":"Close",
     "adm.emptyMT":"No members yet", "adm.emptyMP":"Tap + to add the first buyer.",
@@ -1441,7 +1452,7 @@ function renderAdmin(){
     <div class="li">
       <img src="${imgSrc(p)}" alt="">
       <div class="grow"><strong>${esc(loc(p, "title"))}</strong><small>${esc(catName(p.cat))}</small>
-        <div class="tags">${p.popular ? `<span class="pill accent">★ ${esc(t("home.popular"))}</span>` : ""}${(p.tools || []).map(x => `<span class="pill">${esc(x)}</span>`).join("")}${p.titleEn ? `<span class="pill ok">EN ✓</span>` : `<span class="pill warn">${esc(t("adm.noEn"))}</span>`}${p.enOnly ? `<span class="pill">EN saja</span>` : ""}${qcPill(p)}${resultPill(p)}${(p.desc || "").trim() ? "" : `<span class="pill warn">Tanpa deskripsi</span>`}</div>
+        <div class="tags">${p.popular ? `<span class="pill accent">★ ${esc(t("home.popular"))}</span>` : ""}${(p.tools || []).map(x => `<span class="pill">${esc(x)}</span>`).join("")}${p.titleEn ? `<span class="pill ok">EN ✓</span>` : `<span class="pill warn">${esc(t("adm.noEn"))}</span>`}${p.enOnly ? `<span class="pill">EN saja</span>` : ""}${qcPill(p)}${resultPill(p)}${(p.desc || "").trim() ? "" : `<span class="pill warn">Tanpa deskripsi</span>`}${p.createdAt ? `<span class="pill" title="${esc(t("adm.uploaded"))} ${esc(fmtStamp(p.createdAt, true))}">${esc(t("adm.uploaded"))} ${esc(fmtStamp(p.createdAt))}</span>` : ""}</div>
         <div class="row" style="gap:6px;margin-top:5px;flex-wrap:wrap">
           <button type="button" class="qcbtn" data-qc="${esc(p.id)}" title="Ganti status QC">QC <b>${esc(QC_LABEL[p.qc || ""])}</b></button>
           <button type="button" class="qcbtn" data-rs="${esc(p.id)}" title="Ganti penilaian hasil">Hasil <b>${esc(RS_LABEL[p.result || ""])}</b></button>
@@ -2288,7 +2299,7 @@ setupAppLinks();
     const err = $("#l-error"); err.textContent = ex.message; err.hidden = false;
   }
 })();
-window.RFAPP = {api, toast, esc, copyText, openSheet, closeSheet, isAdmin, fmtDate, state, renderAll, t, get lang(){ return lang; }, setLang, addAdminTab, openPromptForm, cats, armDelete, imgSrc, applyCover};
+window.RFAPP = {api, toast, esc, copyText, openSheet, closeSheet, isAdmin, fmtDate, state, renderAll, t, get lang(){ return lang; }, setLang, addAdminTab, openPromptForm, cats, armDelete, imgSrc, applyCover, loadData};
 })();
 </script>
 <script src="admin-ext.js?v=7" defer></script>
@@ -2297,5 +2308,6 @@ window.RFAPP = {api, toast, esc, copyText, openSheet, closeSheet, isAdmin, fmtDa
 <script src="admin-team.js?v=3" defer></script>
 <script src="admin-cover.js?v=1" defer></script>
 <script src="admin-voucher.js?v=5" defer></script>
+<script src="admin-konten.js?v=1" defer></script>
 </body>
 </html>

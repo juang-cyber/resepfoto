@@ -17,12 +17,14 @@ app/            ← yang di-deploy ke document root website
   api.php       semua endpoint JSON (sesi, CSRF, routing switch)
   lib.php       SQLite (db() + migrasi otomatis), member, pesanan, email
   ai.php        integrasi Gemini (link referensi, analisis, OCR, tes generate)
+  xlsx.php      penulis & pembaca .xlsx tanpa pustaka luar (dipakai tab Konten)
   admin-ext.js      tab Pesanan (Mayar)                   [super admin]
   admin-ai.js       tab AI Gemini (API key, model, log)   [super admin]
   admin-reports.js  tab Pengguna & Iklan (laporan)        [super admin]
   admin-team.js     tab Admin (kelola akun admin)         [super admin]
   admin-cover.js    tab Cover (foto/teks halaman login)   [admin & super]
   admin-voucher.js  tab Voucher (buat kupon di Mayar + pembuat link) [super admin]
+  admin-konten.js   tab Konten (ekspor/impor resep lewat Excel)     [super admin]
   webhook-mayar.php webhook pembayaran Mayar
   terima-kasih.html halaman sesudah bayar
   img/          foto contoh resep bawaan (p01…p66.jpg, 4:5) — ikut ter-deploy
@@ -224,17 +226,42 @@ Impornya `INSERT OR IGNORE` (resep yang sudah diedit admin tidak tertimpa), dibu
 Ganti `version` kalau paket yang sama perlu diimpor ulang. Resep baru memakai `created_at` saat impor, jadi member
 paket **Standard** yang mendaftar sebelum itu tidak otomatis melihatnya.
 
+**Ekspor & impor resep lewat Excel — tab Konten** (`admin-konten.js`, endpoint `prompts_export` / `prompts_import`,
+penulis-pembaca `.xlsx` sendiri di `app/xlsx.php` karena hosting tidak punya Composer). Satu lembar, 20 kolom:
+`id, urutan, kategori, kategori_en, judul, judul_en, deskripsi, deskripsi_en, prompt, tips, tips_en, alat,
+best_seller, english_saja, gambar, status_qc, hasil, penulis, tanggal_unggah, tanggal_ubah`.
+
+Enam aturan ini **sengaja** dan jangan dilonggarkan tanpa alasan kuat — semuanya dikunci
+`test/uji-konten-excel.sh`:
+1. **Impor tidak pernah menghapus.** Resep yang tidak ada di file dibiarkan. Hapus tetap lewat tombol per resep
+   (yang memindahkannya ke `prompts_trash`).
+2. Baris dicocokkan lewat **id**. id tidak dikenal **ditolak**, bukan dibuatkan resep baru — satu typo jangan
+   sampai melahirkan resep sampah. Resep baru dibuat dengan **mengosongkan** kolom id.
+3. **`tanggal_unggah` resep lama diabaikan** (dilaporkan ke admin, tidak diam-diam). Kolom itu dipakai
+   `allowedPromptIds()` lewat `ORDER BY created_at DESC`, jadi mengubahnya bisa menggeser katalog member Trial.
+   Untuk resep baru, tanggalnya dipakai kalau diisi.
+4. **`penulis` resep lama dipertahankan**, mengikuti aturan `created_by` yang sudah ada. Resep baru diatasnamakan
+   admin yang mengimpor.
+5. **`gambar` kosong = gambar lama dipertahankan.** Path harus cocok `^(img|uploads)/[\w.-]+$` **dan** filenya ada
+   di server; gambar baru tetap diunggah lewat tab Resep. Resep baru wajib punya gambar yang sudah ada.
+6. Selain pengecualian di atas, **kolom yang ada di file bersifat menentukan** — sel kosong berarti nilainya
+   memang dikosongkan. Itu yang membuat ekspor → sunting → impor bisa ditebak.
+
+Selalu ada **pratinjau** (`dryRun=1`) yang melaporkan tambah/perbarui/dilewati beserta nomor baris Excel-nya;
+penerapan dibungkus transaksi, jadi satu baris gagal berarti tidak ada satu pun yang berubah. Tanggal ditulis
+sebagai **teks ISO**, bukan tanggal Excel, supaya tidak bergeser sehari saat bolak-balik.
+
 ## Endpoint `api.php?a=…` (auth)
 | Level | Endpoint |
 |---|---|
 | publik | `me` (juga mengembalikan `cover` & `v`), `login`, `logout`, `recent_orders` (pesanan asli + aktivitas keranjang asli, keduanya anonim), `lt` (tracking halaman iklan), `live` (`?page=` opsional), `pixel` (Meta Pixel ID untuk `/promo`) |
 | user | `prompts`, `track`, `avatar_save` (admin boleh isi `username` untuk member lain) |
 | admin | `prompt_save`, `prompt_review` (ubah status QC/hasil dari daftar), `prompt_cover_from_test` (hasil tes jadi gambar contoh), `prompt_delete` (→ tempat sampah), `trash`, `trash_restore`, `trash_purge`, `members`, `member_save` (FormData, boleh `avatar`/`clearAvatar`), `member_delete`, `cover_save`, `ai_analyze`, `ai_ocr`, `prompt_tests`, `prompt_test_add/generate/update/delete` |
-| super | `admins`, `admin_save`, `admin_delete`, `admin_change_code`, `orders`, `order_action` (`approve/resend/newcode/remind/reject`), `settings_save`, `test_email`, `test_wa`, `ai_settings`, `ai_settings_save`, `ai_test`, `report_users`, `report_ads`, `ad_spend_save`, `vouchers`, `voucher_create` (buat kupon di Mayar), `voucher_sync` (baca status dari Mayar), `voucher_save` (catat kode saja), `voucher_delete` |
+| super | `admins`, `admin_save`, `admin_delete`, `admin_change_code`, `orders`, `order_action` (`approve/resend/newcode/remind/reject`), `settings_save`, `test_email`, `test_wa`, `ai_settings`, `ai_settings_save`, `ai_test`, `report_users`, `report_ads`, `ad_spend_save`, `vouchers`, `voucher_create` (buat kupon di Mayar), `voucher_sync` (baca status dari Mayar), `voucher_save` (catat kode saja), `voucher_delete`, `prompts_export` (unduh katalog sebagai .xlsx), `prompts_import` (impor balik; `dryRun=1` = pratinjau) |
 
 ## Fitur yang sudah ada (jangan dibuat ulang)
 Login & katalog resep (kategori, cari, favorit, populer), detail resep + salin prompt (tombol pil), tombol Buka Gemini/ChatGPT dengan deep-link app (Android `intent://` + fallback Play Store; iOS Universal Link + tautan App Store), section **Tren viral** di bawah best seller, **slider ukuran thumbnail** 1–5 kolom, panduan & FAQ, profil (foto: upload → **editor crop 1:1** → simpan; klik foto → lightbox), bahasa & tema.
-Panel admin: Resep (toolbar cari + chip kategori + **filter review**: status QC, penilaian hasil, penulis, tanpa deskripsi, belum ada EN, English saja; tombol status cepat per baris; **tempat sampah** dengan pulihkan/hapus permanen), studio resep dengan 2 mode (upload sendiri / **prompt dari gambar—OCR**) dan galeri tes internal yang hasilnya bisa **dijadikan gambar contoh resep**; Member (foto, paket, masa aktif, kode akses); Pesanan Mayar + email akses + **WhatsApp otomatis via Fonnte** (pengaturan SMTP & Fonnte ada di tab Pesanan, lengkap dengan tombol kirim tes); AI Gemini; Pengguna & Iklan (laporan, UTM, biaya iklan, ROAS); Admin (akun admin/super admin, ganti kode akses admin utama); Cover (3 foto + teks halaman login).
+Panel admin: Resep (toolbar cari + chip kategori + **filter review**: status QC, penilaian hasil, penulis, tanpa deskripsi, belum ada EN, English saja; tombol status cepat per baris; **tempat sampah** dengan pulihkan/hapus permanen), studio resep dengan 2 mode (upload sendiri / **prompt dari gambar—OCR**) dan galeri tes internal yang hasilnya bisa **dijadikan gambar contoh resep**; Member (foto, paket, masa aktif, kode akses); Pesanan Mayar + email akses + **WhatsApp otomatis via Fonnte** (pengaturan SMTP & Fonnte ada di tab Pesanan, lengkap dengan tombol kirim tes); AI Gemini; Pengguna & Iklan (laporan, UTM, biaya iklan, ROAS); Admin (akun admin/super admin, ganti kode akses admin utama); Cover (3 foto + teks halaman login); **Konten** (ekspor/impor resep lewat Excel).
 Halaman iklan `/promo` dengan pelacakan corong lengkap, penghitung pengunjung aktif, dan notifikasi aktivitas
 (pesanan + keranjang) — **semuanya dari data asli**, lihat `landing/CLAUDE.md` bagian bukti sosial.
 **Meta Pixel** opsional di `/promo`: ID-nya diisi di Admin → Iklan (kunci `meta_pixel_id`), halaman membacanya lewat
@@ -294,6 +321,7 @@ Tes Gemini butuh API key sungguhan; `RF_GEMINI_BASE` env bisa mengarahkan ke moc
 bash test/uji-pesan-voucher.sh   # template pesan 3 kanal, email multipart, pengingat,
                                  #   jatah Standard, voucher_save/voucher_delete (lokal)
 bash test/uji-voucher-mayar.sh   # voucher_create + voucher_sync lewat Mayar TIRUAN
+bash test/uji-konten-excel.sh    # ekspor/impor resep lewat Excel (tab Konten)
 ```
 `uji-voucher-mayar.sh` menjalankan server tiruan dan mengarahkan aplikasi ke situ lewat
 `RF_MAYAR_BASE` (pola yang sama dengan `RF_GEMINI_BASE`). Yang dibuktikan: bentuk permintaan
@@ -338,7 +366,6 @@ env itu basisnya tetap `api.mayar.id` — override ini **hanya** alat uji, bukan
   tapi sumbernya tetap karya orang lain dan beberapa menampilkan figur publik). Sebelum produk dijual, generate
   ulang lewat tab AI Gemini → tes generate, lalu ganti gambarnya per resep dari panel admin.
   **Ini juga menyangkut halaman iklan** — 16 di antaranya tampil di `/promo`, lihat `landing/CLAUDE.md`.
-- Ekspor/impor resep lewat panel admin (impor massal sudah ada lewat paket resep di `data/pack*-prompts.json`, tapi belum ada UI-nya).
 - Tes otomatis Playwright di CI (GitHub Actions) sebelum deploy. Repo ini **belum punya CI sama sekali**.
 - Isi bukti sosial asli di `landing/mockup.html` (`TESTIMONIALS`, `RATING`) lalu bangun ulang dengan `--live`.
 

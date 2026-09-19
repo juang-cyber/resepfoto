@@ -86,6 +86,19 @@ function tr(string $msg): string {
     'Pixel ID Meta tidak valid — isinya 15-16 angka.' => 'Invalid Meta Pixel ID — it is 15-16 digits.',
     'Isi nomor WhatsApp admin dulu.' => 'Set the admin WhatsApp number first.',
     'Isi dan simpan email admin dulu.' => 'Set and save the admin email first.',
+    // ekspor/impor Excel
+    'Pilih dulu file Excel yang mau diimpor.' => 'Choose the Excel file to import first.',
+    'File terlalu besar. Maksimal 8 MB.' => 'That file is too large. The maximum is 8 MB.',
+    'File itu kosong.' => 'That file is empty.',
+    'Terlalu banyak baris. Maksimal 5000 baris data per impor.' => 'Too many rows. The maximum is 5000 data rows per import.',
+    'Impor dibatalkan, tidak ada satu pun yang berubah. Coba periksa lagi isi filenya.' => 'The import was rolled back; nothing changed. Please check the file contents again.',
+    'File itu bukan file Excel yang bisa dibuka.' => 'That file could not be opened as an Excel file.',
+    'Lembar pertama tidak ditemukan di file Excel itu.' => 'No first sheet was found in that Excel file.',
+    'Isi file Excel tidak bisa dibaca.' => 'The contents of that Excel file could not be read.',
+    'Isi file Excel terlalu besar.' => 'The contents of that Excel file are too large.',
+    'File CSV tidak bisa dibuka.' => 'That CSV file could not be opened.',
+    'Server ini tidak punya ekstensi ZipArchive, file Excel tidak bisa dibuat.' => 'This server has no ZipArchive extension, so Excel files cannot be created.',
+    'Server ini tidak punya ekstensi ZipArchive, file Excel tidak bisa dibaca.' => 'This server has no ZipArchive extension, so Excel files cannot be read.',
   ];
   if (isset($map[$msg])) return $map[$msg];
   if (strpos($msg, 'Lengkapi dulu: ') === 0) {
@@ -156,6 +169,35 @@ function rowToPrompt(array $r, bool $forAdmin = false, bool $locked = false): ar
   }
   return $p;
 }
+/**
+ * Skema kolom lembar Excel untuk resep: nama kolom => lebar kolom.
+ * Ekspor dan impor SAMA-SAMA membaca daftar ini, supaya file hasil ekspor
+ * selalu bisa diimpor balik tanpa penyesuaian. Menambah kolom cukup di sini.
+ */
+function promptSheetCols(): array {
+  return ['id' => 14, 'urutan' => 8, 'kategori' => 16, 'kategori_en' => 16,
+    'judul' => 30, 'judul_en' => 30, 'deskripsi' => 36, 'deskripsi_en' => 36,
+    'prompt' => 60, 'tips' => 36, 'tips_en' => 36, 'alat' => 16,
+    'best_seller' => 11, 'english_saja' => 12, 'gambar' => 22,
+    'status_qc' => 12, 'hasil' => 10, 'penulis' => 14,
+    'tanggal_unggah' => 24, 'tanggal_ubah' => 24];
+}
+
+/** Satu baris prompts menjadi satu baris lembar, urutannya mengikuti promptSheetCols(). */
+function promptToSheetRow(array $r): array {
+  $tools = json_decode((string)($r['tools'] ?: '[]'), true);
+  if (!is_array($tools)) $tools = [];
+  $ya = function ($v) { return !empty($v) ? 'ya' : 'tidak'; };
+  return [
+    (string)$r['id'], (string)(int)$r['ord'], (string)$r['cat'], (string)($r['cat_en'] ?? ''),
+    (string)$r['title'], (string)($r['title_en'] ?? ''), (string)$r['descr'], (string)($r['descr_en'] ?? ''),
+    (string)$r['prompt'], (string)$r['tips'], (string)($r['tips_en'] ?? ''), implode(', ', $tools),
+    $ya($r['popular']), $ya($r['en_only'] ?? 0), (string)$r['image'],
+    (string)($r['qc_status'] ?? ''), (string)($r['result_status'] ?? ''), (string)($r['created_by'] ?? ''),
+    (string)($r['created_at'] ?? ''), (string)($r['updated_at'] ?? ''),
+  ];
+}
+
 function input(): array {
   if (!empty($_POST)) return $_POST;
   $j = json_decode((string)file_get_contents('php://input'), true);
@@ -288,7 +330,7 @@ try {
   switch ($a) {
     case 'me': {
       $who = currentUser();
-      $res = ['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => $who, 'cover' => coverConfig(), 'v' => 'admin-27'];
+      $res = ['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => $who, 'cover' => coverConfig(), 'v' => 'admin-28'];
       if (!$who && !empty($GLOBALS['rf_session_taken'])) $res['sessionTaken'] = true;
       out($res);
     }
@@ -508,6 +550,194 @@ try {
         $pdo->prepare('DELETE FROM prompts_trash WHERE id = ?')->execute([$rid]);
       }
       out(['ok' => true, 'purged' => count($rows)]);
+    }
+    /* ---------- ekspor & impor resep lewat Excel ----------
+     * Dua endpoint ini memegang seluruh katalog sekaligus, jadi aturannya ketat:
+     *
+     * 1. IMPOR TIDAK PERNAH MENGHAPUS. Resep yang tidak ada di file dibiarkan apa
+     *    adanya. Satu-satunya jalan menghapus tetap lewat tombol hapus per resep
+     *    (yang memindahkannya ke tempat sampah, bukan membuangnya).
+     * 2. Baris dicocokkan lewat kolom id. id yang tidak dikenal DITOLAK, bukan
+     *    dibuatkan resep baru -- supaya satu typo tidak diam-diam melahirkan
+     *    resep sampah ber-id aneh. Resep baru dibuat dengan mengosongkan id.
+     * 3. tanggal_unggah resep lama DIABAIKAN. Kolom itu ikut jatah Trial yang
+     *    dihitung dengan ORDER BY created_at DESC, jadi mengubahnya bisa
+     *    menggeser katalog member yang sudah jalan. Lihat catatan jatah di
+     *    CLAUDE.md. Untuk resep baru, tanggalnya dipakai kalau diisi.
+     * 4. penulis ikut aturan lama: created_by dipertahankan saat resep disunting
+     *    admin lain, jadi kolomnya diabaikan untuk resep yang sudah ada.
+     * 5. gambar kosong = pertahankan gambar lama. File gambar tidak bisa dibuat
+     *    dari spreadsheet, dan mengosongkannya akan merusak kartu resep.
+     * 6. Selain pengecualian di atas, kolom yang ADA di file bersifat menentukan:
+     *    sel kosong berarti nilainya memang dikosongkan. Itu yang bikin
+     *    ekspor -> sunting -> impor jadi pulang-pergi yang bisa ditebak.
+     *
+     * Selalu ada mode pratinjau (dryRun) supaya admin melihat dampaknya dulu.
+     */
+    case 'prompts_export': {
+      requireSuperAdmin();
+      require_once __DIR__ . '/xlsx.php';
+      $cols = promptSheetCols();
+      $rows = [];
+      foreach (db()->query('SELECT * FROM prompts ORDER BY ord') as $r) $rows[] = promptToSheetRow($r);
+      $tmp = (string)tempnam(sys_get_temp_dir(), 'rfx');
+      try {
+        // kolom "urutan" ditulis sebagai angka supaya bisa diurutkan benar di Excel
+        xlsxWrite($tmp, array_keys($cols), $rows, [1], array_values($cols));
+      } catch (Throwable $e) { @unlink($tmp); fail($e->getMessage(), 500); }
+      $nama = 'resepfoto-resep-' . gmdate('Y-m-d') . '.xlsx';
+      header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      header('Content-Disposition: attachment; filename="' . $nama . '"');
+      header('Content-Length: ' . (string)filesize($tmp));
+      header('Cache-Control: no-store');
+      readfile($tmp);
+      @unlink($tmp);
+      exit;
+    }
+
+    case 'prompts_import': {
+      $me = requireSuperAdmin();
+      require_once __DIR__ . '/xlsx.php';
+      $f = $_FILES['file'] ?? null;
+      if (!$f || ($f['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) fail('Pilih dulu file Excel yang mau diimpor.');
+      if ((int)($f['size'] ?? 0) > 8 * 1024 * 1024) fail('File terlalu besar. Maksimal 8 MB.');
+      $dry = !empty($_POST['dryRun']) && $_POST['dryRun'] !== '0';
+      $ext = strtolower((string)pathinfo((string)($f['name'] ?? ''), PATHINFO_EXTENSION));
+      try {
+        $grid = $ext === 'csv' ? csvRead((string)$f['tmp_name']) : xlsxRead((string)$f['tmp_name']);
+      } catch (Throwable $e) { fail($e->getMessage(), 422); }
+      if (!$grid) fail('File itu kosong.');
+
+      $known = promptSheetCols();
+      $head = array_shift($grid);
+      $map = [];
+      foreach ($head as $i => $h) {
+        $k = strtolower(trim((string)$h));
+        $k = (string)preg_replace('/\s+/', '_', $k);
+        if (isset($known[$k]) && !isset($map[$k])) $map[$k] = $i;
+      }
+      foreach (['judul', 'kategori', 'prompt'] as $wajib) {
+        if (!isset($map[$wajib])) fail('Kolom wajib "' . $wajib . '" tidak ada di file itu. Unduh dulu contohnya lewat tombol Ekspor.');
+      }
+      if (count($grid) > 5000) fail('Terlalu banyak baris. Maksimal 5000 baris data per impor.');
+
+      $sel = function (array $row, string $key) use ($map) {
+        if (!isset($map[$key])) return null;                 // kolom tidak ada = jangan ubah
+        return trim((string)($row[$map[$key]] ?? ''));
+      };
+      $ya = function ($v) { return in_array(strtolower(trim((string)$v)), ['ya', 'y', 'yes', '1', 'true', 'x', 'v'], true) ? 1 : 0; };
+      $batas = ['judul' => 80, 'kategori' => 40, 'deskripsi' => 160, 'prompt' => 6000, 'tips' => 400,
+        'judul_en' => 80, 'kategori_en' => 40, 'deskripsi_en' => 160, 'tips_en' => 400];
+
+      $pdo = db();
+      $adaId = [];
+      foreach ($pdo->query('SELECT id FROM prompts') as $r) $adaId[(string)$r['id']] = true;
+
+      $tambah = []; $ubah = []; $galat = []; $ringkas = [];
+      $abaiTanggal = 0; $abaiPenulis = 0; $terlihat = [];
+      foreach ($grid as $n => $row) {
+        $baris = $n + 2;                                     // +1 header, +1 karena Excel mulai dari 1
+        $isi = implode('', array_map('strval', $row));
+        if (trim($isi) === '') continue;                     // baris kosong dilewati diam-diam
+        $id = (string)preg_replace('/[^a-z0-9_-]/i', '', (string)$sel($row, 'id'));
+        $judul = (string)$sel($row, 'judul');
+        $kat = (string)$sel($row, 'kategori');
+        $prompt = (string)$sel($row, 'prompt');
+        $err = null;
+        if ($id !== '' && isset($terlihat[$id])) $err = 'id "' . $id . '" muncul dua kali di file ini (baris ' . $terlihat[$id] . ').';
+        elseif ($id !== '' && !isset($adaId[$id])) $err = 'id "' . $id . '" tidak ada di katalog. Kosongkan kolom id kalau ini resep baru.';
+        elseif ($judul === '') $err = 'judul kosong.';
+        elseif ($kat === '') $err = 'kategori kosong.';
+        elseif ($prompt === '') $err = 'prompt kosong.';
+        if (!$err) foreach ($batas as $k => $maks) {
+          $v = $sel($row, $k);
+          if ($v !== null && mb_strlen($v) > $maks) { $err = 'kolom ' . $k . ' terlalu panjang (' . mb_strlen($v) . ' karakter, maksimal ' . $maks . ').'; break; }
+        }
+        $qc = $sel($row, 'status_qc'); $hasil = $sel($row, 'hasil');
+        if (!$err && $qc !== null && $qc !== '' && !in_array($qc, ['lolos', 'review', 'gagal'], true)) $err = 'status_qc harus kosong, lolos, review, atau gagal.';
+        if (!$err && $hasil !== null && $hasil !== '' && !in_array($hasil, ['cocok', 'kurang'], true)) $err = 'hasil harus kosong, cocok, atau kurang.';
+        $gambar = $sel($row, 'gambar');
+        if (!$err && $gambar !== null && $gambar !== '') {
+          if (!preg_match('#^(img|uploads)/[\w.-]+$#', $gambar) || !is_file(__DIR__ . '/' . $gambar)) {
+            $err = 'gambar "' . $gambar . '" tidak ada di server. Isi apa adanya dari hasil ekspor, atau kosongkan untuk mempertahankan gambar lama.';
+          }
+        }
+        if (!$err && $id === '' && ($gambar === null || $gambar === '')) $err = 'resep baru wajib punya gambar yang sudah ada di server (kolom gambar).';
+        if ($err) { $galat[] = ['baris' => $baris, 'pesan' => $err]; continue; }
+        if ($id !== '') $terlihat[$id] = $baris;
+
+        $lama = null;
+        if ($id !== '') { $st = $pdo->prepare('SELECT * FROM prompts WHERE id = ?'); $st->execute([$id]); $lama = $st->fetch() ?: null; }
+        $alat = $sel($row, 'alat');
+        $alatArr = $alat === null
+          ? (array)json_decode((string)($lama['tools'] ?? '[]'), true)
+          : array_values(array_intersect(['Gemini', 'ChatGPT'], array_map('trim', explode(',', $alat))));
+        $ambil = function (string $key, string $kolomLama) use ($sel, $row, $lama) {
+          $v = $sel($row, $key);
+          return $v === null ? (string)($lama[$kolomLama] ?? '') : $v;
+        };
+        $urut = $sel($row, 'urutan');
+        $bs = $sel($row, 'best_seller'); $eo = $sel($row, 'english_saja');
+        $rec = [
+          'id' => $id,
+          'ord' => ($urut === null || $urut === '') ? ($lama ? (int)$lama['ord'] : 0) : (int)round((float)$urut),
+          'cat' => $kat, 'title' => $judul, 'descr' => $ambil('deskripsi', 'descr'), 'prompt' => $prompt,
+          'tips' => $ambil('tips', 'tips'), 'cat_en' => $ambil('kategori_en', 'cat_en'),
+          'title_en' => $ambil('judul_en', 'title_en'), 'descr_en' => $ambil('deskripsi_en', 'descr_en'),
+          'tips_en' => $ambil('tips_en', 'tips_en'),
+          'tools' => json_encode(array_values($alatArr)),
+          'popular' => $bs === null ? (int)($lama['popular'] ?? 0) : $ya($bs),
+          'en_only' => $eo === null ? (int)($lama['en_only'] ?? 0) : $ya($eo),
+          'image' => ($gambar === null || $gambar === '') ? (string)($lama['image'] ?? '') : $gambar,
+          'qc_status' => $qc === null ? (string)($lama['qc_status'] ?? '') : $qc,
+          'result_status' => $hasil === null ? (string)($lama['result_status'] ?? '') : $hasil,
+        ];
+        if ($lama) {
+          // pengecualian yang disengaja: tanggal unggah & penulis resep lama tidak ikut berubah
+          $tgl = $sel($row, 'tanggal_unggah');
+          if ($tgl !== null && $tgl !== '' && $tgl !== (string)($lama['created_at'] ?? '')) $abaiTanggal++;
+          $pen = $sel($row, 'penulis');
+          if ($pen !== null && $pen !== '' && $pen !== (string)($lama['created_by'] ?? '')) $abaiPenulis++;
+          $rec['created_at'] = (string)($lama['created_at'] ?? gmdate('c'));
+          $rec['created_by'] = (string)($lama['created_by'] ?? '');
+          $ubah[] = $rec;
+        } else {
+          $tgl = (string)$sel($row, 'tanggal_unggah');
+          $rec['created_at'] = preg_match('/^\d{4}-\d{2}-\d{2}([T ]|$)/', $tgl) ? $tgl : gmdate('c');
+          $rec['created_by'] = (string)$me['username'];
+          $tambah[] = $rec;
+        }
+        if (count($ringkas) < 20) $ringkas[] = ['baris' => $baris, 'aksi' => $lama ? 'perbarui' : 'tambah', 'judul' => $judul];
+      }
+
+      if (!$dry && ($tambah || $ubah)) {
+        $pdo->beginTransaction();
+        try {
+          $maxOrd = (int)$pdo->query('SELECT COALESCE(MAX(ord),0) FROM prompts')->fetchColumn();
+          $up = $pdo->prepare('UPDATE prompts SET ord=?, cat=?, title=?, descr=?, popular=?, tools=?, prompt=?, tips=?, image=?, updated_at=?, cat_en=?, title_en=?, descr_en=?, tips_en=?, qc_status=?, result_status=?, en_only=? WHERE id=?');
+          foreach ($ubah as $r) {
+            $up->execute([$r['ord'], $r['cat'], $r['title'], $r['descr'], $r['popular'], $r['tools'], $r['prompt'],
+              $r['tips'], $r['image'], gmdate('c'), $r['cat_en'], $r['title_en'], $r['descr_en'], $r['tips_en'],
+              $r['qc_status'], $r['result_status'], $r['en_only'], $r['id']]);
+          }
+          $ins = $pdo->prepare('INSERT INTO prompts (id, ord, cat, title, descr, popular, tools, prompt, tips, image, updated_at, created_at, cat_en, title_en, descr_en, tips_en, created_by, qc_status, result_status, en_only) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+          foreach ($tambah as $r) {
+            $nid = 'r' . base_convert((string)time(), 10, 36) . bin2hex(random_bytes(2));
+            $ord = $r['ord'] > 0 ? $r['ord'] : ++$maxOrd;
+            $ins->execute([$nid, $ord, $r['cat'], $r['title'], $r['descr'], $r['popular'], $r['tools'], $r['prompt'],
+              $r['tips'], $r['image'], gmdate('c'), $r['created_at'], $r['cat_en'], $r['title_en'], $r['descr_en'],
+              $r['tips_en'], $r['created_by'], $r['qc_status'], $r['result_status'], $r['en_only']]);
+          }
+          $pdo->commit();
+        } catch (Throwable $e) {
+          $pdo->rollBack();
+          error_log('[resepfoto] impor gagal: ' . $e->getMessage());
+          fail('Impor dibatalkan, tidak ada satu pun yang berubah. Coba periksa lagi isi filenya.', 500);
+        }
+      }
+      out(['ok' => true, 'dryRun' => $dry, 'tambah' => count($tambah), 'perbarui' => count($ubah),
+        'lewat' => count($galat), 'abaiTanggal' => $abaiTanggal, 'abaiPenulis' => $abaiPenulis,
+        'galat' => array_slice($galat, 0, 50), 'ringkas' => $ringkas]);
     }
 
     case 'recent_orders': {
