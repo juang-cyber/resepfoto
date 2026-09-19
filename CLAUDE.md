@@ -153,7 +153,8 @@ Kolom penting `prompts`: `id, ord, cat, title, descr, popular, tools, prompt, ti
 updated_at, cat_en, title_en, descr_en, tips_en, created_by, qc_status, result_status, en_only`.
 Kolom `vouchers`: `pct (PK), code, codes, note, active, quota, expires, kind, mayar_id, mayar_ids, synced_at, updated_at` —
 `codes` adalah JSON daftar semua alias satu tingkat dan `mayar_ids` JSON daftar id diskonnya (satu diskon per
-alias); `code`/`mayar_id` tetap ada sebagai yang utama, dipakai baris lama —
+alias) dan `used` jumlah pemakaian (-1 = belum pernah dibaca dari Mayar);
+`code`/`mayar_id` tetap ada sebagai yang utama, dipakai baris lama —
 `mayar_id` terisi hanya untuk kupon yang dibuat lewat API, dan itulah pembeda "dibuat di Mayar" vs "sekadar dicatat".
 `qc_status` = `''|lolos|review|gagal`, `result_status` = `''|cocok|kurang` — dipakai menyaring di panel admin,
 tidak pernah tampil ke member. Resep yang dihapus pindah ke tabel **`prompts_trash`** (barisnya disimpan utuh
@@ -217,6 +218,30 @@ saat itu juga dan melapor — diskon tanpa kode adalah sampah yang **tidak bisa 
 `products: []` berarti **berlaku untuk semua produk** — responsnya membalas `discountProductType: "all"`.
 `mayarApi()` meneruskan sisa objek jawaban Mayar (maks 400 karakter) ke pesan error, karena tanpa itu satu
 tebakan bentuk payload berarti satu siklus deploy penuh.
+
+**KODE KUPON MAYAR UNIK LINTAS SELURUH MERCHANT, bukan hanya akun ini.** Terbukti 19 Sep 2026: `DISKON80`
+ditolak *"Already used"* padahal belum pernah kita buat, sementara `RFHEMAT80` langsung lolos. Jadi kata umum
+(`DISKON90`, `PROMO50`, `HEMAT10`) hampir pasti sudah diambil toko lain di platform yang sama. Pakai awalan
+khas — **`RF`** — dan tetap akhiri dengan dua angka tingkat: `RFHEMAT90`, `RFDISKON90`, `RFPROMO90`.
+`mayarCouponSebab()` menerjemahkan "Already used" jadi kalimat yang menyebutkan hal ini, karena pesan aslinya
+menyesatkan: terdengar seperti kuotanya habis.
+
+**Pembuatan kupon AMAN DIULANG.** Sebelum membuat, `mayarCreateCoupon()` mencari kampanye bernama sama lewat
+`GET /hl/v2/coupons?search=` (`mayarFindCoupon()`); kalau ketemu, id-nya **diangkat** dan tidak ada diskon
+kembar dibuat. Ini penting justru karena tidak ada endpoint hapus: diskon yang terlanjur terbentuk tapi gagal
+tercatat di panel (koneksi putus, alias berikutnya ditolak) akan menggantung selamanya, dan satu-satunya jalan
+pulang adalah mencarinya kembali **berdasarkan nama**. Karena itu `mayarCouponName()` (`ResepFoto {pct}% - {KODE}`)
+tidak boleh diubah sembarangan — nama lama tidak akan ketemu lagi.
+
+**Sebagian alias gagal itu normal, dan yang berhasil WAJIB tersimpan.** Kalau alias kedua ditolak setelah yang
+pertama terbentuk, `mayarCouponGagal()` mengembalikan yang sudah jadi beserta `warning`, dan `voucher_create`
+tetap menyimpannya lalu meneruskan peringatannya ke panel. Melempar error biasa di titik itu **menghilangkan id
+diskon yang sudah terbentuk** — itu pernah terjadi 19 Sep 2026 dan meninggalkan dua diskon yatim.
+
+**Jumlah pemakaian BISA dibaca**, lewat `totalUsage` di `GET /hl/v2/coupons` (`mayarCouponUsage()`, dipanggil
+dari `voucher_sync`). Endpoint detail v1 tidak punya angka itu — dulu panel menulis "Mayar tidak melaporkan
+berapa kali kupon dipakai", dan itu keliru. Catatan: daftar kupon ada di **v2** (`MAYAR_API_V2`), endpoint lain
+tetap v1; `mayarApi()` menerima parameter keempat `$v2` untuk itu.
 
 Ada **dua jalur**, dan bedanya harus jelas saat menulis UI atau dokumentasi:
 - `voucher_create` (dianjurkan) **membuat kupon sungguhan di Mayar** lewat `POST /hl/v1/coupon/create`, lengkap

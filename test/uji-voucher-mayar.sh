@@ -15,6 +15,10 @@ T="$(mktemp -d "${TMPDIR:-/tmp}/rf-vm.XXXXXX")"
 freeport(){ php -r '$s=@stream_socket_server("tcp://127.0.0.1:0",$e,$m); if(!$s){echo 0; exit;} $n=stream_socket_get_name($s,false); fclose($s); echo (int)substr(strrchr($n,":"),1);'; }
 PORT="${PORT:-$(freeport)}"
 MPORT="${MPORT:-$(freeport)}"
+# Port kosong pernah lolos diam-diam: php -S 127.0.0.1: lalu semua panggilan Mayar
+# mendarat di port 80 dan gagal dengan pesan yang menyesatkan. Berhenti di sini saja.
+case "$PORT$MPORT" in *[!0-9]*|"") echo "freeport gagal (PORT='$PORT' MPORT='$MPORT')"; exit 1 ;; esac
+[ "$PORT" -gt 0 ] && [ "$MPORT" -gt 0 ] || { echo "freeport mengembalikan 0"; exit 1; }
 BASE="http://127.0.0.1:$PORT"
 MOCK="http://127.0.0.1:$MPORT"
 pass=0; fail=0
@@ -71,11 +75,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $path === '/coupon/create') {
     echo json_encode(['statusCode' => 400, 'messages' => 'Validation Error',
       'error' => ['field' => 'coupon', 'diterima' => $bentuk]]); exit;
   }
+  // Kode yang "sudah diambil merchant lain": Mayar membalas 400 Already used.
+  $dipakai = array_filter(array_map('trim', explode(',', (string)@file_get_contents($dir . '/mock.dipakai'))));
+  foreach ($kode as $k) {
+    if (in_array($k, $dipakai, true)) {
+      http_response_code(400);
+      echo json_encode(['statusCode' => 400, 'messages' => 'Already used', 'data' => null]); exit;
+    }
+  }
   if ($mode === 'tanpakode') $kode = [];   // 2xx tapi tanpa kode = diskon sampah
   $cs = [];
   foreach ($kode as $k) $cs[] = ['code' => $k, 'type' => 'reusable', 'isActive' => true];
-  echo json_encode(['statusCode' => 200, 'data' => [
-    'id' => 'disc-' . substr(md5(implode(',', $kode)), 0, 8), 'coupons' => $cs]]); exit;
+  $id = 'disc-' . substr(md5(implode(',', $kode)), 0, 8);
+  // Simpan supaya GET /coupons bisa menemukannya lagi — itu yang dipakai panel untuk
+  // mengangkat diskon yatim.
+  $simpan = json_decode((string)@file_get_contents($dir . '/mock.db.json'), true) ?: [];
+  $simpan[] = ['id' => $id, 'name' => (string)($j['name'] ?? ''), 'totalUsage' => 0];
+  file_put_contents($dir . '/mock.db.json', json_encode($simpan));
+  echo json_encode(['statusCode' => 200, 'data' => ['id' => $id, 'coupons' => $cs]]); exit;
+}
+// Daftar kampanye (v2). Panel memakainya untuk mencari diskon yang sudah ada.
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && $path === '/coupons') {
+  $cari = (string)($_GET['search'] ?? '');
+  $simpan = json_decode((string)@file_get_contents($dir . '/mock.db.json'), true) ?: [];
+  $hasil = [];
+  foreach ($simpan as $r) {
+    if ($cari === '' || stripos((string)$r['name'], $cari) !== false) {
+      $hasil[] = ['id' => $r['id'], 'name' => $r['name'], 'status' => 'active',
+        'totalUsage' => (int)$r['totalUsage'], 'products' => []];
+    }
+  }
+  echo json_encode(['statusCode' => 200, 'data' => ['coupons' => $hasil], 'hasMore' => false]); exit;
 }
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && strpos($path, '/coupon/') === 0) {
   // kuota & status sengaja BEDA dari yang dikirim saat membuat, supaya terbukti
@@ -86,7 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && strpos($path, '/coupon/') === 0) {
 }
 http_response_code(404); echo json_encode(['statusCode' => 404, 'messages' => 'tidak ada']);
 PHP
-echo 'ok' > "$T/mock.mode"; : > "$T/mock.log"
+echo 'ok' > "$T/mock.mode"; : > "$T/mock.log"; : > "$T/mock.dipakai"; echo '[]' > "$T/mock.db.json"
 
 echo "== basis API =="
 # Yang paling penting dari RF_MAYAR_BASE: tanpa env itu, produksi WAJIB tetap ke
@@ -255,6 +285,46 @@ $s=db()->prepare("SELECT mayar_ids FROM vouchers WHERE pct=60"); $s->execute(); 
 [ "$(echo "$ids" | grep -o 'disc-' | wc -l | tr -d " ")" = "3" ] && ok "tiga id diskon tersimpan ($ids)" || no "mayar_ids salah: $ids"
 code=$(postc "$S" voucher_create "{\"codes\":\"PROMO60\",\"quota\":1,\"expires\":\"$EXP\"}")
 [ "$code" != "200" ] && ok "alias yang sudah dipakai tingkat lain ditolak" || no "seharusnya ditolak, dapat $code"
+
+echo "== kode yang sudah diambil merchant lain =="
+# Mayar membalas "Already used" walau kodenya belum pernah kita buat: kode kupon di
+# sana unik lintas merchant. Pesannya harus menjelaskan itu, bukan meneruskan apa adanya.
+echo 'RFDIPAKAI30' > "$T/mock.dipakai"
+r=$(postb "$S" voucher_create "{\"codes\":\"RFDIPAKAI30\",\"quota\":5,\"expires\":\"$EXP\"}")
+echo "$r" | grep -q 'unik untuk SEMUA merchant' && ok "Already used dijelaskan sebagai kode bentrok lintas merchant" || no "pesan tidak membantu: $r"
+: > "$T/mock.dipakai"
+
+echo "== sebagian alias gagal, sisanya tetap tersimpan =="
+# Ini kesalahan yang paling mahal pada API tanpa endpoint hapus: alias pertama sudah
+# terbentuk di Mayar, alias kedua ditolak, lalu panel membuang id yang pertama.
+echo 'RFDUA70' > "$T/mock.dipakai"
+r=$(postb "$S" voucher_create "{\"codes\":\"RFSATU70, RFDUA70\",\"quota\":5,\"expires\":\"$EXP\"}")
+echo "$r" | grep -q '"ok":true' && ok "yang berhasil tetap dilaporkan sukses" || no "seharusnya sukses sebagian: $r"
+echo "$r" | grep -q '"codes":\["RFSATU70"\]' && ok "alias yang berhasil tersimpan" || no "alias hilang: $r"
+echo "$r" | grep -q '"warning":"' && ok "kegagalan sebagian ikut dilaporkan" || no "peringatan hilang: $r"
+mid70=$(cd "$T" && php -r 'require "config.php"; require "lib.php";
+$s=db()->prepare("SELECT mayar_id FROM vouchers WHERE pct=70"); $s->execute(); echo (string)$s->fetchColumn();')
+case "$mid70" in disc-*) ok "id diskon yang terlanjur dibuat TIDAK hilang ($mid70)" ;; *) no "id hilang: '$mid70'" ;; esac
+: > "$T/mock.dipakai"
+
+echo "== diskon yatim diangkat, bukan dibuat kembar =="
+# Diskon sudah ada di Mayar tapi panel tidak mencatatnya. Menekan buat sekali lagi
+# harus mengambil id-nya, bukan membuat diskon kedua dengan kode yang sama.
+(cd "$T" && php -r 'require "config.php"; require "lib.php";
+db()->prepare("UPDATE vouchers SET code=\x27\x27, codes=\x27\x27, mayar_id=\x27\x27, mayar_ids=\x27\x27, active=0 WHERE pct=40")->execute();')
+php -r '$f=$argv[1]; $d=json_decode(file_get_contents($f),true)?:[];
+$d[]=["id"=>"disc-yatim-40","name"=>"ResepFoto 40% - RFYATIM40","totalUsage"=>12];
+file_put_contents($f, json_encode($d));' "$T/mock.db.json"
+: > "$T/mock.log"
+r=$(postb "$S" voucher_create "{\"codes\":\"RFYATIM40\",\"quota\":5,\"expires\":\"$EXP\"}")
+echo "$r" | grep -q '"ok":true' && ok "diskon yatim berhasil diangkat" || no "gagal: $r"
+n=$(grep -c '"path":"/coupon/create"' "$T/mock.log" || true)
+[ "$n" = "0" ] && ok "tidak ada permintaan buat baru — id lama yang dipakai" || no "malah membuat baru ($n kali)"
+mid40=$(cd "$T" && php -r 'require "config.php"; require "lib.php";
+$s=db()->prepare("SELECT mayar_id FROM vouchers WHERE pct=40"); $s->execute(); echo (string)$s->fetchColumn();')
+[ "$mid40" = "disc-yatim-40" ] && ok "id dari Mayar tersimpan ($mid40)" || no "id salah: '$mid40'"
+r=$(postb "$S" voucher_sync '{"pct":40}')
+echo "$r" | grep -q '"used":12' && ok "jumlah pemakaian dibaca dari daftar Mayar" || no "used tidak terbaca: $r"
 
 echo "== baca balik status dari Mayar =="
 : > "$T/mock.log"

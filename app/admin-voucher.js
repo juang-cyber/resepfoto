@@ -169,8 +169,10 @@ function sudahDibuat(v){
       <span class="pill">${v.kind === "onetime" ? "Sekali pakai" : "Berulang"}</span>
     </div>
     ${v.note ? `<p class="vou-hint">${esc(v.note)}</p>` : ""}
-    <p class="vou-hint">Status terakhir dibaca ${esc(waktuTampil(v.syncedAt))}. Mayar tidak melaporkan
-       berapa kali kupon sudah dipakai — yang bisa dibaca hanya kuota total dan status aktif.</p>
+    <p class="vou-hint">Status terakhir dibaca ${esc(waktuTampil(v.syncedAt))}.
+       ${v.used >= 0
+         ? `Sudah dipakai <b>${v.used}</b> kali dari kuota ${v.quota}.`
+         : "Tekan <b>Perbarui status dari Mayar</b> untuk membaca jumlah pemakaiannya."}</p>
     <div class="vou-links">
       ${kodeList(v).map(c => `
         <button type="button" data-vou-link="${esc(linkFor(c, "Standard"))}">Standard · ${esc(c)} → potongan ${v.pct}%</button>
@@ -189,9 +191,12 @@ function formBuat(v, punyaKey){
   return `
     <div class="field"><label for="vc-${v.pct}">Kode voucher (boleh beberapa, pisahkan koma)</label>
       <input class="input vou-code" id="vc-${v.pct}" maxlength="160" value="${esc(kodeList(v).join(", "))}"
-             placeholder="HEMAT${v.pct}, DISKON${v.pct}, PROMO${v.pct}" autocomplete="off" spellcheck="false"></div>
-    <p class="vou-hint">Tingkat diskon dibaca dari <b>dua angka terakhir</b> tiap kode, jadi semuanya
-       harus berakhiran <b>${v.pct}</b>. Semua kode di sini masuk ke <b>satu</b> diskon di Mayar.</p>
+             placeholder="RFHEMAT${v.pct}, RFDISKON${v.pct}, RFPROMO${v.pct}" autocomplete="off" spellcheck="false"></div>
+    <p class="vou-hint">Tingkat diskon dibaca dari <b>dua angka terakhir</b> tiap kode, jadi semuanya harus
+       berakhiran <b>${v.pct}</b>. Tiap kode jadi <b>satu diskon tersendiri</b> di Mayar.<br>
+       Kode kupon Mayar <b>unik untuk semua merchant</b>, bukan cuma akun ini — kata umum seperti
+       DISKON${v.pct} biasanya sudah diambil toko lain dan ditolak "Already used". Awalan khas seperti
+       <b>RF</b> hampir selalu lolos.</p>
     <p class="vou-hint" id="vh-${v.pct}" hidden></p>
     <div class="vou-two">
       <div class="field"><label for="vq-${v.pct}">Kuota pemakaian</label>
@@ -288,7 +293,7 @@ function wire(){
     const err = $("#ve-" + p, box); err.hidden = true;
     b.disabled = true; const label = b.textContent; b.textContent = "Membuat di Mayar…";
     try {
-      await api("voucher_create", {
+      const hasil = await api("voucher_create", {
         pct: p,
         codes: pecahKode($("#vc-" + p, box).value),
         quota: Number($("#vq-" + p, box).value),
@@ -298,6 +303,12 @@ function wire(){
       });
       toast(`Kupon ${p}% dibuat di Mayar`);
       data = null; buka = p; await load();
+      // Sebagian alias bisa gagal sementara sisanya berhasil dan sudah tersimpan —
+      // itu harus kelihatan, bukan ditelan oleh toast "berhasil".
+      if (hasil && hasil.warning){
+        const e2 = $("#ve-" + p, box);
+        if (e2){ e2.textContent = hasil.warning; e2.hidden = false; }
+      }
     } catch (e){ err.textContent = e.message; err.hidden = false; b.disabled = false; b.textContent = label; }
   });
 

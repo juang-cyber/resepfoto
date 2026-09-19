@@ -77,7 +77,8 @@ function db(): PDO {
   $vcols = array_column($pdo->query('PRAGMA table_info(vouchers)')->fetchAll(), 'name');
   foreach (['quota' => 'INTEGER DEFAULT 0', 'expires' => "TEXT DEFAULT ''", 'kind' => "TEXT DEFAULT ''",
             'mayar_id' => "TEXT DEFAULT ''", 'synced_at' => "TEXT DEFAULT ''",
-            'codes' => "TEXT DEFAULT ''", 'mayar_ids' => "TEXT DEFAULT ''"] as $kol => $def) {
+            'codes' => "TEXT DEFAULT ''", 'mayar_ids' => "TEXT DEFAULT ''",
+            'used' => 'INTEGER DEFAULT -1'] as $kol => $def) {
     if (!in_array($kol, $vcols, true)) $pdo->exec("ALTER TABLE vouchers ADD COLUMN $kol $def");
   }
   // pindahkan kode dari bentuk lama, satu kode per tingkat
@@ -557,6 +558,8 @@ function publicVoucher(array $v): array {
     // Kode yang cuma dicatat manual tetap punya diMayar = false.
     'diMayar' => $mayarId !== '', 'quota' => (int)($v['quota'] ?? 0),
     'expires' => (string)($v['expires'] ?? ''), 'kind' => (string)($v['kind'] ?? ''),
+    // -1 = belum pernah dibaca dari Mayar; 0 = memang belum pernah dipakai
+    'used' => (int)($v['used'] ?? -1),
     'syncedAt' => (string)($v['synced_at'] ?? ''),
     'updatedAt' => (string)($v['updated_at'] ?? '')];
 }
@@ -568,16 +571,19 @@ function publicVoucher(array $v): array {
  * tetap sumber kebenarannya.
  */
 const MAYAR_API = 'https://api.mayar.id/hl/v1';
+/** Daftar kupon hanya ada di v2. Endpoint lain tetap v1. */
+const MAYAR_API_V2 = 'https://api.mayar.id/hl/v2';
 /** Basis API Mayar. Env RF_MAYAR_BASE HANYA untuk uji lokal (server tiruan);
  *  di server produksi variabel itu tidak ada, jadi selalu jatuh ke MAYAR_API. */
 function mayarBase(): string { return getenv('RF_MAYAR_BASE') ?: MAYAR_API; }
+function mayarBaseV2(): string { return getenv('RF_MAYAR_BASE') ?: MAYAR_API_V2; }
 function mayarApiKey(): string { return setting('mayar_api_key'); }
 
 /** Panggil Mayar Headless API. Melempar RuntimeException berisi sebab yang aman ditampilkan ke admin. */
-function mayarApi(string $method, string $path, ?array $json = null): array {
+function mayarApi(string $method, string $path, ?array $json = null, bool $v2 = false): array {
   $key = mayarApiKey();
   if ($key === '') throw new RuntimeException('API key Mayar belum diisi di tab Voucher.');
-  $url = mayarBase() . $path;
+  $url = ($v2 ? mayarBaseV2() : mayarBase()) . $path;
   $body = $json === null ? null : json_encode($json, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
   $headers = ['Authorization: Bearer ' . $key, 'Accept: application/json'];
   if ($body !== null) $headers[] = 'Content-Type: application/json';
@@ -666,6 +672,49 @@ function mayarCouponBody(string $bentuk, string $code, int $pct, int $quota, str
   return $dasar + ['discount' => $diskon, 'coupon' => $kupon, 'products' => []]; // coupon-objek (contoh curl)
 }
 
+/**
+ * Nama kampanye diskon di Mayar. Dipakai dua arah: saat membuat, dan saat MENCARI
+ * kembali diskon yang sudah ada. Jangan diubah tanpa memikirkan yang sudah terlanjur
+ * dibuat — nama lama tidak akan ketemu lagi oleh pencarian.
+ */
+function mayarCouponName(int $pct, string $code): string { return 'ResepFoto ' . $pct . '% - ' . $code; }
+
+/**
+ * Cari id kampanye di Mayar berdasarkan namanya lewat GET /hl/v2/coupons?search=.
+ *
+ * Ini yang membuat pembuatan kupon bisa diulang dengan aman. API Mayar tidak punya
+ * endpoint hapus, jadi diskon yang terlanjur terbentuk tapi gagal tercatat di panel
+ * (koneksi putus, alias berikutnya ditolak) akan menggantung selamanya. Dengan
+ * pencarian ini, menekan tombol buat sekali lagi cukup untuk MENGANGKAT diskon itu
+ * ke panel, bukan membuat yang kembar.
+ *
+ * Mengembalikan '' kalau tidak ketemu atau daftar tidak bisa dibaca — pemanggilnya
+ * lalu membuat baru seperti biasa.
+ */
+function mayarFindCoupon(int $pct, string $code): string {
+  $nama = mayarCouponName($pct, $code);
+  try { $j = mayarApi('GET', '/coupons?limit=25&search=' . rawurlencode($nama), null, true); }
+  catch (Throwable $e) { return ''; }
+  $rows = isset($j['data']['coupons']) && is_array($j['data']['coupons']) ? $j['data']['coupons'] : [];
+  foreach ($rows as $r) {
+    if (isset($r['name'], $r['id']) && $r['name'] === $nama && (string)$r['id'] !== '') return (string)$r['id'];
+  }
+  return '';
+}
+
+/** Berapa kali kupon-kupon ini sudah dipakai menurut daftar v2. -1 = tidak bisa dibaca. */
+function mayarCouponUsage(array $ids): int {
+  if (!$ids) return -1;
+  try { $j = mayarApi('GET', '/coupons?limit=100&search=' . rawurlencode('ResepFoto '), null, true); }
+  catch (Throwable $e) { return -1; }
+  $rows = isset($j['data']['coupons']) && is_array($j['data']['coupons']) ? $j['data']['coupons'] : [];
+  $total = 0;
+  foreach ($rows as $r) {
+    if (isset($r['id']) && in_array((string)$r['id'], $ids, true)) $total += (int)($r['totalUsage'] ?? 0);
+  }
+  return $total;
+}
+
 /** Kode yang benar-benar tercatat di jawaban Mayar. Kosong = diskon terbentuk tanpa kode. */
 function mayarCouponCodes(array $d): array {
   $out = [];
@@ -694,6 +743,15 @@ function mayarCreateCoupon(array $codes, int $pct, int $quota, string $expires, 
   $ids = []; $jadi = []; $galat = '';
 
   foreach ($codes as $code) {
+    // Sudah ada di Mayar? Angkat id-nya, jangan buat kembar. Ini yang menyelamatkan
+    // diskon yatim: terbentuk di Mayar tapi gagal tercatat di panel.
+    $adopsi = mayarFindCoupon($pct, $code);
+    if ($adopsi !== '') {
+      $ids[] = $adopsi;
+      if (!in_array($code, $jadi, true)) $jadi[] = $code;
+      continue;
+    }
+
     $d = null;
     if ($bentuk === '') {
       foreach (MAYAR_SHAPES as $b) {
@@ -702,24 +760,46 @@ function mayarCreateCoupon(array $codes, int $pct, int $quota, string $expires, 
         $bentuk = $b; setSetting('mayar_coupon_shape', $b);
         break;
       }
-      if ($d === null) throw new RuntimeException('Semua bentuk payload ditolak. Jawaban terakhir — ' . $galat);
+      if ($d === null) return mayarCouponGagal($ids, $jadi, $bentuk,
+        mayarCouponSebab($code, 'Semua bentuk payload ditolak. Jawaban terakhir — ' . $galat));
     } else {
-      $d = mayarData(mayarApi('POST', '/coupon/create', mayarCouponBody($bentuk, $code, $pct, $quota, $expires, $tipe)));
+      try { $d = mayarData(mayarApi('POST', '/coupon/create', mayarCouponBody($bentuk, $code, $pct, $quota, $expires, $tipe))); }
+      catch (Throwable $e) { return mayarCouponGagal($ids, $jadi, $bentuk, mayarCouponSebab($code, $e->getMessage())); }
     }
 
     $id = (string)($d['id'] ?? '');
     $kode = mayarCouponCodes($d);
     if ($id === '' || !in_array($code, $kode, true)) {
-      $sudah = $ids ? ' Yang sudah terbentuk: ' . implode(', ', $ids) . '.' : '';
-      throw new RuntimeException('Mayar menerima permintaan tapi tidak mengembalikan kode "' . $code
-        . '"' . ($id !== '' ? ' (diskon ' . $id . ')' : '') . '. Dihentikan supaya tidak menumpuk diskon tanpa kode — '
-        . 'periksa di Mayar → Diskon dan Kupon, matikan yang kosong.' . $sudah);
+      return mayarCouponGagal($ids, $jadi, $bentuk, 'Mayar menerima permintaan tapi tidak mengembalikan kode "'
+        . $code . '"' . ($id !== '' ? ' (diskon ' . $id . ')' : '') . '. Dihentikan supaya tidak menumpuk diskon '
+        . 'tanpa kode — periksa di Mayar → Diskon dan Kupon, matikan yang kosong.');
     }
     $ids[] = $id;
     foreach ($kode as $k) if (!in_array($k, $jadi, true)) $jadi[] = $k;
   }
 
-  return ['id' => $ids ? $ids[0] : '', 'ids' => $ids, 'codes' => $jadi, 'shape' => $bentuk];
+  return ['id' => $ids ? $ids[0] : '', 'ids' => $ids, 'codes' => $jadi, 'shape' => $bentuk, 'warning' => ''];
+}
+
+/**
+ * Satu alias gagal di tengah jalan. Yang SUDAH terbentuk tetap dikembalikan supaya
+ * pemanggilnya menyimpannya — kalau dilempar sebagai error biasa, id diskon yang
+ * terlanjur dibuat hilang dan jadi yatim di Mayar. Itu pernah terjadi (19 Sep 2026).
+ */
+function mayarCouponGagal(array $ids, array $jadi, string $bentuk, string $pesan): array {
+  if (!$ids) throw new RuntimeException($pesan);
+  return ['id' => $ids[0], 'ids' => $ids, 'codes' => $jadi, 'shape' => $bentuk,
+    'warning' => $pesan . ' Alias yang berhasil tetap disimpan: ' . implode(', ', $jadi) . '.'];
+}
+
+/** Terjemahkan penolakan Mayar yang membingungkan jadi sebab yang bisa ditindaklanjuti. */
+function mayarCouponSebab(string $code, string $pesan): string {
+  if (stripos($pesan, 'already used') !== false) {
+    return 'Kode "' . $code . '" sudah dipakai. Kode kupon Mayar unik untuk SEMUA merchant, bukan hanya akun ini — '
+      . 'kata umum seperti DISKON90 atau PROMO50 biasanya sudah diambil toko lain. Pakai yang lebih khas, '
+      . 'misalnya RF' . $code . '.';
+  }
+  return $pesan;
 }
 
 /** Baca status diskon dari Mayar berdasarkan id yang disimpan saat pembuatan. */
