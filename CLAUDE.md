@@ -151,7 +151,8 @@ lt_events, presence, ad_spend, vouchers`.
 Kolom penting `members`: `username, name, code_hash, code_hint, plan, expires, active, email, phone, role, avatar, session_token, plan_cap, allow_ids`.
 Kolom penting `prompts`: `id, ord, cat, title, descr, popular, tools, prompt, tips, image, created_at,
 updated_at, cat_en, title_en, descr_en, tips_en, created_by, qc_status, result_status, en_only`.
-Kolom `vouchers`: `pct (PK), code, note, active, quota, expires, kind, mayar_id, synced_at, updated_at` —
+Kolom `vouchers`: `pct (PK), code, codes, note, active, quota, expires, kind, mayar_id, synced_at, updated_at` —
+`codes` adalah JSON daftar semua alias satu tingkat (`code` tetap ada sebagai alias utama, dipakai baris lama) —
 `mayar_id` terisi hanya untuk kupon yang dibuat lewat API, dan itulah pembeda "dibuat di Mayar" vs "sekadar dicatat".
 `qc_status` = `''|lolos|review|gagal`, `result_status` = `''|cocok|kurang` — dipakai menyaring di panel admin,
 tidak pernah tampil ke member. Resep yang dihapus pindah ke tabel **`prompts_trash`** (barisnya disimpan utuh
@@ -182,6 +183,28 @@ sini. Tabel `vouchers` berisi **sembilan template tingkat diskon** (10%..90%, sa
 otomatis di `db()` dari konstanta `VOUCHER_TIERS`) — bukan daftar bebas. Kuncinya `pct`, bukan `code`; satu kode
 hanya boleh menempel di satu tingkat.
 
+**Tingkat dibaca dari DUA ANGKA TERAKHIR kode** (`voucherTierFromCode()` di `lib.php`, dan salinan aturan yang
+sama di `admin-voucher.js`): `HEMAT30`, `DISKON30`, `PROMO30` semuanya tingkat 30%. Klien tidak menentukan
+persennya — `pct` yang dikirim UI hanya dicocokkan, dan ditolak kalau berbeda. Kode yang tidak berakhiran salah
+satu tingkat (mis. `HEMAT100`, `RF2026`) ditolak. Satu tingkat boleh punya **beberapa alias sekaligus** karena
+satu diskon di Mayar memang bisa memuat banyak kode: `coupon` di payload adalah array, dan responsnya
+mengembalikan `coupons[]`. Yang disimpan ke `vouchers.codes` adalah kode yang **diakui Mayar lewat responsnya**,
+bukan yang kita kirim — kalau Mayar hanya menerima sebagian, panel harus jujur soal itu.
+
+**KEJADIAN NYATA (19 Sep 2026) — jangan ulangi.** Tab Voucher menampilkan `HEMAT90` "aktif", tapi dashboard
+Mayar → Diskon dan Kupon **kosong sama sekali**. Kodenya cuma dicatat lewat `voucher_save`, tidak pernah dibuat
+di Mayar. Akibatnya `?coupon=HEMAT90` diabaikan **diam-diam**: halaman bayar tampil harga penuh, tanpa error di
+mana pun, dan panel tetap bilang "aktif". Ingat: **"aktif" di panel hanya berarti "tercatat"**. Bukti bahwa sebuah
+kupon sungguh ada hanya dua: `diMayar: true` (punya `mayar_id`), atau kelihatan di dashboard Mayar.
+
+**Bentuk payload `POST /coupon/create` mengikuti contoh curl resmi** di
+<https://docs.mayar.id/api-reference/discount/create>: `discount` sebuah **objek**, sementara `coupon` (array)
+dan `products` **sejajar** dengannya di tingkat atas. Daftar field di halaman yang sama menyebut `discount`
+"array of object" dan menaruh `coupon` di dalamnya — kedua keterangan itu bertentangan, dan yang dipakai adalah
+contoh curl-nya. Jangan kembalikan ke bentuk bersarang tanpa mengujinya ke API asli; uji tiruan di
+`test/uji-voucher-mayar.sh` hanya membuktikan bentuk yang kita kirim sendiri. `products: []` berarti **berlaku
+untuk semua produk** — responsnya membalas `discountProductType: "all"`.
+
 Ada **dua jalur**, dan bedanya harus jelas saat menulis UI atau dokumentasi:
 - `voucher_create` (dianjurkan) **membuat kupon sungguhan di Mayar** lewat `POST /hl/v1/coupon/create`, lengkap
   dengan kuota (`totalCoupons`) dan tanggal kedaluwarsa. Id diskon yang dikembalikan disimpan di `vouchers.mayar_id`
@@ -194,8 +217,10 @@ Aturan yang tetap berlaku:
 - Butuh **API key Read & Write** (setting `mayar_api_key`, diisi dari tab Voucher). Tanpa key, tombol buat mati
   dan panel turun jadi katalog saja.
 - Kode voucher pasti menyebar — rem satu-satunya ada di batas pemakaian & kedaluwarsa di Mayar.
-- **Tidak ada endpoint pengecek kode di server kita**, dan jangan dibuat: itu akan jadi mesin penebak kupon.
-  Konsekuensinya total di halaman kita tidak berubah; kolom voucher diberi kalimat penjelas soal itu.
+- **Tidak ada endpoint pengecek kode yang bisa dijangkau pembeli**, dan jangan dibuat: itu akan jadi mesin
+  penebak kupon. Konsekuensinya total di halaman kita tidak berubah; kolom voucher diberi kalimat penjelas.
+  (Mayar sendiri punya `POST /hl/v1/coupon/validate` yang butuh `paymentLinkId` + `couponCode` dan membalas
+  `valid`. Boleh dipakai suatu saat untuk tombol "Periksa kode" **khusus super admin** — belum dibuat.)
 - Halaman kita tidak pernah menghitung atau menampilkan harga terdiskon (`#sum-total` tidak disentuh), supaya
   tidak pernah terjadi angka di halaman berbeda dengan yang ditagih Mayar.
 
