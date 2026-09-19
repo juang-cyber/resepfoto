@@ -238,6 +238,18 @@ pertama terbentuk, `mayarCouponGagal()` mengembalikan yang sudah jadi beserta `w
 tetap menyimpannya lalu meneruskan peringatannya ke panel. Melempar error biasa di titik itu **menghilangkan id
 diskon yang sudah terbentuk** — itu pernah terjadi 19 Sep 2026 dan meninggalkan dua diskon yatim.
 
+**Jawaban daftar v2: `data` adalah LARIK LANGSUNG, bukan `data.coupons[]`.** Dokumentasi menjanjikan
+`{"data":{"coupons":[...]}}`; server sungguhan mengirim `{"data":[...]}`. Bedanya mematikan karena gagalnya
+diam-diam — HTTP 200, tidak ada error, daftar cuma terbaca kosong, dan pengangkatan diskon yatim gagal tanpa
+sebab yang kelihatan. `mayarCouponRows()` menerima ketiga bentuk yang masuk akal. Kalau ada yang aneh lagi,
+buka `api.php?a=mayar_coupons&q=ResepFoto` (super admin) — endpoint itu menampilkan jawaban mentah Mayar,
+dan dibuat justru karena menebak bentuk lewat siklus deploy 10 menit sangat mahal.
+
+**Penamaan kupon yang dipakai sekarang (19 Sep 2026):** satu alias per tingkat, `RFHEMAT10` … `RFHEMAT80`,
+ditambah `HEMAT90` yang lebih dulu dibuat. Semuanya kuota 100, `reusable`, berlaku sampai 19 Sep 2027, dan
+berlaku untuk semua produk. Ingat tiap alias = satu diskon berkuota sendiri: menambah tiga alias ke satu
+tingkat berarti tiga kali lipat penukaran, bukan berbagi kuota yang sama.
+
 **Jumlah pemakaian BISA dibaca**, lewat `totalUsage` di `GET /hl/v2/coupons` (`mayarCouponUsage()`, dipanggil
 dari `voucher_sync`). Endpoint detail v1 tidak punya angka itu — dulu panel menulis "Mayar tidak melaporkan
 berapa kali kupon dipakai", dan itu keliru. Catatan: daftar kupon ada di **v2** (`MAYAR_API_V2`), endpoint lain
