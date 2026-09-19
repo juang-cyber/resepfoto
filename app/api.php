@@ -330,7 +330,7 @@ try {
   switch ($a) {
     case 'me': {
       $who = currentUser();
-      $res = ['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => $who, 'cover' => coverConfig(), 'v' => 'admin-28'];
+      $res = ['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => $who, 'cover' => coverConfig(), 'v' => 'admin-29'];
       if (!$who && !empty($GLOBALS['rf_session_taken'])) $res['sessionTaken'] = true;
       out($res);
     }
@@ -1437,13 +1437,24 @@ try {
     case 'voucher_create': {
       requireSuperAdmin();
       $in = input();
-      $pct = (int)($in['pct'] ?? 0);
-      if (!in_array($pct, VOUCHER_TIERS, true)) fail('Persentase harus salah satu dari 10 sampai 90.');
-      $code = strtoupper(str($in, 'code', 24));
-      if (!preg_match('/^[A-Z0-9-]{5,24}$/', $code)) fail('Kode voucher harus 5-24 karakter, hanya huruf, angka, dan tanda minus.');
-      $bentrok = db()->prepare('SELECT pct FROM vouchers WHERE code = ? AND pct <> ?');
-      $bentrok->execute([$code, $pct]);
-      if ($bentrok->fetchColumn() !== false) fail('Kode itu sudah dipakai untuk tingkat diskon lain.');
+      // Tingkat diskon TIDAK ditentukan klien — dibaca dari dua angka terakhir tiap kode,
+      // supaya HEMAT30/DISKON30/PROMO30 otomatis menempel di tingkat 30%.
+      $codes = voucherCodeList(isset($in['codes']) ? $in['codes'] : (isset($in['code']) ? $in['code'] : ''));
+      if (!$codes) fail('Isi minimal satu kode voucher.');
+      if (count($codes) > 10) fail('Maksimal 10 kode untuk satu tingkat.');
+      foreach ($codes as $c) {
+        if (!preg_match('/^[A-Z0-9-]{5,24}$/', $c)) fail('Kode "' . $c . '" tidak valid: 5-24 karakter, hanya huruf, angka, dan tanda minus.');
+      }
+      $pct = voucherTierFromCode($codes[0]);
+      if ($pct === 0) fail('Kode harus diakhiri dua angka tingkat diskon (10, 20, 30, 40, 50, 60, 70, 80, atau 90). Contoh: HEMAT30.');
+      foreach ($codes as $c) {
+        if (voucherTierFromCode($c) !== $pct) fail('Semua kode satu tingkat harus berakhiran angka yang sama. "' . $c . '" tidak cocok dengan ' . $pct . '%.');
+      }
+      if (isset($in['pct']) && (int)$in['pct'] !== $pct) fail('Kode berakhiran ' . $pct . ' tidak bisa dipasang di tingkat ' . (int)$in['pct'] . '%.');
+      foreach ($codes as $c) {
+        $pemilik = voucherCodeOwner($c, $pct);
+        if ($pemilik) fail('Kode "' . $c . '" sudah dipakai tingkat ' . $pemilik . '%.');
+      }
       $lama = db()->prepare('SELECT mayar_id FROM vouchers WHERE pct = ?'); $lama->execute([$pct]);
       if ((string)$lama->fetchColumn() !== '') fail('Tingkat ini sudah punya kupon di Mayar. Kosongkan dulu sebelum membuat yang baru.');
       $quota = (int)($in['quota'] ?? 0);
@@ -1452,10 +1463,12 @@ try {
       if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $exp)) fail('Tanggal kedaluwarsa wajib diisi, format YYYY-MM-DD.');
       if ($exp <= gmdate('Y-m-d')) fail('Tanggal kedaluwarsa harus setelah hari ini.');
       $onetime = !empty($in['onetime']);
-      try { $r = mayarCreateCoupon($code, $pct, $quota, $exp, $onetime); }
+      try { $r = mayarCreateCoupon($codes, $pct, $quota, $exp, $onetime); }
       catch (Throwable $e) { fail($e->getMessage(), 502); }
-      db()->prepare('UPDATE vouchers SET code = ?, note = ?, active = 1, quota = ?, expires = ?, kind = ?, mayar_id = ?, synced_at = ?, updated_at = ? WHERE pct = ?')
-        ->execute([$code, str($in, 'note', 160), $quota, $exp, $onetime ? 'onetime' : 'reusable',
+      // Yang disimpan adalah kode yang DIAKUI Mayar lewat responsnya, bukan yang kita kirim.
+      $jadi = $r['codes'];
+      db()->prepare('UPDATE vouchers SET code = ?, codes = ?, note = ?, active = 1, quota = ?, expires = ?, kind = ?, mayar_id = ?, synced_at = ?, updated_at = ? WHERE pct = ?')
+        ->execute([$jadi[0], json_encode(array_values($jadi)), str($in, 'note', 160), $quota, $exp, $onetime ? 'onetime' : 'reusable',
           $r['id'], gmdate('c'), gmdate('c'), $pct]);
       $st = db()->prepare('SELECT * FROM vouchers WHERE pct = ?'); $st->execute([$pct]);
       out(['ok' => true, 'voucher' => publicVoucher($st->fetch())]);
@@ -1481,19 +1494,32 @@ try {
     case 'voucher_save': {
       requireSuperAdmin();
       $in = input();
-      $pct = (int)($in['pct'] ?? 0);
-      if (!in_array($pct, VOUCHER_TIERS, true)) fail('Persentase harus salah satu dari 10 sampai 90.');
-      $code = strtoupper(str($in, 'code', 24));
-      // Kode boleh dikosongkan: artinya tingkat ini kembali jadi template kosong.
-      if ($code !== '' && !preg_match('/^[A-Z0-9-]{5,24}$/', $code)) fail('Kode voucher harus 5-24 karakter, hanya huruf, angka, dan tanda minus.');
-      if ($code !== '') {
-        $bentrok = db()->prepare('SELECT pct FROM vouchers WHERE code = ? AND pct <> ?');
-        $bentrok->execute([$code, $pct]);
-        $lain = $bentrok->fetchColumn();
-        if ($lain !== false) fail('Kode itu sudah dipakai untuk tingkat diskon lain.');
+      $codes = voucherCodeList(isset($in['codes']) ? $in['codes'] : (isset($in['code']) ? $in['code'] : ''));
+      // Daftar kosong berarti tingkat ini dikembalikan jadi template kosong; tingkatnya
+      // diambil dari 'pct' karena tidak ada kode yang bisa dibaca angkanya.
+      if (!$codes) {
+        $pct = (int)($in['pct'] ?? 0);
+        if (!in_array($pct, VOUCHER_TIERS, true)) fail('Persentase harus salah satu dari 10 sampai 90.');
+        db()->prepare("UPDATE vouchers SET code = '', codes = '', note = ?, active = 0, updated_at = ? WHERE pct = ?")
+          ->execute([str($in, 'note', 160), gmdate('c'), $pct]);
+      } else {
+        if (count($codes) > 10) fail('Maksimal 10 kode untuk satu tingkat.');
+        foreach ($codes as $c) {
+          if (!preg_match('/^[A-Z0-9-]{5,24}$/', $c)) fail('Kode "' . $c . '" tidak valid: 5-24 karakter, hanya huruf, angka, dan tanda minus.');
+        }
+        $pct = voucherTierFromCode($codes[0]);
+        if ($pct === 0) fail('Kode harus diakhiri dua angka tingkat diskon (10, 20, 30, 40, 50, 60, 70, 80, atau 90). Contoh: HEMAT30.');
+        foreach ($codes as $c) {
+          if (voucherTierFromCode($c) !== $pct) fail('Semua kode satu tingkat harus berakhiran angka yang sama. "' . $c . '" tidak cocok dengan ' . $pct . '%.');
+        }
+        if (isset($in['pct']) && (int)$in['pct'] !== $pct) fail('Kode berakhiran ' . $pct . ' tidak bisa dipasang di tingkat ' . (int)$in['pct'] . '%.');
+        foreach ($codes as $c) {
+          $pemilik = voucherCodeOwner($c, $pct);
+          if ($pemilik) fail('Kode "' . $c . '" sudah dipakai tingkat ' . $pemilik . '%.');
+        }
+        db()->prepare('UPDATE vouchers SET code = ?, codes = ?, note = ?, active = ?, updated_at = ? WHERE pct = ?')
+          ->execute([$codes[0], json_encode($codes), str($in, 'note', 160), !empty($in['active']) ? 1 : 0, gmdate('c'), $pct]);
       }
-      db()->prepare('UPDATE vouchers SET code = ?, note = ?, active = ?, updated_at = ? WHERE pct = ?')
-        ->execute([$code, str($in, 'note', 160), ($code !== '' && !empty($in['active'])) ? 1 : 0, gmdate('c'), $pct]);
       $st = db()->prepare('SELECT * FROM vouchers WHERE pct = ?'); $st->execute([$pct]);
       out(['ok' => true, 'voucher' => publicVoucher($st->fetch())]);
     }
@@ -1506,7 +1532,7 @@ try {
       $in = input();
       $pct = (int)($in['pct'] ?? 0);
       if (!in_array($pct, VOUCHER_TIERS, true)) fail('Persentase harus salah satu dari 10 sampai 90.');
-      db()->prepare("UPDATE vouchers SET code = '', note = '', active = 0, quota = 0, expires = '', kind = '', mayar_id = '', synced_at = '', updated_at = ? WHERE pct = ?")
+      db()->prepare("UPDATE vouchers SET code = '', codes = '', note = '', active = 0, quota = 0, expires = '', kind = '', mayar_id = '', synced_at = '', updated_at = ? WHERE pct = ?")
         ->execute([gmdate('c'), $pct]);
       out(['ok' => true]);
     }

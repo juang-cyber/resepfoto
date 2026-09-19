@@ -54,7 +54,14 @@ header('Content-Type: application/json');
 if ($mode === '401') { http_response_code(401); echo json_encode(['statusCode' => 401, 'messages' => '']); exit; }
 if ($mode === 'sampah') { echo '<html>bukan json</html>'; exit; }
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $path === '/coupon/create') {
-  echo json_encode(['statusCode' => 200, 'data' => ['id' => 'disc-uji-abc123']]); exit;
+  // Memantulkan kode yang diterima. Mode 'sebagian' hanya mengakui kode pertama —
+  // itu meniru kemungkinan Mayar menolak alias kedua dan seterusnya.
+  $j = json_decode($body, true);
+  $kirim = isset($j['coupon']) && is_array($j['coupon']) ? $j['coupon'] : [];
+  if ($mode === 'sebagian') $kirim = array_slice($kirim, 0, 1);
+  $cs = [];
+  foreach ($kirim as $c) $cs[] = ['code' => $c['code'] ?? '', 'type' => $c['type'] ?? '', 'isActive' => true];
+  echo json_encode(['statusCode' => 200, 'data' => ['id' => 'disc-uji-abc123', 'coupons' => $cs]]); exit;
 }
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && strpos($path, '/coupon/') === 0) {
   // kuota & status sengaja BEDA dari yang dikirim saat membuat, supaya terbukti
@@ -160,13 +167,44 @@ echo "$B" | grep -q '"value":10'          && ok "persentase 10 terkirim"        
 echo "$B" | grep -q '"totalCoupons":1'    && ok "kuota terkirim sebagai totalCoupons" || no "totalCoupons salah: $B"
 echo "$B" | grep -q '"code":"UJICOBA10"'  && ok "kode terkirim"                    || no "code salah: $B"
 echo "$B" | grep -q '"type":"onetime"'    && ok "onetime diteruskan"               || no "type salah: $B"
-echo "$B" | grep -q "\"expiredAt\":\"${EXP}T23:59:59Z\"" && ok "kedaluwarsa dikirim lengkap dengan jam" || no "expiredAt salah: $B"
+echo "$B" | grep -q "\"expiredAt\":\"${EXP}T23:59:59.000Z\"" && ok "kedaluwarsa dikirim lengkap dengan jam" || no "expiredAt salah: $B"
+# Bentuk ini mengikuti contoh curl di docs.mayar.id/api-reference/discount/create:
+# discount sebuah OBJEK, sementara coupon dan products sejajar dengannya di tingkat atas.
+echo "$B" | grep -q '"discount":{"discountType"' && ok "discount dikirim sebagai objek, bukan array" || no "bentuk discount salah: $B"
+echo "$B" | grep -q '"coupon":\[{' && ok "coupon sejajar discount dan berbentuk array" || no "bentuk coupon salah: $B"
+echo "$B" | grep -q '"products":\[\]' && ok "products kosong = berlaku semua produk" || no "products salah: $B"
 
 echo "== pengaman kupon kembar =="
 code=$(postc "$S" voucher_create "{\"pct\":10,\"code\":\"UJILAIN10\",\"quota\":1,\"expires\":\"$EXP\"}")
 [ "$code" != "200" ] && ok "tingkat yang sudah punya kupon tidak bisa dibuat ulang" || no "seharusnya ditolak, dapat $code"
 code=$(postc "$S" voucher_create "{\"pct\":20,\"code\":\"UJICOBA10\",\"quota\":1,\"expires\":\"$EXP\"}")
 [ "$code" != "200" ] && ok "kode sama di tingkat lain ditolak" || no "kode kembar seharusnya ditolak"
+
+echo "== tingkat dibaca dari dua angka terakhir kode =="
+tolak "{\"codes\":\"HEMAT45\",\"quota\":1,\"expires\":\"$EXP\"}"          "akhiran bukan tingkat (45)"
+tolak "{\"codes\":\"HEMAT100\",\"quota\":1,\"expires\":\"$EXP\"}"         "akhiran 00 bukan tingkat"
+tolak "{\"codes\":\"RFKODE\",\"quota\":1,\"expires\":\"$EXP\"}"           "kode tanpa angka di belakang"
+tolak "{\"codes\":\"HEMAT30, DISKON40\",\"quota\":1,\"expires\":\"$EXP\"}" "dua kode beda tingkat"
+tolak "{\"pct\":20,\"codes\":\"HEMAT30\",\"quota\":1,\"expires\":\"$EXP\"}" "kode 30 dipasang di tingkat 20"
+
+echo "== satu tingkat, banyak alias =="
+: > "$T/mock.log"
+r=$(postb "$S" voucher_create "{\"codes\":\"hemat60, diskon60 promo60\",\"quota\":100,\"expires\":\"$EXP\"}")
+echo "$r" | grep -q '"ok":true' && ok "tiga alias dibuat sekaligus" || no "gagal: $r"
+echo "$r" | grep -q '"pct":60' && ok "tingkat 60% disimpulkan dari kodenya sendiri" || no "tingkat salah: $r"
+B3="$(php -r '$b=""; foreach(file($argv[1]) as $l){$j=json_decode($l,true); if(($j["path"]??"")==="/coupon/create") $b=$j["body"]??"";} echo $b;' "$T/mock.log")"
+echo "$B3" | grep -q '"code":"HEMAT60"'  && ok "alias 1 terkirim huruf besar"  || no "HEMAT60 tidak terkirim: $B3"
+echo "$B3" | grep -q '"code":"DISKON60"' && ok "alias 2 terkirim"              || no "DISKON60 tidak terkirim: $B3"
+echo "$B3" | grep -q '"code":"PROMO60"'  && ok "alias 3 terkirim"              || no "PROMO60 tidak terkirim: $B3"
+echo "$r" | grep -q '"codes":\["HEMAT60","DISKON60","PROMO60"\]' && ok "ketiganya tersimpan di panel" || no "daftar kode salah: $r"
+code=$(postc "$S" voucher_create "{\"codes\":\"PROMO60\",\"quota\":1,\"expires\":\"$EXP\"}")
+[ "$code" != "200" ] && ok "alias yang sudah dipakai tingkat lain ditolak" || no "seharusnya ditolak, dapat $code"
+
+echo "== kalau Mayar cuma mengakui sebagian alias =="
+echo 'sebagian' > "$T/mock.mode"
+r=$(postb "$S" voucher_create "{\"codes\":\"hemat70, diskon70\",\"quota\":5,\"expires\":\"$EXP\"}")
+echo "$r" | grep -q '"codes":\["HEMAT70"\]' && ok "panel menyimpan kode yang DIAKUI Mayar, bukan yang dikirim" || no "panel mengarang kode: $r"
+echo 'ok' > "$T/mock.mode"
 
 echo "== baca balik status dari Mayar =="
 : > "$T/mock.log"

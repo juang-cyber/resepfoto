@@ -6,7 +6,15 @@
  *   1. "Buat kupon di Mayar" (dianjurkan) memanggil API Mayar dan benar-benar
  *      membuat kuponnya, lengkap dengan kuota dan tanggal kedaluwarsa.
  *   2. "Catat kode yang sudah ada" hanya menyimpan kode ke katalog lokal. Tidak
- *      membuat apa pun di Mayar.
+ *      membuat apa pun di Mayar. Kalau kodenya ternyata tidak ada di sana, link
+ *      ?coupon= diabaikan diam-diam dan pembeli membayar harga penuh — tanpa pesan
+ *      error di mana pun. Itu pernah terjadi: panel menampilkan "aktif" padahal
+ *      dashboard Mayar kosong sama sekali.
+ *
+ * TINGKAT DIBACA DARI DUA ANGKA TERAKHIR KODE. HEMAT30, DISKON30, dan PROMO30
+ * semuanya tingkat 30%. Jadi satu tingkat boleh punya beberapa alias, dan panel
+ * tidak perlu bertanya persennya. Satu diskon di Mayar memang bisa memuat banyak
+ * kode sekaligus (`coupon` di payload adalah array).
  *
  * Dalam kedua kasus, potongan harga dan sisa kuota ditegakkan MAYAR saat checkout,
  * karena pembayaran terjadi di domain Mayar. Panel ini antarmukanya, bukan penegaknya.
@@ -67,6 +75,8 @@ function syncTabVisibility(){
 window.addEventListener("rf:admin-render", syncTabVisibility);
 
 function linkFor(code, plan){ return CHECKOUT[plan] + "?coupon=" + encodeURIComponent(code); }
+/* Baris lama hanya punya satu kode; baris baru punya daftar alias. */
+function kodeList(v){ return (v.codes && v.codes.length) ? v.codes : (v.code ? [v.code] : []); }
 function waTextFor(v){
   return `Halo Kak! ✨\nKhusus buat Kakak, ada potongan *${v.pct}%* untuk ResepFoto.\n\n`
     + `Kode voucher: *${v.code}*\n\n`
@@ -153,6 +163,7 @@ function sudahDibuat(v){
   return `
     <div class="vou-meta">
       <span class="pill ok">Dibuat di Mayar</span>
+      ${kodeList(v).map(c => `<span class="pill">${esc(c)}</span>`).join("")}
       <span class="pill">Kuota ${v.quota}</span>
       <span class="pill">Berlaku sampai ${esc(tanggalTampil(v.expires))}</span>
       <span class="pill">${v.kind === "onetime" ? "Sekali pakai" : "Berulang"}</span>
@@ -161,8 +172,9 @@ function sudahDibuat(v){
     <p class="vou-hint">Status terakhir dibaca ${esc(waktuTampil(v.syncedAt))}. Mayar tidak melaporkan
        berapa kali kupon sudah dipakai — yang bisa dibaca hanya kuota total dan status aktif.</p>
     <div class="vou-links">
-      <button type="button" data-vou-link="${esc(linkFor(v.code, "Standard"))}">Salin link Standard (potongan ${v.pct}%)</button>
-      <button type="button" data-vou-link="${esc(linkFor(v.code, "Premium"))}">Salin link Premium (potongan ${v.pct}%)</button>
+      ${kodeList(v).map(c => `
+        <button type="button" data-vou-link="${esc(linkFor(c, "Standard"))}">Standard · ${esc(c)} → potongan ${v.pct}%</button>
+        <button type="button" data-vou-link="${esc(linkFor(c, "Premium"))}">Premium · ${esc(c)} → potongan ${v.pct}%</button>`).join("")}
       <button type="button" data-vou-wa="${v.pct}">Salin teks WhatsApp siap kirim</button>
     </div>
     <p class="vou-err" id="ve-${v.pct}" hidden></p>
@@ -175,9 +187,11 @@ function sudahDibuat(v){
 /* Tingkat kosong: buat lewat API, atau catat kode yang sudah dibuat manual. */
 function formBuat(v, punyaKey){
   return `
-    <div class="field"><label for="vc-${v.pct}">Kode voucher</label>
-      <input class="input vou-code" id="vc-${v.pct}" maxlength="24" value="${esc(v.code)}"
-             placeholder="mis. HEMAT${v.pct}-K7QX" autocomplete="off" spellcheck="false"></div>
+    <div class="field"><label for="vc-${v.pct}">Kode voucher (boleh beberapa, pisahkan koma)</label>
+      <input class="input vou-code" id="vc-${v.pct}" maxlength="160" value="${esc(kodeList(v).join(", "))}"
+             placeholder="HEMAT${v.pct}, DISKON${v.pct}, PROMO${v.pct}" autocomplete="off" spellcheck="false"></div>
+    <p class="vou-hint">Tingkat diskon dibaca dari <b>dua angka terakhir</b> tiap kode, jadi semuanya
+       harus berakhiran <b>${v.pct}</b>. Semua kode di sini masuk ke <b>satu</b> diskon di Mayar.</p>
     <p class="vou-hint" id="vh-${v.pct}" hidden></p>
     <div class="vou-two">
       <div class="field"><label for="vq-${v.pct}">Kuota pemakaian</label>
@@ -196,8 +210,10 @@ function formBuat(v, punyaKey){
     ${punyaKey ? "" : `<p class="vou-hint">Isi API key di atas dulu untuk mengaktifkan tombol ini.</p>`}
     <details class="vou-manual">
       <summary>Atau catat kode yang sudah dibuat manual di Mayar</summary>
-      <p class="vou-hint">Ini tidak membuat apa pun — hanya menyimpan kodenya supaya muncul di daftar
-         dan bisa dibuatkan link. Kuota &amp; kedaluwarsa tetap diatur di dashboard Mayar.</p>
+      <p class="vou-hint risk">Ini <b>tidak membuat apa pun di Mayar</b> — hanya menyimpan kodenya di sini.
+         Kalau kodenya belum ada di Mayar, linknya tetap terbuka tapi harga <b>tidak terpotong</b>, dan
+         tidak ada pesan error di mana pun. Pakai ini hanya untuk kode yang sudah kamu buat manual di
+         dashboard Mayar, dan cek dulu di Mayar → Diskon dan Kupon.</p>
       <label class="check"><input type="checkbox" id="va-${v.pct}"${v.active ? " checked" : ""}> Aktif</label>
       <div class="vou-acts">
         <button class="btn btn-ghost" type="button" data-vou-save="${v.pct}">Catat kode saja</button>
@@ -206,24 +222,29 @@ function formBuat(v, punyaKey){
     </details>`;
 }
 
-/* Angka di dalam kode dibaca sebagai persen — HEMAT90-K7QX berarti 90%.
-   Kalau angkanya tidak cocok dengan tingkatnya, itu hampir selalu salah ketik dan
-   pembeli akan dapat potongan yang berbeda dari yang tertulis di kodenya.
-   Hanya angka yang memang salah satu tingkat (10..90) yang dianggap sebagai persen,
-   supaya "RF2026-K7QX" tidak ikut diributkan. */
+/* Tingkat diskon adalah DUA ANGKA TERAKHIR kode — sama persis dengan aturan di server
+   (voucherTierFromCode di lib.php). HEMAT30 → 30%. Kode yang tidak berakhiran salah satu
+   tingkat ditolak server, jadi peringatannya dimunculkan lebih dulu di sini. */
 const TINGKAT = [10, 20, 30, 40, 50, 60, 70, 80, 90];
-function persenDiKode(kode){
-  return (String(kode).match(/\d+/g) || []).map(Number).filter(n => TINGKAT.indexOf(n) >= 0);
+function pecahKode(nilai){
+  return String(nilai).toUpperCase().split(/[\s,;]+/).filter(Boolean);
+}
+function tingkatDariKode(kode){
+  const m = String(kode).match(/(\d{2})$/);
+  const p = m ? Number(m[1]) : 0;
+  return TINGKAT.indexOf(p) >= 0 ? p : 0;
 }
 function cekKode(pct){
   const el = $("#vc-" + pct, box), hint = $("#vh-" + pct, box);
   if (!el || !hint) return;
-  const angka = persenDiKode(el.value);
+  const kode = pecahKode(el.value);
   const kuota = Number(($("#vq-" + pct, box) || {}).value || 0);
   const pesan = [];
-  if (angka.length && angka.indexOf(pct) < 0) {
-    pesan.push(`Kode memuat angka <b>${esc(String(angka[0]))}</b> tapi tingkat ini <b>${pct}%</b> — pembeli akan dapat ${pct}%, bukan ${esc(String(angka[0]))}%.`);
+  const salah = kode.filter(c => tingkatDariKode(c) !== pct);
+  if (salah.length) {
+    pesan.push(`Harus berakhiran <b>${pct}</b>: ${salah.map(c => "<b>" + esc(c) + "</b>").join(", ")} tidak cocok untuk tingkat ini.`);
   }
+  if (kode.length > 10) pesan.push("Maksimal 10 kode untuk satu tingkat.");
   if (pct >= 50 && kuota > 20) pesan.push(`Potongan ${pct}% dengan kuota ${kuota} berisiko: kode berpola mudah ditebak dan sering disebar ulang.`);
   hint.innerHTML = pesan.join("<br>");
   hint.hidden = pesan.length === 0;
@@ -269,7 +290,7 @@ function wire(){
     try {
       await api("voucher_create", {
         pct: p,
-        code: $("#vc-" + p, box).value.trim().toUpperCase(),
+        codes: pecahKode($("#vc-" + p, box).value),
         quota: Number($("#vq-" + p, box).value),
         expires: $("#vx-" + p, box).value,
         onetime: $("#vo-" + p, box).checked ? 1 : "",
@@ -294,7 +315,7 @@ function wire(){
     try {
       await api("voucher_save", {
         pct: p,
-        code: $("#vc-" + p, box).value.trim().toUpperCase(),
+        codes: pecahKode($("#vc-" + p, box).value),
         note: $("#vn-" + p, box).value.trim(),
         active: $("#va-" + p, box).checked ? 1 : ""
       });

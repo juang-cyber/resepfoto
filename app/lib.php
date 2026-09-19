@@ -76,7 +76,8 @@ function db(): PDO {
   // kolom untuk kupon yang dibuat lewat API Mayar; baris lama tetap valid dengan nilai kosong
   $vcols = array_column($pdo->query('PRAGMA table_info(vouchers)')->fetchAll(), 'name');
   foreach (['quota' => 'INTEGER DEFAULT 0', 'expires' => "TEXT DEFAULT ''", 'kind' => "TEXT DEFAULT ''",
-            'mayar_id' => "TEXT DEFAULT ''", 'synced_at' => "TEXT DEFAULT ''"] as $kol => $def) {
+            'mayar_id' => "TEXT DEFAULT ''", 'synced_at' => "TEXT DEFAULT ''",
+            'codes' => "TEXT DEFAULT ''"] as $kol => $def) {
     if (!in_array($kol, $vcols, true)) $pdo->exec("ALTER TABLE vouchers ADD COLUMN $kol $def");
   }
   // pindahkan kode dari bentuk lama, satu kode per tingkat
@@ -498,10 +499,51 @@ function publicOrder(array $o): array {
     'reminderCount' => (int)($o['reminder_count'] ?? 0), 'remindedAt' => (string)($o['reminded_at'] ?? '')];
 }
 /** Satu template tingkat voucher untuk panel admin. */
+/** Pecah isian kode jadi daftar rapi: huruf besar, tanpa duplikat, tanpa yang kosong. */
+function voucherCodeList($raw): array {
+  $items = is_array($raw) ? $raw : preg_split('/[\\s,;]+/', (string)$raw);
+  $out = [];
+  foreach ($items as $c) {
+    $c = strtoupper(trim((string)$c));
+    if ($c === '') continue;
+    if (mb_strlen($c) > 24) $c = mb_substr($c, 0, 24);
+    if (!in_array($c, $out, true)) $out[] = $c;
+  }
+  return $out;
+}
+
+/** Tingkat lain yang sudah memakai kode ini, atau 0 kalau bebas. Satu kode hanya boleh di satu tingkat. */
+function voucherCodeOwner(string $code, int $selain): int {
+  foreach (db()->query('SELECT * FROM vouchers') as $v) {
+    if ((int)$v['pct'] === $selain) continue;
+    foreach (voucherCodes($v) as $c) if (strcasecmp($c, $code) === 0) return (int)$v['pct'];
+  }
+  return 0;
+}
+
+/** Semua alias satu tingkat. Baris lama hanya punya kolom `code`, jadi itu yang dipakai. */
+function voucherCodes(array $v): array {
+  $j = json_decode((string)($v['codes'] ?? ''), true);
+  if (is_array($j) && $j) return array_values(array_filter(array_map('strval', $j)));
+  $satu = (string)($v['code'] ?? '');
+  return $satu === '' ? [] : [$satu];
+}
+
+/**
+ * Tingkat diskon dibaca dari DUA ANGKA TERAKHIR kode: HEMAT30, DISKON30, PROMO30 → 30%.
+ * Itu sebabnya satu tingkat boleh punya banyak alias tanpa panel perlu daftar terpisah.
+ * Mengembalikan 0 kalau dua karakter terakhir bukan angka atau bukan salah satu tingkat.
+ */
+function voucherTierFromCode(string $code): int {
+  if (!preg_match('/(\d{2})$/', $code, $m)) return 0;
+  $p = (int)$m[1];
+  return in_array($p, VOUCHER_TIERS, true) ? $p : 0;
+}
+
 function publicVoucher(array $v): array {
   $code = (string)($v['code'] ?? '');
   $mayarId = (string)($v['mayar_id'] ?? '');
-  return ['pct' => (int)$v['pct'], 'code' => $code, 'note' => (string)($v['note'] ?? ''),
+  return ['pct' => (int)$v['pct'], 'code' => $code, 'codes' => voucherCodes($v), 'note' => (string)($v['note'] ?? ''),
     'active' => (bool)$v['active'] && $code !== '', 'filled' => $code !== '',
     // diMayar = kupon ini benar-benar dibuat lewat API, jadi panel tahu statusnya.
     // Kode yang cuma dicatat manual tetap punya diMayar = false.
@@ -572,21 +614,45 @@ function mayarData(array $j): array {
  * Buat kupon persentase di Mayar. $expires format YYYY-MM-DD.
  * Mengembalikan id diskon — wajib disimpan, karena endpoint detail memakai id, bukan kode.
  */
-function mayarCreateCoupon(string $code, int $pct, int $quota, string $expires, bool $onetime): array {
+/**
+ * Membuat SATU diskon di Mayar yang memuat beberapa kode sekaligus.
+ *
+ * Bentuk payload mengikuti contoh curl resmi di
+ * https://docs.mayar.id/api-reference/discount/create — `discount` sebuah objek,
+ * sementara `coupon` dan `products` SEJAJAR dengannya di tingkat atas. Daftar field
+ * di halaman yang sama menyebut `discount` "array of object" dan menaruh `coupon`
+ * di dalamnya; keduanya bertentangan, dan yang terbukti diterima server sungguhan
+ * adalah bentuk contoh curl-nya. Jangan kembalikan ke bentuk bersarang tanpa
+ * mengujinya lagi ke API asli — uji tiruan tidak membuktikan apa pun soal ini.
+ *
+ * `products` sengaja dikirim kosong: respons Mayar membalas `discountProductType: "all"`,
+ * artinya kupon berlaku untuk semua produk. Kalau suatu saat diskon hanya boleh untuk
+ * satu paket, isi array ini dengan id produknya.
+ */
+function mayarCreateCoupon(array $codes, int $pct, int $quota, string $expires, bool $onetime): array {
+  $tipe = $onetime ? 'onetime' : 'reusable';
+  $kupon = [];
+  foreach ($codes as $c) $kupon[] = ['code' => $c, 'type' => $tipe];
   $d = mayarData(mayarApi('POST', '/coupon/create', [
-    'name' => 'ResepFoto ' . $pct . '% - ' . $code,
-    'expiredAt' => $expires . 'T23:59:59Z',
-    'discount' => [[
+    'name' => 'ResepFoto ' . $pct . '% - ' . implode(' / ', $codes),
+    'expiredAt' => $expires . 'T23:59:59.000Z',
+    'discount' => [
       'discountType' => 'percentage',
       'eligibleCustomerType' => 'all',
       'minimumPurchase' => 0,
       'value' => $pct,
       'totalCoupons' => $quota,
-      'coupon' => [['code' => $code, 'type' => $onetime ? 'onetime' : 'reusable']],
-      'products' => [],
-    ]],
+    ],
+    'coupon' => $kupon,
+    'products' => [],
   ]));
-  return ['id' => (string)($d['id'] ?? ''), 'data' => $d];
+  // Kode yang BENAR-BENAR dibuat dibaca balik dari respons, bukan diasumsikan dari
+  // yang dikirim: kalau Mayar hanya menerima kode pertama, panel harus tahu.
+  $jadi = [];
+  foreach (($d['coupons'] ?? []) as $c) {
+    if (isset($c['code']) && $c['code'] !== '') $jadi[] = (string)$c['code'];
+  }
+  return ['id' => (string)($d['id'] ?? ''), 'codes' => $jadi ?: $codes, 'data' => $d];
 }
 
 /** Baca status diskon dari Mayar berdasarkan id yang disimpan saat pembuatan. */
