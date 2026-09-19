@@ -289,6 +289,24 @@ node -e "const h=require('fs').readFileSync('app/index.html','utf8');for(const b
 ```
 Tes Gemini butuh API key sungguhan; `RF_GEMINI_BASE` env bisa mengarahkan ke mock server.
 
+**Skrip tes yang ada:**
+```bash
+bash test/uji-pesan-voucher.sh   # template pesan 3 kanal, email multipart, pengingat,
+                                 #   jatah Standard, voucher_save/voucher_delete (lokal)
+bash test/uji-voucher-mayar.sh   # voucher_create + voucher_sync lewat Mayar TIRUAN
+```
+`uji-voucher-mayar.sh` menjalankan server tiruan dan mengarahkan aplikasi ke situ lewat
+`RF_MAYAR_BASE` (pola yang sama dengan `RF_GEMINI_BASE`). Yang dibuktikan: bentuk permintaan
+`POST /coupon/create` (persentase, `totalCoupons`, `expiredAt`, kode, onetime), `mayar_id`
+tersimpan, `voucher_sync` membaca lewat **id** bukan kode dan memakai angka dari jawaban Mayar,
+penolakan 401 dijelaskan sebagai key kurang hak, `voucher_delete` tidak memanggil Mayar, dan
+semua validasi masukan terjadi **sebelum** Mayar dihubungi. Tes pertamanya memastikan tanpa
+env itu basisnya tetap `api.mayar.id` — override ini **hanya** alat uji, bukan setelan produksi.
+
+> Yang **tidak** bisa dibuktikan tes tiruan, dan tetap wajib dicoba sekali di panel sungguhan:
+> kupon benar-benar muncul di dashboard Mayar, dan link `?coupon=` benar-benar memotong harga
+> di halaman pembayaran. Keduanya ditegakkan di domain Mayar, di luar jangkauan kode ini.
+
 ## Dua jenis sesi Claude Code — jangan tertukar
 - **Sesi remote/cloud** (yang membuat PR #1, #3, #4): `resepfoto.kitlab.id`, `kitlab.myr.id`, `mayar.id`,
   `web.mayar.id`, dan `ik.imagekit.io` **tidak bisa dijangkau** (403 pada CONNECT / HTTP 000). Agent di sana tidak bisa

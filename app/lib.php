@@ -518,13 +518,16 @@ function publicVoucher(array $v): array {
  * tetap sumber kebenarannya.
  */
 const MAYAR_API = 'https://api.mayar.id/hl/v1';
+/** Basis API Mayar. Env RF_MAYAR_BASE HANYA untuk uji lokal (server tiruan);
+ *  di server produksi variabel itu tidak ada, jadi selalu jatuh ke MAYAR_API. */
+function mayarBase(): string { return getenv('RF_MAYAR_BASE') ?: MAYAR_API; }
 function mayarApiKey(): string { return setting('mayar_api_key'); }
 
 /** Panggil Mayar Headless API. Melempar RuntimeException berisi sebab yang aman ditampilkan ke admin. */
 function mayarApi(string $method, string $path, ?array $json = null): array {
   $key = mayarApiKey();
   if ($key === '') throw new RuntimeException('API key Mayar belum diisi di tab Voucher.');
-  $url = MAYAR_API . $path;
+  $url = mayarBase() . $path;
   $body = $json === null ? null : json_encode($json, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
   $headers = ['Authorization: Bearer ' . $key, 'Accept: application/json'];
   if ($body !== null) $headers[] = 'Content-Type: application/json';
