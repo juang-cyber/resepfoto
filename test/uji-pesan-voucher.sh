@@ -245,6 +245,51 @@ echo "$r" | grep -qi "24 jam\|2 kali" && ok "pengingat kedua dicegat pengaman" |
 r=$(postb "$S" order_action '{"id":"UJI-P","action":"remind"}')
 echo "$r" | grep -qi "sudah aktif" && ok "pesanan yang sudah aktif tidak bisa dikirimi pengingat" || no "seharusnya ditolak: $r"
 
+echo "== sebab kegagalan kirim dicatat per kanal =="
+# Pembeli membayar, membernya terbuat, tapi tidak menerima apa pun — dan panel dulu
+# hanya bisa bilang "belum terkirim". Sekarang alasannya harus tersimpan.
+(cd "$T" && php -r '
+require "config.php"; require "lib.php";
+$now = gmdate("c");
+db()->prepare("INSERT INTO orders (id, source, event, status, verified, state, plan, product, amount, name, email, phone, username, code, emailed, note, raw, created_at, updated_at)
+  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+  ->execute(["UJI-NOHP","mayar","payment.received","success",1,"lunas","Premium","ResepFoto Premium",79900,"Tanpa HP","tanpahp@contoh.com","",null,null,0,"","{}",$now,$now]);
+fulfillOrder("UJI-NOHP", true);
+db()->prepare("INSERT INTO orders (id, source, event, status, verified, state, plan, product, amount, name, email, phone, username, code, emailed, note, raw, created_at, updated_at)
+  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+  ->execute(["UJI-ADAHP","mayar","payment.received","success",1,"lunas","Premium","ResepFoto Premium",79900,"Ada HP","adahp@contoh.com","08129999777",null,null,0,"","{}",$now,$now]);
+fulfillOrder("UJI-ADAHP", true);
+' >/dev/null 2>&1)
+r=$(cd "$T" && php -r 'require "config.php"; require "lib.php"; $o=findOrder("UJI-NOHP"); echo ($o["wa_err"]??"")."~".($o["note"]??"");')
+echo "$r" | grep -q "customerMobile" && ok "tanpa nomor: sebabnya menyebut customerMobile" || no "wa_err tidak menjelaskan: $r"
+echo "$r" | grep -q "Akses:" && ok "catatan pesanan merangkum kedua kanal" || no "catatan tidak merangkum: $r"
+r=$(cd "$T" && php -r 'require "config.php"; require "lib.php"; $o=findOrder("UJI-ADAHP"); echo ($o["wa_err"]??"");')
+echo "$r" | grep -qi "Fonnte" && ok "ada nomor tapi token kosong: sebabnya menyebut Fonnte" || no "wa_err salah: $r"
+
+echo "== nomor 08 diterima apa adanya =="
+r=$(cd "$T" && php -r 'require "config.php"; require "lib.php";
+echo waNumber("08123456789")."|".waNumber("+628123456789")."|".waNumber("62 812-3456-789")."|".waNumber("0812 3456 789");')
+[ "$r" = "628123456789|628123456789|628123456789|628123456789" ] && ok "08, +62, 62, dan yang berspasi dinormalkan sama" || no "waNumber tidak seragam: $r"
+
+echo "== webhook pengingat: otomatis, tapi tidak dianggap lunas =="
+(cd "$T" && php -r 'require "config.php"; require "lib.php"; setSetting("mayar_webhook_token","TOKEN-UJI");')
+kirim(){ curl -s -o /dev/null -X POST "$BASE/webhook-mayar.php?token=TOKEN-UJI" -H 'Content-Type: application/json' \
+  -d '{"event":"payment.reminder","data":{"id":"UJI-RMD","productName":"ResepFoto Premium","amount":79900,"customerName":"Cici","customerEmail":"cici@contoh.com","customerMobile":"08129999888"}}'; }
+kirim
+r=$(cd "$T" && php -r 'require "config.php"; require "lib.php"; $o=findOrder("UJI-RMD"); echo $o ? ($o["state"]."|".(int)$o["reminder_count"]."|".$o["note"]) : "(tidak ada)";')
+case "$r" in belum_lunas\|*) ok "pengingat tidak dianggap pembayaran sah" ;; *) no "state salah: $r" ;; esac
+case "$r" in *\|1\|*) ok "pengingat otomatis dijalankan sekali" ;; *) no "penanda pengingat salah: $r" ;; esac
+echo "$r" | grep -q "Pengingat:" && ok "hasil tiap kanal ikut dicatat" || no "catatan pengingat hilang: $r"
+kirim
+r=$(cd "$T" && php -r 'require "config.php"; require "lib.php"; $o=findOrder("UJI-RMD"); echo (int)$o["reminder_count"];')
+[ "$r" = "1" ] && ok "webhook kembar tidak mengirim pengingat kedua" || no "pengaman jeda 24 jam jebol: count=$r"
+
+echo "== tingkat voucher 95% =="
+n=$(cd "$T" && php -r 'require "config.php"; require "lib.php"; echo (int)db()->query("SELECT COUNT(*) FROM vouchers WHERE pct=95")->fetchColumn();')
+[ "$n" = "1" ] && ok "tingkat 95% ikut di-seed" || no "tingkat 95% tidak ada"
+r=$(cd "$T" && php -r 'require "config.php"; require "lib.php"; echo voucherTierFromCode("RFHEMAT95")."|".voucherTierFromCode("RFHEMAT96");')
+[ "$r" = "95|0" ] && ok "kode berakhiran 95 terbaca, 96 ditolak" || no "pembacaan tingkat salah: $r"
+
 echo
 echo "HASIL: $pass lulus, $fail gagal"
 [ "$fail" -eq 0 ]

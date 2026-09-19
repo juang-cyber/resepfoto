@@ -330,7 +330,7 @@ try {
   switch ($a) {
     case 'me': {
       $who = currentUser();
-      $res = ['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => $who, 'cover' => coverConfig(), 'v' => 'admin-34'];
+      $res = ['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => $who, 'cover' => coverConfig(), 'v' => 'admin-35'];
       if (!$who && !empty($GLOBALS['rf_session_taken'])) $res['sessionTaken'] = true;
       out($res);
     }
@@ -921,16 +921,10 @@ try {
         // pesanan dan jeda minimal 24 jam, supaya tidak jadi spam dan tidak membakar
         // kuota Fonnte. Penanda ditulis DULU baru dikirim, jadi klik ganda tidak
         // menghasilkan dua pesan.
-        if ($o['state'] === 'aktif') fail('Pesanan ini sudah aktif, tidak perlu pengingat.');
-        if ($o['state'] === 'ditolak') fail('Pesanan ini sudah ditolak.');
-        if ((int)($o['reminder_count'] ?? 0) >= 2) fail('Pengingat untuk pesanan ini sudah dikirim 2 kali.');
-        $last = (string)($o['reminded_at'] ?? '');
-        if ($last !== '' && (time() - (int)strtotime($last)) < 86400) fail('Pengingat terakhir belum 24 jam. Tunggu dulu ya.');
-        updateOrder($id, ['reminded_at' => gmdate('c'), 'reminder_count' => (int)($o['reminder_count'] ?? 0) + 1]);
-        $em = sendPendingEmail($id); $wa = sendPendingWa($id);
-        if (!$em && !$wa) fail('Pengingat gagal dikirim lewat email maupun WhatsApp. Cek setelan SMTP dan Fonnte.');
-        $via = $em && $wa ? 'email & WhatsApp' : ($em ? 'email' : 'WhatsApp');
-        updateOrder($id, ['note' => 'Pengingat dikirim lewat ' . $via . '.']);
+        // Pengaman dan catatannya tinggal di autoRemind(), dipakai bersama webhook
+        // payment.reminder supaya perilakunya tidak mungkin berbeda.
+        $hasil = autoRemind($id);
+        if (!$hasil['ok']) fail($hasil['alasan']);
       } elseif ($act === 'reject') {
         if ($o['state'] === 'aktif') fail('Pesanan aktif tidak bisa ditolak. Nonaktifkan membernya dari tab Member.');
         updateOrder($id, ['state' => 'ditolak', 'note' => 'Ditolak admin.']);

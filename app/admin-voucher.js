@@ -230,7 +230,7 @@ function formBuat(v, punyaKey){
 /* Tingkat diskon adalah DUA ANGKA TERAKHIR kode — sama persis dengan aturan di server
    (voucherTierFromCode di lib.php). HEMAT30 → 30%. Kode yang tidak berakhiran salah satu
    tingkat ditolak server, jadi peringatannya dimunculkan lebih dulu di sini. */
-const TINGKAT = [10, 20, 30, 40, 50, 60, 70, 80, 90];
+const TINGKAT = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95];
 function pecahKode(nilai){
   return String(nilai).toUpperCase().split(/[\s,;]+/).filter(Boolean);
 }

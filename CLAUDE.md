@@ -156,6 +156,9 @@ Kolom `vouchers`: `pct (PK), code, codes, note, active, quota, expires, kind, ma
 alias) dan `used` jumlah pemakaian (-1 = belum pernah dibaca dari Mayar);
 `code`/`mayar_id` tetap ada sebagai yang utama, dipakai baris lama —
 `mayar_id` terisi hanya untuk kupon yang dibuat lewat API, dan itulah pembeda "dibuat di Mayar" vs "sekadar dicatat".
+Kolom `orders` untuk pengiriman: `emailed, wa_sent, email_err, wa_err, reminded_at, reminder_count` —
+dua kolom `*_err` menyimpan sebab kegagalan tiap kanal, dan kosong berarti kanal itu berhasil.
+
 `qc_status` = `''|lolos|review|gagal`, `result_status` = `''|cocok|kurang` — dipakai menyaring di panel admin,
 tidak pernah tampil ke member. Resep yang dihapus pindah ke tabel **`prompts_trash`** (barisnya disimpan utuh
 sebagai JSON); gambar dan galeri tesnya baru benar-benar dibuang saat sampah dikosongkan.
@@ -173,15 +176,26 @@ Placeholder: `{nama} {nama_depan} {paket} {username} {kode} {situs} {nominal} {l
 `mimeBody()` merakit bagian teks + HTML. `MAIL FROM` dan `-f` sengaja tidak disentuh — itu yang membuat SPF lolos.
 Logo email: `app/brand/email-logo.png` (PNG, karena Gmail tidak merender SVG).
 
-**Pengingat sebelum bayar.** Aksi `remind` di `order_action`, tombol per pesanan di tab Pesanan. Sengaja **manual**,
-bukan otomatis: event pengingat Mayar terpicu 29 menit setelah checkout gagal dan tidak bisa diatur, jadi kirim
-otomatis berisiko dianggap spam sekaligus membakar kuota Fonnte. Pengaman server: maksimal 2 kali per pesanan,
-jeda minimal 24 jam, penanda ditulis sebelum pengiriman (kolom `orders.reminded_at`, `orders.reminder_count`).
+**Pengingat sebelum bayar — OTOMATIS sejak 19 Sep 2026.** Semua pengaman dan pencatatannya tinggal di satu
+fungsi, `autoRemind()` di `lib.php`, yang dipakai **dua** pemanggil: tombol `remind` di `order_action` dan
+event `payment.reminder` dari webhook Mayar. Satu fungsi supaya perilakunya tidak mungkin berbeda.
+Pengamannya: maksimal 2 kali per pesanan, jeda minimal 24 jam, dan **penanda ditulis sebelum pengiriman**
+(`orders.reminded_at`, `orders.reminder_count`) — itu yang membuat webhook kembar atau klik ganda tidak
+menghasilkan dua pesan. Sekali jalan mengirim email **dan** WhatsApp.
+
+Sebelumnya ini sengaja manual, dengan alasan event pengingat Mayar terpicu 29 menit sesudah checkout gagal dan
+tidak bisa diatur, jadi otomatis dinilai berisiko spam. Pemilik mengubah keputusan itu: pembeli yang menunggu
+tidak boleh bergantung pada admin yang kebetulan sedang membuka panel. Pengaman di atas yang menahan spamnya.
+**Jangan kembalikan jadi manual tanpa membicarakannya.**
+
+`webhook-mayar.php` karena itu melayani dua event, bukan satu. Perhatikan: event pengingat **tidak boleh**
+dianggap lunas — `status` sering kosong di payload itu, sementara aturan "status kosong = lunas" berlaku untuk
+`payment.received`. Variabel `$isRemind` yang memaksa `$paid = false`.
 
 **Voucher — panel ini TIDAK memotong harga.** Kuponnya milik Mayar; potongan dan sisa kuota dihitung serta
 ditegakkan di halaman pembayaran Mayar lewat parameter `?coupon=KODE` pada link. Pembayaran terjadi di domain
 Mayar dan aplikasi ini baru tahu setelah webhook masuk, jadi kuota **tidak boleh** disimpan sebagai penentu di
-sini. Tabel `vouchers` berisi **sembilan template tingkat diskon** (10%..90%, satu baris per persen, di-seed
+sini. Tabel `vouchers` berisi **sepuluh template tingkat diskon** (10%..90% plus 95% untuk uji, di-seed
 otomatis di `db()` dari konstanta `VOUCHER_TIERS`) — bukan daftar bebas. Kuncinya `pct`, bukan `code`; satu kode
 hanya boleh menempel di satu tingkat.
 
@@ -285,10 +299,20 @@ walau SPF & DKIM sudah benar.
 > merelai keluar). SPF sudah memuat IP server dan cPanel menandatangani DKIM `default._domainkey`, jadi
 > autentikasi tetap lolos. Kalau pindah hosting, cek ulang lewat tab Pesanan → **Kirim email tes**.
 
-`waSend()` mengirim lewat Fonnte (`fonnte_token`); `sendAccessWa()` dipanggil dari `fulfillOrder()` sesudah email,
-dan hasilnya disimpan di kolom `orders.wa_sent`. Nomor admin (`admin_wa`) harus nomor **lain** dari nomor device
-Fonnte — pesan dari device ke nomornya sendiri sering tidak sampai. WA ke pembeli hanya terkirim kalau payload
-webhook Mayar memuat `customerMobile`.
+`waSend()` mengirim lewat Fonnte (`fonnte_token`). Nomor admin (`admin_wa`) harus nomor **lain** dari nomor
+device Fonnte — pesan dari device ke nomornya sendiri sering tidak sampai. WA ke pembeli hanya terkirim kalau
+payload webhook Mayar memuat `customerMobile`. `waNumber()` menormalkan `08…`, `+62…`, `62…`, dan yang
+berspasi/berstrip jadi satu bentuk, jadi format apa pun dari pembeli aman di sisi kita.
+
+**KEGAGALAN KIRIM WAJIB MENINGGALKAN SEBAB.** `fulfillOrder()` memanggil `deliverAccess()`, yang mencoba email
+dan WhatsApp **terpisah** — satu gagal tidak membatalkan yang lain — lalu menyimpan alasannya di
+`orders.email_err` dan `orders.wa_err`, dan merangkum keduanya ke `orders.note`. Tab Pesanan menampilkannya
+merah di bawah tiap pesanan.
+
+Kejadian 19 Sep 2026 yang melahirkan aturan ini: pembeli membayar, membernya terbuat, tapi **tidak menerima
+email maupun WA**, dan panel cuma menulis "belum terkirim" tanpa satu pun petunjuk. Penyebabnya `sendMail()`
+dan `waSend()` sama-sama menelan error jadi `true`/`false` belaka. Kalau menambah kanal baru (Telegram, SMS),
+ikuti pola yang sama: pakai varian `…OrFail()` yang melempar, tangkap di pemanggil, simpan sebabnya.
 
 **Penulis resep (`created_by`).** Diisi otomatis dengan username admin yang menyimpan lewat `prompt_save`, dan dipertahankan saat resep diedit admin lain. Resep lama diisi sekali lewat `backfillPromptAuthors()` (ditandai kunci `backfill_created_by` di `settings`): resep dari paket resep atas nama super admin bawaan, sisanya atas nama `LEGACY_PROMPT_AUTHOR`, yang dicocokkan ke akun admin yang ada lewat `resolveAuthorUsername()` supaya foto profilnya ikut terpakai. Endpoint `prompts` hanya menyertakan `createdBy` dan peta `authors` (nama + foto) untuk admin — member biasa tidak melihatnya.
 
@@ -433,6 +457,13 @@ env itu basisnya tetap `api.mayar.id` — override ini **hanya** alat uji, bukan
   terjadi karena ini.
 - Playwright di container agent: wajib `executablePath: '/opt/pw-browsers/chromium'` + `--no-sandbox`. Jangan
   jalankan `playwright install`.
+- **`app/webhook-mayar.php` memakai akhiran baris CRLF**, sementara semua file lain LF. Penyuntingan otomatis
+  yang mencocokkan beberapa baris sekaligus akan gagal tanpa sebab yang jelas di file itu. Cocokkan dengan
+  konvensinya sendiri; jangan diam-diam mengubah seluruh file jadi LF, karena itu membuat diff palsu sebesar
+  seluruh berkas.
+- Halaman masuk: kalimat "Belum punya akses?" adalah **tautan ke `/promo`** (kelas `.login-promo`). Kalau
+  teksnya diubah lewat kamus i18n, pastikan elemennya tetap `<a href="/promo">` — `data-i18n` hanya mengganti
+  teks, bukan membangun ulang tautannya.
 
 ## Backlog / ide
 - Cover login: dukung video/animasi ringan; pratinjau langsung di tab Cover.

@@ -164,6 +164,8 @@ function card(o){
     <div class="ord-top"><div><strong>${esc(o.name || "(tanpa nama)")} · ${esc(o.plan)}</strong><small>${esc(o.email)}${o.phone ? " · " + esc(o.phone) : ""}</small></div><span class="ord-amt">${rp(o.amount)}</span></div>
     <div class="row" style="gap:6px;flex-wrap:wrap"><span class="pill ${cls}">${label}</span>${o.verified ? `<span class="pill ok">Terverifikasi</span>` : ""}${o.username ? `<span class="pill">@${esc(o.username)}</span>` : ""}${o.state === "aktif" ? `<span class="pill ${o.emailed ? "ok" : "warn"}">${o.emailed ? "Email terkirim" : "Email belum terkirim"}</span>` : ""}${o.state === "aktif" && o.phone ? `<span class="pill ${o.waSent ? "ok" : "warn"}">${o.waSent ? "WA terkirim" : "WA belum terkirim"}</span>` : ""}<span class="pill">${esc(when(o.createdAt))}</span></div>
     ${o.note ? `<small class="muted" style="font-size:12px">${esc(o.note)}</small>` : ""}
+    ${o.emailErr ? `<small style="font-size:12px;color:var(--bad);display:block">Email gagal: ${esc(o.emailErr)}</small>` : ""}
+    ${o.waErr ? `<small style="font-size:12px;color:var(--bad);display:block">WA gagal: ${esc(o.waErr)}</small>` : ""}
     ${o.state === "perlu_cek" ? `<small class="muted" style="font-size:12px">Cocokkan dulu dengan transaksi di dashboard Mayar sebelum mengaktifkan.</small>` : ""}
     <div class="ord-actions">${act.join("")}</div>
   </div>`;

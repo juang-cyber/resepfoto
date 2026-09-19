@@ -8,7 +8,7 @@ require_once __DIR__ . '/config.php';
 
 const PLAN_LIFETIME = ['Standard', 'Premium', 'Lifetime'];
 /** Tingkat diskon yang tersedia sebagai template voucher. */
-const VOUCHER_TIERS = [10, 20, 30, 40, 50, 60, 70, 80, 90];
+const VOUCHER_TIERS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95];
 /** Jumlah resep yang didapat pembeli Standard BARU. Member lama tidak terpotong. */
 const STANDARD_CAP = 100;
 /** Komposisi jatah Standard baru: [best seller, Tren Viral]. Sisanya resep reguler. */
@@ -116,6 +116,10 @@ function db(): PDO {
   if (!in_array('wa_sent', $ocols, true)) $pdo->exec('ALTER TABLE orders ADD COLUMN wa_sent INTEGER DEFAULT 0');
   if (!in_array('reminded_at', $ocols, true)) $pdo->exec('ALTER TABLE orders ADD COLUMN reminded_at TEXT');
   if (!in_array('reminder_count', $ocols, true)) $pdo->exec('ALTER TABLE orders ADD COLUMN reminder_count INTEGER DEFAULT 0');
+  // Sebab kegagalan per kanal. Tanpa ini panel hanya bisa bilang "belum terkirim",
+  // dan admin tidak punya satu pun petunjuk kenapa pembeli tidak menerima apa-apa.
+  if (!in_array('email_err', $ocols, true)) $pdo->exec("ALTER TABLE orders ADD COLUMN email_err TEXT DEFAULT ''");
+  if (!in_array('wa_err', $ocols, true)) $pdo->exec("ALTER TABLE orders ADD COLUMN wa_err TEXT DEFAULT ''");
   $ltcols = array_column($pdo->query('PRAGMA table_info(lt_events)')->fetchAll(), 'name');
   if (!in_array('vou', $ltcols, true)) $pdo->exec('ALTER TABLE lt_events ADD COLUMN vou TEXT');
   // kolom terjemahan Inggris
@@ -496,6 +500,7 @@ function publicOrder(array $o): array {
     'plan' => $o['plan'], 'product' => $o['product'], 'amount' => (int)$o['amount'], 'name' => $o['name'], 'email' => $o['email'],
     'phone' => $o['phone'], 'username' => $o['username'], 'code' => $o['code'], 'emailed' => (bool)$o['emailed'],
     'waSent' => (bool)($o['wa_sent'] ?? 0),
+    'emailErr' => (string)($o['email_err'] ?? ''), 'waErr' => (string)($o['wa_err'] ?? ''),
     'note' => $o['note'], 'createdAt' => $o['created_at'], 'updatedAt' => $o['updated_at'],
     'reminderCount' => (int)($o['reminder_count'] ?? 0), 'remindedAt' => (string)($o['reminded_at'] ?? '')];
 }
@@ -868,7 +873,7 @@ function fulfillOrder(string $id, bool $sendEmail = true): array {
       'allow_ids' => $plan === 'Standard' ? freezeStandardIds(STANDARD_CAP) : null]);
   }
   updateOrder($id, ['state' => 'aktif', 'username' => $username, 'code' => $code]);
-  if ($sendEmail) { sendAccessEmail($id); sendAccessWa($id); }
+  if ($sendEmail) deliverAccess($id);
   notifyAdmin($id);
   return findOrder($id);
 }
@@ -1123,12 +1128,40 @@ function smtpSend(string $to, string $subject, string $body, string $from, ?stri
   @fwrite($fp, "QUIT\r\n");
   @fclose($fp);
 }
+/**
+ * Kirim akses lewat email DAN WhatsApp.
+ *
+ * Keduanya dicoba TERPISAH dan sebab kegagalannya disimpan. Sebelumnya (19 Sep 2026)
+ * pembeli yang sudah membayar tidak menerima apa pun, membernya terbuat, dan panel
+ * cuma menulis "belum terkirim" tanpa satu pun petunjuk — email dan WA sama-sama
+ * gagal diam-diam karena sendMail()/waSend() menelan errornya jadi true/false.
+ */
+function deliverAccess(string $id): array {
+  $em = sendAccessEmail($id);
+  $wa = sendAccessWa($id);
+  $o  = findOrder($id) ?: [];
+  $bagian = [];
+  $bagian[] = $em ? 'email terkirim' : 'email GAGAL' . (($o['email_err'] ?? '') !== '' ? ' — ' . $o['email_err'] : '');
+  $bagian[] = $wa ? 'WA terkirim' : 'WA GAGAL' . (($o['wa_err'] ?? '') !== '' ? ' — ' . $o['wa_err'] : '');
+  updateOrder($id, ['note' => 'Akses: ' . implode(' · ', $bagian)]);
+  return ['email' => $em, 'wa' => $wa];
+}
+
 function sendAccessEmail(string $id): bool {
   $o = findOrder($id);
-  if (!$o || !$o['email'] || !filter_var($o['email'], FILTER_VALIDATE_EMAIL) || !$o['code']) return false;
-  $ok = sendMail((string)$o['email'], accessSubject($o), accessMessage($o), accessHtml($o));
-  updateOrder($id, ['emailed' => $ok ? 1 : 0, 'note' => $ok ? 'Email akses terkirim.' : 'Email gagal dikirim server. Kirim manual via WA.']);
-  return $ok;
+  if (!$o || !$o['code']) return false;
+  if (!$o['email'] || !filter_var($o['email'], FILTER_VALIDATE_EMAIL)) {
+    updateOrder($id, ['emailed' => 0, 'email_err' => 'Pesanan tidak membawa alamat email yang sah.']);
+    return false;
+  }
+  try {
+    sendMailOrFail((string)$o['email'], accessSubject($o), accessMessage($o), accessHtml($o));
+    updateOrder($id, ['emailed' => 1, 'email_err' => '']);
+    return true;
+  } catch (Throwable $e) {
+    updateOrder($id, ['emailed' => 0, 'email_err' => mb_substr($e->getMessage(), 0, 300)]);
+    return false;
+  }
 }
 
 /* ---------- pengingat sebelum bayar ----------
@@ -1137,13 +1170,63 @@ function sendAccessEmail(string $id): bool {
  */
 function sendPendingEmail(string $id): bool {
   $o = findOrder($id);
-  if (!$o || !$o['email'] || !filter_var($o['email'], FILTER_VALIDATE_EMAIL)) return false;
-  return sendMail((string)$o['email'], pendingSubject($o), pendingMessage($o), pendingHtml($o));
+  if (!$o) return false;
+  if (!$o['email'] || !filter_var($o['email'], FILTER_VALIDATE_EMAIL)) {
+    updateOrder($id, ['email_err' => 'Pesanan tidak membawa alamat email yang sah.']);
+    return false;
+  }
+  try {
+    sendMailOrFail((string)$o['email'], pendingSubject($o), pendingMessage($o), pendingHtml($o));
+    updateOrder($id, ['email_err' => '']);
+    return true;
+  } catch (Throwable $e) {
+    updateOrder($id, ['email_err' => mb_substr($e->getMessage(), 0, 300)]);
+    return false;
+  }
 }
 function sendPendingWa(string $id): bool {
   $o = findOrder($id);
-  if (!$o || !$o['phone'] || setting('fonnte_token') === '') return false;
-  return waSend((string)$o['phone'], pendingWa($o));
+  if (!$o) return false;
+  $alasan = waAlasanTakBisa($o);
+  if ($alasan !== '') { updateOrder($id, ['wa_err' => $alasan]); return false; }
+  try { waSendOrFail((string)$o['phone'], pendingWa($o)); updateOrder($id, ['wa_err' => '']); return true; }
+  catch (Throwable $e) { updateOrder($id, ['wa_err' => mb_substr($e->getMessage(), 0, 300)]); return false; }
+}
+
+/**
+ * Pengingat sebelum bayar — email DAN WhatsApp sekaligus.
+ *
+ * Dipakai dua pemanggil: tombol "Ingatkan" di panel dan webhook payment.reminder
+ * dari Mayar. Pengamannya harus SAMA dari mana pun datangnya, karena itu tinggal
+ * di satu fungsi: maksimal 2 kali per pesanan, jeda minimal 24 jam, dan penanda
+ * ditulis SEBELUM pengiriman supaya webhook kembar atau klik ganda tidak
+ * menghasilkan dua pesan.
+ *
+ * Sebelum 19 Sep 2026 pengingat sengaja manual, dengan alasan event pengingat Mayar
+ * terpicu 29 menit sesudah checkout gagal dan tidak bisa diatur. Pemilik memutuskan
+ * otomatis lebih penting: pembeli yang menunggu tidak boleh bergantung pada admin
+ * yang kebetulan sedang membuka panel. Pengaman di atas yang menahan spamnya.
+ */
+function autoRemind(string $id): array {
+  $gagal = function (string $alasan) { return ['ok' => false, 'alasan' => $alasan, 'email' => false, 'wa' => false]; };
+  $o = findOrder($id);
+  if (!$o) return $gagal('Pesanan tidak ditemukan.');
+  if ($o['state'] === 'aktif') return $gagal('Pesanan ini sudah aktif, tidak perlu pengingat.');
+  if ($o['state'] === 'ditolak') return $gagal('Pesanan ini sudah ditolak.');
+  if ((int)($o['reminder_count'] ?? 0) >= 2) return $gagal('Pengingat untuk pesanan ini sudah dikirim 2 kali.');
+  $last = (string)($o['reminded_at'] ?? '');
+  if ($last !== '' && (time() - (int)strtotime($last)) < 86400) return $gagal('Pengingat terakhir belum 24 jam. Tunggu dulu ya.');
+
+  updateOrder($id, ['reminded_at' => gmdate('c'), 'reminder_count' => (int)($o['reminder_count'] ?? 0) + 1]);
+  $em = sendPendingEmail($id);
+  $wa = sendPendingWa($id);
+  $baru = findOrder($id) ?: [];
+  $bagian = [];
+  $bagian[] = $em ? 'email terkirim' : 'email GAGAL' . (($baru['email_err'] ?? '') !== '' ? ' — ' . $baru['email_err'] : '');
+  $bagian[] = $wa ? 'WA terkirim' : 'WA GAGAL' . (($baru['wa_err'] ?? '') !== '' ? ' — ' . $baru['wa_err'] : '');
+  updateOrder($id, ['note' => 'Pengingat: ' . implode(' · ', $bagian)]);
+  return ['ok' => ($em || $wa), 'alasan' => ($em || $wa) ? '' : 'Pengingat gagal dikirim lewat email maupun WhatsApp. Cek setelan SMTP dan Fonnte.',
+    'email' => $em, 'wa' => $wa];
 }
 
 /* ---------- WhatsApp (Fonnte) ---------- */
@@ -1187,10 +1270,25 @@ function waSend(string $phone, string $message): bool {
 /** Kirim detail akses ke WhatsApp pembeli (kalau nomor & token ada). */
 function sendAccessWa(string $id): bool {
   $o = findOrder($id);
-  if (!$o || !$o['phone'] || !$o['code'] || setting('fonnte_token') === '') return false;
-  $ok = waSend((string)$o['phone'], accessWa($o));
-  updateOrder($id, ['wa_sent' => $ok ? 1 : 0]);
-  return $ok;
+  if (!$o || !$o['code']) return false;
+  $alasan = waAlasanTakBisa($o);
+  if ($alasan !== '') { updateOrder($id, ['wa_sent' => 0, 'wa_err' => $alasan]); return false; }
+  try {
+    waSendOrFail((string)$o['phone'], accessWa($o));
+    updateOrder($id, ['wa_sent' => 1, 'wa_err' => '']);
+    return true;
+  } catch (Throwable $e) {
+    updateOrder($id, ['wa_sent' => 0, 'wa_err' => mb_substr($e->getMessage(), 0, 300)]);
+    return false;
+  }
+}
+
+/** Kenapa WA tidak bisa dikirim untuk pesanan ini. '' berarti bisa dicoba. */
+function waAlasanTakBisa(array $o): string {
+  if (!$o['phone']) return 'Pesanan tidak membawa nomor WhatsApp (payload Mayar tanpa customerMobile).';
+  if (setting('fonnte_token') === '') return 'Token Fonnte belum diisi di tab Pesanan.';
+  if (waNumber((string)$o['phone']) === '') return 'Nomor "' . $o['phone'] . '" tidak terbaca sebagai nomor Indonesia yang sah.';
+  return '';
 }
 
 function notifyAdmin(string $id): void {

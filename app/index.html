@@ -141,6 +141,8 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 
 /* ---------- LOGIN ---------- */
 #s-login{padding-top:22px;display:flex;flex-direction:column}
+.login-promo{color:var(--accent);font-weight:700;text-decoration:none;border-bottom:1px solid currentColor;padding-bottom:1px}
+.login-promo:hover{opacity:.85}
 .login-hero{position:relative;height:260px;border-radius:var(--r-hero);overflow:hidden;margin-bottom:24px;flex:none}
 .login-hero .tile{position:absolute;border-radius:20px;overflow:hidden;box-shadow:var(--card-shadow);border:4px solid var(--surface)}
 .login-hero .tile img{width:100%;height:100%;object-fit:cover;display:block}
@@ -517,7 +519,7 @@ input[type=checkbox]:disabled + *{opacity:.6}
         <div class="field"><label for="l-code" data-i18n="login.code">Kode akses</label><input class="input" id="l-code" type="password" autocomplete="current-password" data-i18n-ph="login.codePh" placeholder="contoh: RF-ABCD-1234" required></div>
         <div class="error" id="l-error" hidden></div>
         <button class="btn btn-primary btn-block" type="submit" id="l-submit" data-i18n="login.submit">Masuk</button>
-        <p class="muted" style="font-size:12px;margin:2px 0 0;text-align:center" data-i18n="login.nobuy">Belum punya akses? Hubungi admin untuk membeli paket.</p>
+        <p class="muted" style="font-size:12px;margin:2px 0 0;text-align:center"><a href="/promo" class="login-promo" data-i18n="login.nobuy">Belum punya akses? Lihat paket dan harga &rarr;</a></p>
       </form>
     </section>
 
@@ -967,7 +969,7 @@ const I18N = {
     "login.title":"Foto biasa jadi luar biasa. Tinggal copas resepnya.",
     "login.sub":"Masuk pakai email dan kode akses dari email pembelianmu.",
     "login.user":"Email", "login.userPh":"contoh: nama@email.com", "login.code":"Kode akses", "login.codePh":"contoh: RF-ABCD-1234",
-    "login.submit":"Masuk", "login.checking":"Memeriksa…", "login.nobuy":"Belum punya akses? Hubungi admin untuk membeli paket.", "login.taken":"Akun ini baru saja dipakai masuk di perangkat lain. Satu akun hanya bisa aktif di satu perangkat.",
+    "login.submit":"Masuk", "login.checking":"Memeriksa…", "login.nobuy":"Belum punya akses? Lihat paket dan harga \u2192", "login.taken":"Akun ini baru saja dipakai masuk di perangkat lain. Satu akun hanya bisa aktif di satu perangkat.",
     "login.asAdmin":"Masuk sebagai admin", "login.welcome":"Selamat datang, {n}",
     "nav.aria":"Navigasi utama", "nav.home":"Beranda", "nav.fav":"Favorit", "nav.guide":"Panduan", "nav.account":"Akun",
     "home.hello":"Halo, {n}", "home.plan":"Paket {p}", "home.until":" · s.d. {d}",
@@ -1035,7 +1037,7 @@ const I18N = {
     "login.title":"Turn ordinary photos into extraordinary ones. Just copy the recipe.",
     "login.sub":"Sign in with the email and access code from your purchase email.",
     "login.user":"Email", "login.userPh":"e.g. name@email.com", "login.code":"Access code", "login.codePh":"e.g. RF-ABCD-1234",
-    "login.submit":"Sign in", "login.checking":"Checking…", "login.nobuy":"No access yet? Contact the admin to buy a plan.", "login.taken":"This account was just signed in on another device. One account can only be active on one device.",
+    "login.submit":"Sign in", "login.checking":"Checking…", "login.nobuy":"No access yet? See plans and pricing \u2192", "login.taken":"This account was just signed in on another device. One account can only be active on one device.",
     "login.asAdmin":"Signed in as admin", "login.welcome":"Welcome, {n}",
     "nav.aria":"Main navigation", "nav.home":"Home", "nav.fav":"Favorites", "nav.guide":"Guide", "nav.account":"Account",
     "home.hello":"Hi, {n}", "home.plan":"{p} plan", "home.until":" · until {d}",
@@ -2302,12 +2304,12 @@ setupAppLinks();
 window.RFAPP = {api, toast, esc, copyText, openSheet, closeSheet, isAdmin, fmtDate, state, renderAll, t, get lang(){ return lang; }, setLang, addAdminTab, openPromptForm, cats, armDelete, imgSrc, applyCover, loadData};
 })();
 </script>
-<script src="admin-ext.js?v=7" defer></script>
+<script src="admin-ext.js?v=8" defer></script>
 <script src="admin-ai.js?v=2" defer></script>
 <script src="admin-reports.js?v=3" defer></script>
 <script src="admin-team.js?v=3" defer></script>
 <script src="admin-cover.js?v=1" defer></script>
-<script src="admin-voucher.js?v=7" defer></script>
+<script src="admin-voucher.js?v=8" defer></script>
 <script src="admin-konten.js?v=1" defer></script>
 </body>
 </html>

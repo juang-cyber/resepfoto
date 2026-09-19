@@ -49,7 +49,12 @@ $pdo->prepare('INSERT INTO webhook_log (ts, ip, event, verified, headers, note) 
     $token === '' ? 'token belum diisi di panel' : ($verified ? 'token cocok' : 'token TIDAK cocok')]);
 $pdo->exec('DELETE FROM webhook_log WHERE id NOT IN (SELECT id FROM webhook_log ORDER BY id DESC LIMIT 100)');
 
-if (stripos($event, 'payment.received') === false) reply(['ok' => true, 'ignored' => 'event ' . $event]);
+// Dua event yang kita layani. 'reminder' dipakai untuk mengirim pengingat dari
+// KitLab sendiri — Mayar punya pengingatnya sendiri, tapi pembeli lebih percaya
+// pesan dari penjualnya, dan template kita memuat link bayar serta nominalnya.
+$isPaid   = stripos($event, 'payment.received') !== false;
+$isRemind = !$isPaid && stripos($event, 'reminder') !== false;
+if (!$isPaid && !$isRemind) reply(['ok' => true, 'ignored' => 'event ' . $event]);
 
 $txId = (string)($d['id'] ?? $d['transactionId'] ?? $d['invoiceId'] ?? '');
 $txId = preg_replace('/[^A-Za-z0-9_.:-]/', '', $txId);
@@ -62,7 +67,10 @@ if ($plan === null) reply(['ok' => true, 'ignored' => 'bukan produk ResepFoto'])
 
 $statusRaw = $d['status'] ?? '';
 $status = is_bool($statusRaw) ? ($statusRaw ? 'true' : 'false') : strtolower((string)$statusRaw);
-$paid = $status === '' || in_array($status, ['success', 'succeeded', 'paid', 'settled', 'settlement', 'completed', 'complete', 'true', 'lunas'], true);
+// Event pengingat TIDAK BOLEH dianggap lunas. Status sering kosong di payload itu,
+// dan aturan "status kosong = lunas" akan salah menafsirkannya jadi pembayaran sah.
+$paid = $isRemind ? false
+  : ($status === '' || in_array($status, ['success', 'succeeded', 'paid', 'settled', 'settlement', 'completed', 'complete', 'true', 'lunas'], true));
 
 $name = mb_substr(trim((string)($d['customerName'] ?? $d['customer']['name'] ?? '')), 0, 80);
 $email = mb_substr(trim((string)($d['customerEmail'] ?? $d['customer']['email'] ?? '')), 0, 120);
@@ -92,5 +100,11 @@ if ($auto && $o['state'] !== 'ditolak') {
   catch (Throwable $e) { error_log('[resepfoto webhook] ' . $e->getMessage()); updateOrder($txId, ['note' => 'Gagal aktivasi otomatis: cek log server.']); }
 } elseif ($paid) {
   notifyAdmin($txId);
+} elseif ($isRemind && $verified && $o['state'] === 'belum_lunas') {
+  // Pengingat otomatis dari KitLab. Pengamannya (maks 2 kali, jeda 24 jam, penanda
+  // ditulis sebelum kirim) ada di autoRemind(), sama persis dengan tombol di panel —
+  // jadi webhook kembar dari Mayar tidak bisa membanjiri pembeli.
+  try { autoRemind($txId); }
+  catch (Throwable $e) { error_log('[resepfoto webhook] pengingat: ' . $e->getMessage()); }
 }
 reply(['ok' => true]);
