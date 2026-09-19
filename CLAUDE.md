@@ -457,10 +457,12 @@ env itu basisnya tetap `api.mayar.id` — override ini **hanya** alat uji, bukan
   terjadi karena ini.
 - Playwright di container agent: wajib `executablePath: '/opt/pw-browsers/chromium'` + `--no-sandbox`. Jangan
   jalankan `playwright install`.
-- **`app/webhook-mayar.php` memakai akhiran baris CRLF**, sementara semua file lain LF. Penyuntingan otomatis
-  yang mencocokkan beberapa baris sekaligus akan gagal tanpa sebab yang jelas di file itu. Cocokkan dengan
-  konvensinya sendiri; jangan diam-diam mengubah seluruh file jadi LF, karena itu membuat diff palsu sebesar
-  seluruh berkas.
+- **Akhiran baris wajib LF**, ditegakkan `.gitattributes` (`* text=auto eol=lf`). Tapi file yang pernah
+  disimpan ulang oleh editor di Windows bisa menyimpang jadi CRLF di salinan kerja **tanpa** ikut ter-commit —
+  blob di repo tetap LF, dan Git cuma berbisik "CRLF will be replaced by LF" saat `add`. Gejalanya: penyuntingan
+  otomatis yang mencocokkan beberapa baris sekaligus gagal di satu file saja tanpa sebab yang jelas (terjadi
+  19 Sep 2026 di `webhook-mayar.php`). Obatnya **normalkan filenya kembali ke LF**, jangan menyesuaikan pola
+  pencarian ke CRLF — itu memperbaiki gejala sambil membiarkan salinan kerja terus menyimpang.
 - Halaman masuk: kalimat "Belum punya akses?" adalah **tautan ke `/promo`** (kelas `.login-promo`). Kalau
   teksnya diubah lewat kamus i18n, pastikan elemennya tetap `<a href="/promo">` — `data-i18n` hanya mengganti
   teks, bukan membangun ulang tautannya.
