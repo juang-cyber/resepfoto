@@ -42,6 +42,12 @@ function tr(string $msg): string {
     'Kode voucher harus 5-24 karakter, hanya huruf, angka, dan tanda minus.' => 'A voucher code must be 5-24 characters: letters, digits and hyphens only.',
     'Persentase harus salah satu dari 10 sampai 90.' => 'The percentage must be one of 10 through 90.',
     'Kode itu sudah dipakai untuk tingkat diskon lain.' => 'That code is already used for another discount tier.',
+    'Kuota harus antara 1 dan 100000.' => 'The quota must be between 1 and 100000.',
+    'Tanggal kedaluwarsa wajib diisi, format YYYY-MM-DD.' => 'An expiry date is required, in YYYY-MM-DD format.',
+    'Tanggal kedaluwarsa harus setelah hari ini.' => 'The expiry date must be after today.',
+    'Tingkat ini sudah punya kupon di Mayar. Kosongkan dulu sebelum membuat yang baru.' => 'This tier already has a coupon at Mayar. Clear it before creating a new one.',
+    'Tingkat ini belum punya kupon yang dibuat lewat panel.' => 'This tier has no coupon created through the panel yet.',
+    'API key Mayar belum diisi di tab Voucher.' => 'The Mayar API key has not been set in the Voucher tab.',
     'Akun ini baru saja dipakai masuk di perangkat lain. Satu akun hanya bisa aktif di satu perangkat.' => 'This account was just signed in on another device. One account can only be active on one device.',
     'Terjadi kesalahan di server. Coba lagi sebentar lagi.' => 'Something went wrong on the server. Please try again shortly.',
     'Terlalu banyak percobaan. Coba lagi 15 menit lagi.' => 'Too many attempts. Try again in 15 minutes.',
@@ -282,7 +288,7 @@ try {
   switch ($a) {
     case 'me': {
       $who = currentUser();
-      $res = ['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => $who, 'cover' => coverConfig(), 'v' => 'admin-25'];
+      $res = ['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => $who, 'cover' => coverConfig(), 'v' => 'admin-26'];
       if (!$who && !empty($GLOBALS['rf_session_taken'])) $res['sessionTaken'] = true;
       out($res);
     }
@@ -744,6 +750,9 @@ try {
       // WhatsApp (Fonnte)
       if (array_key_exists('fonnteToken', $in) && trim((string)$in['fonnteToken']) !== '') setSetting('fonnte_token', trim((string)$in['fonnteToken']));
       if (!empty($in['clearFonnte'])) setSetting('fonnte_token', '');
+      // API key Mayar — dipakai tab Voucher untuk membuat kupon lewat API
+      if (array_key_exists('mayarApiKey', $in) && trim((string)$in['mayarApiKey']) !== '') setSetting('mayar_api_key', trim((string)$in['mayarApiKey']));
+      if (!empty($in['clearMayarKey'])) setSetting('mayar_api_key', '');
       // Meta Pixel (halaman iklan)
       if (array_key_exists('metaPixelId', $in)) {
         $px = preg_replace('/[^0-9]/', '', str($in, 'metaPixelId', 32));
@@ -1177,15 +1186,66 @@ try {
     }
 
     /* ---------- voucher ----------
-     * PENTING: endpoint ini TIDAK membuat, mengubah, atau mematikan kupon di Mayar.
-     * Potongan harga dihitung dan divalidasi Mayar lewat ?coupon= di link pembayaran.
-     * Tabel ini katalog + bahan pembuat link, supaya pemilik punya satu tempat melihat
-     * kode yang sedang beredar. Mematikan kampanye tetap dua langkah: di sini DAN di Mayar.
+     * Ada dua jalur, dan bedanya penting:
+     *
+     * 1. `voucher_create` MEMBUAT kupon sungguhan di Mayar lewat API, lengkap dengan
+     *    kuota dan tanggal kedaluwarsa. Ini jalur yang dianjurkan.
+     * 2. `voucher_save` hanya MENCATAT kode yang sudah dibuat manual di dashboard Mayar.
+     *    Dipertahankan untuk kode lama; mengosongkannya tidak mematikan kupon di Mayar.
+     *
+     * Dalam kedua kasus, potongan harga dan sisa kuota ditegakkan Mayar saat checkout —
+     * pembayaran terjadi di domain Mayar, aplikasi ini baru tahu setelah webhook masuk.
+     * API Mayar tidak punya endpoint hapus/ubah, jadi mematikan kupon tetap lewat dashboard.
      */
     case 'vouchers': {
       requireSuperAdmin();
       $rows = db()->query('SELECT * FROM vouchers ORDER BY pct')->fetchAll();
-      out(['ok' => true, 'vouchers' => array_map('publicVoucher', $rows), 'tiers' => VOUCHER_TIERS]);
+      out(['ok' => true, 'vouchers' => array_map('publicVoucher', $rows), 'tiers' => VOUCHER_TIERS,
+        'hasMayarKey' => mayarApiKey() !== '']);
+    }
+
+    case 'voucher_create': {
+      requireSuperAdmin();
+      $in = input();
+      $pct = (int)($in['pct'] ?? 0);
+      if (!in_array($pct, VOUCHER_TIERS, true)) fail('Persentase harus salah satu dari 10 sampai 90.');
+      $code = strtoupper(str($in, 'code', 24));
+      if (!preg_match('/^[A-Z0-9-]{5,24}$/', $code)) fail('Kode voucher harus 5-24 karakter, hanya huruf, angka, dan tanda minus.');
+      $bentrok = db()->prepare('SELECT pct FROM vouchers WHERE code = ? AND pct <> ?');
+      $bentrok->execute([$code, $pct]);
+      if ($bentrok->fetchColumn() !== false) fail('Kode itu sudah dipakai untuk tingkat diskon lain.');
+      $lama = db()->prepare('SELECT mayar_id FROM vouchers WHERE pct = ?'); $lama->execute([$pct]);
+      if ((string)$lama->fetchColumn() !== '') fail('Tingkat ini sudah punya kupon di Mayar. Kosongkan dulu sebelum membuat yang baru.');
+      $quota = (int)($in['quota'] ?? 0);
+      if ($quota < 1 || $quota > 100000) fail('Kuota harus antara 1 dan 100000.');
+      $exp = str($in, 'expires', 10);
+      if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $exp)) fail('Tanggal kedaluwarsa wajib diisi, format YYYY-MM-DD.');
+      if ($exp <= gmdate('Y-m-d')) fail('Tanggal kedaluwarsa harus setelah hari ini.');
+      $onetime = !empty($in['onetime']);
+      try { $r = mayarCreateCoupon($code, $pct, $quota, $exp, $onetime); }
+      catch (Throwable $e) { fail($e->getMessage(), 502); }
+      db()->prepare('UPDATE vouchers SET code = ?, note = ?, active = 1, quota = ?, expires = ?, kind = ?, mayar_id = ?, synced_at = ?, updated_at = ? WHERE pct = ?')
+        ->execute([$code, str($in, 'note', 160), $quota, $exp, $onetime ? 'onetime' : 'reusable',
+          $r['id'], gmdate('c'), gmdate('c'), $pct]);
+      $st = db()->prepare('SELECT * FROM vouchers WHERE pct = ?'); $st->execute([$pct]);
+      out(['ok' => true, 'voucher' => publicVoucher($st->fetch())]);
+    }
+
+    case 'voucher_sync': {
+      requireSuperAdmin();
+      $pct = (int)(input()['pct'] ?? 0);
+      if (!in_array($pct, VOUCHER_TIERS, true)) fail('Persentase harus salah satu dari 10 sampai 90.');
+      $st = db()->prepare('SELECT * FROM vouchers WHERE pct = ?'); $st->execute([$pct]);
+      $v = $st->fetch();
+      if (!$v || (string)($v['mayar_id'] ?? '') === '') fail('Tingkat ini belum punya kupon yang dibuat lewat panel.');
+      try { $d = mayarCouponDetail((string)$v['mayar_id']); }
+      catch (Throwable $e) { fail($e->getMessage(), 502); }
+      $kuota = isset($d['totalCoupons']) ? (int)$d['totalCoupons'] : (int)$v['quota'];
+      $aktif = isset($d['coupons'][0]['isActive']) ? (bool)$d['coupons'][0]['isActive'] : (bool)$v['active'];
+      db()->prepare('UPDATE vouchers SET quota = ?, active = ?, synced_at = ?, updated_at = ? WHERE pct = ?')
+        ->execute([$kuota, $aktif ? 1 : 0, gmdate('c'), gmdate('c'), $pct]);
+      $st->execute([$pct]);
+      out(['ok' => true, 'voucher' => publicVoucher($st->fetch())]);
     }
 
     case 'voucher_save': {
@@ -1209,12 +1269,14 @@ try {
     }
 
     case 'voucher_delete': {
-      // Mengosongkan kode sebuah tingkat. Templatenya sendiri tidak pernah dihapus.
+      // Mengosongkan catatan sebuah tingkat. Templatenya sendiri tidak pernah dihapus, dan
+      // kupon yang sudah dibuat di Mayar TIDAK ikut mati — API Mayar tidak punya endpoint
+      // hapus. Matikan lewat dashboard Mayar kalau kampanyenya memang mau dihentikan.
       requireSuperAdmin();
       $in = input();
       $pct = (int)($in['pct'] ?? 0);
       if (!in_array($pct, VOUCHER_TIERS, true)) fail('Persentase harus salah satu dari 10 sampai 90.');
-      db()->prepare("UPDATE vouchers SET code = '', note = '', active = 0, updated_at = ? WHERE pct = ?")
+      db()->prepare("UPDATE vouchers SET code = '', note = '', active = 0, quota = 0, expires = '', kind = '', mayar_id = '', synced_at = '', updated_at = ? WHERE pct = ?")
         ->execute([gmdate('c'), $pct]);
       out(['ok' => true]);
     }

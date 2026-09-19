@@ -73,6 +73,12 @@ function db(): PDO {
   $pdo->exec('CREATE TABLE IF NOT EXISTS vouchers (pct INTEGER PRIMARY KEY, code TEXT DEFAULT \'\', note TEXT DEFAULT \'\', active INTEGER DEFAULT 0, updated_at TEXT)');
   $benih = $pdo->prepare("INSERT OR IGNORE INTO vouchers (pct, code, note, active, updated_at) VALUES (?, '', '', 0, ?)");
   foreach (VOUCHER_TIERS as $tp) $benih->execute([$tp, gmdate('c')]);
+  // kolom untuk kupon yang dibuat lewat API Mayar; baris lama tetap valid dengan nilai kosong
+  $vcols = array_column($pdo->query('PRAGMA table_info(vouchers)')->fetchAll(), 'name');
+  foreach (['quota' => 'INTEGER DEFAULT 0', 'expires' => "TEXT DEFAULT ''", 'kind' => "TEXT DEFAULT ''",
+            'mayar_id' => "TEXT DEFAULT ''", 'synced_at' => "TEXT DEFAULT ''"] as $kol => $def) {
+    if (!in_array($kol, $vcols, true)) $pdo->exec("ALTER TABLE vouchers ADD COLUMN $kol $def");
+  }
   // pindahkan kode dari bentuk lama, satu kode per tingkat
   if ($pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='vouchers_lama'")->fetchAll()) {
     $pindah = $pdo->prepare('UPDATE vouchers SET code = ?, note = ?, active = ? WHERE pct = ? AND code = \'\'');
@@ -494,10 +500,97 @@ function publicOrder(array $o): array {
 /** Satu template tingkat voucher untuk panel admin. */
 function publicVoucher(array $v): array {
   $code = (string)($v['code'] ?? '');
+  $mayarId = (string)($v['mayar_id'] ?? '');
   return ['pct' => (int)$v['pct'], 'code' => $code, 'note' => (string)($v['note'] ?? ''),
     'active' => (bool)$v['active'] && $code !== '', 'filled' => $code !== '',
+    // diMayar = kupon ini benar-benar dibuat lewat API, jadi panel tahu statusnya.
+    // Kode yang cuma dicatat manual tetap punya diMayar = false.
+    'diMayar' => $mayarId !== '', 'quota' => (int)($v['quota'] ?? 0),
+    'expires' => (string)($v['expires'] ?? ''), 'kind' => (string)($v['kind'] ?? ''),
+    'syncedAt' => (string)($v['synced_at'] ?? ''),
     'updatedAt' => (string)($v['updated_at'] ?? '')];
 }
+/* ---------- API Mayar (kupon) ----------
+ * Dipakai tab Voucher untuk MEMBUAT kupon di Mayar, bukan sekadar mencatatnya.
+ * Potongan harganya tetap dihitung dan ditegakkan Mayar saat checkout — termasuk
+ * kuotanya (totalCoupons), karena pembayaran terjadi di domain Mayar dan aplikasi
+ * ini baru tahu setelah webhook masuk. Jadi panel adalah antarmukanya, Mayar
+ * tetap sumber kebenarannya.
+ */
+const MAYAR_API = 'https://api.mayar.id/hl/v1';
+function mayarApiKey(): string { return setting('mayar_api_key'); }
+
+/** Panggil Mayar Headless API. Melempar RuntimeException berisi sebab yang aman ditampilkan ke admin. */
+function mayarApi(string $method, string $path, ?array $json = null): array {
+  $key = mayarApiKey();
+  if ($key === '') throw new RuntimeException('API key Mayar belum diisi di tab Voucher.');
+  $url = MAYAR_API . $path;
+  $body = $json === null ? null : json_encode($json, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+  $headers = ['Authorization: Bearer ' . $key, 'Accept: application/json'];
+  if ($body !== null) $headers[] = 'Content-Type: application/json';
+  $res = false; $code = 0; $err = '';
+  if (function_exists('curl_init')) {
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [CURLOPT_CUSTOMREQUEST => $method, CURLOPT_RETURNTRANSFER => true,
+      CURLOPT_TIMEOUT => 25, CURLOPT_CONNECTTIMEOUT => 12, CURLOPT_HTTPHEADER => $headers]);
+    if ($body !== null) curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+    $res = curl_exec($ch);
+    $code = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    $err = curl_error($ch);
+    curl_close($ch);
+  } else {
+    $ctx = stream_context_create(['http' => ['method' => $method, 'timeout' => 25, 'ignore_errors' => true,
+      'header' => implode("\r\n", $headers) . "\r\n", 'content' => $body ?? '']]);
+    $res = @file_get_contents($url, false, $ctx);
+    foreach (($http_response_header ?? []) as $baris) {
+      if (preg_match('#^HTTP/\S+\s+(\d+)#', $baris, $m)) $code = (int)$m[1];
+    }
+  }
+  if ($res === false) throw new RuntimeException('Mayar tidak bisa dihubungi' . ($err !== '' ? ': ' . $err : '.'));
+  $j = json_decode((string)$res, true);
+  if (!is_array($j)) throw new RuntimeException('Jawaban Mayar tidak dikenali (HTTP ' . $code . ').');
+  $sc = (int)($j['statusCode'] ?? $code);
+  if ($sc < 200 || $sc >= 300) {
+    $pesan = trim((string)($j['messages'] ?? $j['message'] ?? ''));
+    if ($pesan === '' && ($sc === 401 || $sc === 403)) $pesan = 'API key ditolak — pastikan key-nya bertipe Read & Write.';
+    throw new RuntimeException('Mayar menolak: ' . ($pesan !== '' ? $pesan : 'HTTP ' . $sc));
+  }
+  return $j;
+}
+
+/** Ambil objek data pertama dari jawaban Mayar (kadang objek, kadang array berisi satu objek). */
+function mayarData(array $j): array {
+  $d = $j['data'] ?? [];
+  if (is_array($d) && isset($d[0]) && is_array($d[0])) $d = $d[0];
+  return is_array($d) ? $d : [];
+}
+
+/**
+ * Buat kupon persentase di Mayar. $expires format YYYY-MM-DD.
+ * Mengembalikan id diskon — wajib disimpan, karena endpoint detail memakai id, bukan kode.
+ */
+function mayarCreateCoupon(string $code, int $pct, int $quota, string $expires, bool $onetime): array {
+  $d = mayarData(mayarApi('POST', '/coupon/create', [
+    'name' => 'ResepFoto ' . $pct . '% - ' . $code,
+    'expiredAt' => $expires . 'T23:59:59Z',
+    'discount' => [[
+      'discountType' => 'percentage',
+      'eligibleCustomerType' => 'all',
+      'minimumPurchase' => 0,
+      'value' => $pct,
+      'totalCoupons' => $quota,
+      'coupon' => [['code' => $code, 'type' => $onetime ? 'onetime' : 'reusable']],
+      'products' => [],
+    ]],
+  ]));
+  return ['id' => (string)($d['id'] ?? ''), 'data' => $d];
+}
+
+/** Baca status diskon dari Mayar berdasarkan id yang disimpan saat pembuatan. */
+function mayarCouponDetail(string $id): array {
+  return mayarData(mayarApi('GET', '/coupon/' . rawurlencode($id)));
+}
+
 function updateOrder(string $id, array $fields): void {
   $fields['updated_at'] = gmdate('c');
   $sets = implode(', ', array_map(function ($k) { return "$k = ?"; }, array_keys($fields)));
