@@ -691,6 +691,24 @@ function mayarCouponName(int $pct, string $code): string { return 'ResepFoto ' .
  * Mengembalikan '' kalau tidak ketemu atau daftar tidak bisa dibaca — pemanggilnya
  * lalu membuat baru seperti biasa.
  */
+/**
+ * Baris kampanye dari jawaban daftar, apa pun bentuk pembungkusnya.
+ *
+ * Dokumentasi menjanjikan data.coupons[], tapi dokumentasi Mayar sudah dua kali
+ * meleset hari ini (bentuk payload create, dan pencarian ber-%). Karena bentuk yang
+ * salah membuat daftar terbaca KOSONG tanpa error — gagal diam-diam, persis jenis
+ * bug yang paling lama ketahuan — semua bentuk yang masuk akal diterima di sini.
+ */
+function mayarCouponRows(array $j): array {
+  $kandidat = [];
+  if (isset($j['data']['coupons']) && is_array($j['data']['coupons'])) $kandidat = $j['data']['coupons'];
+  elseif (isset($j['data']) && is_array($j['data'])) $kandidat = $j['data'];
+  elseif (isset($j['coupons']) && is_array($j['coupons'])) $kandidat = $j['coupons'];
+  $out = [];
+  foreach ($kandidat as $r) if (is_array($r) && isset($r['id'])) $out[] = $r;
+  return $out;
+}
+
 function mayarFindCoupon(int $pct, string $code): string {
   $nama = mayarCouponName($pct, $code);
   // Kata kunci sengaja TIDAK memakai nama lengkap. Terbukti 19 Sep 2026: mencari
@@ -701,9 +719,8 @@ function mayarFindCoupon(int $pct, string $code): string {
   foreach ([$code, 'ResepFoto'] as $kunci) {
     try { $j = mayarApi('GET', '/coupons?limit=100&search=' . rawurlencode($kunci), null, true); }
     catch (Throwable $e) { continue; }
-    $rows = isset($j['data']['coupons']) && is_array($j['data']['coupons']) ? $j['data']['coupons'] : [];
-    foreach ($rows as $r) {
-      if (isset($r['name'], $r['id']) && $r['name'] === $nama && (string)$r['id'] !== '') return (string)$r['id'];
+    foreach (mayarCouponRows($j) as $r) {
+      if (isset($r['name']) && $r['name'] === $nama && (string)$r['id'] !== '') return (string)$r['id'];
     }
   }
   return '';
@@ -714,12 +731,13 @@ function mayarCouponUsage(array $ids): int {
   if (!$ids) return -1;
   try { $j = mayarApi('GET', '/coupons?limit=100&search=' . rawurlencode('ResepFoto '), null, true); }
   catch (Throwable $e) { return -1; }
-  $rows = isset($j['data']['coupons']) && is_array($j['data']['coupons']) ? $j['data']['coupons'] : [];
-  $total = 0;
-  foreach ($rows as $r) {
-    if (isset($r['id']) && in_array((string)$r['id'], $ids, true)) $total += (int)($r['totalUsage'] ?? 0);
+  $ketemu = false; $total = 0;
+  foreach (mayarCouponRows($j) as $r) {
+    if (in_array((string)$r['id'], $ids, true)) { $ketemu = true; $total += (int)($r['totalUsage'] ?? 0); }
   }
-  return $total;
+  // Tidak ketemu sama sekali berarti daftarnya tidak memuat kupon kita — itu BUKAN
+  // "nol kali dipakai". Bedakan, supaya panel tidak memajang angka yang mengarang.
+  return $ketemu ? $total : -1;
 }
 
 /** Kode yang benar-benar tercatat di jawaban Mayar. Kosong = diskon terbentuk tanpa kode. */

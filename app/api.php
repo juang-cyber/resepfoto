@@ -330,7 +330,7 @@ try {
   switch ($a) {
     case 'me': {
       $who = currentUser();
-      $res = ['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => $who, 'cover' => coverConfig(), 'v' => 'admin-33'];
+      $res = ['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => $who, 'cover' => coverConfig(), 'v' => 'admin-34'];
       if (!$who && !empty($GLOBALS['rf_session_taken'])) $res['sessionTaken'] = true;
       out($res);
     }
@@ -1475,6 +1475,23 @@ try {
       // 'warning' terisi kalau sebagian alias gagal: yang berhasil tetap tersimpan,
       // dan panel harus mengatakannya, bukan pura-pura semuanya beres.
       out(['ok' => true, 'voucher' => publicVoucher($st->fetch()), 'warning' => (string)$r['warning']]);
+    }
+
+    case 'mayar_coupons': {
+      // Melihat daftar kupon Mayar apa adanya. Dibuat karena menebak bentuk jawaban
+      // lewat siklus deploy sangat mahal, dan berguna seterusnya kalau ada kupon yang
+      // "hilang" dari panel. Hanya super admin, dan isinya jawaban Mayar — bukan kunci.
+      requireSuperAdmin();
+      $cari = isset($_GET['q']) ? (string)$_GET['q'] : 'ResepFoto';
+      try { $j = mayarApi('GET', '/coupons?limit=100&search=' . rawurlencode($cari), null, true); }
+      catch (Throwable $e) { fail($e->getMessage(), 502); }
+      $ringkas = [];
+      foreach (mayarCouponRows($j) as $r) {
+        $ringkas[] = ['id' => (string)$r['id'], 'name' => (string)($r['name'] ?? ''),
+          'status' => (string)($r['status'] ?? ''), 'totalUsage' => (int)($r['totalUsage'] ?? 0)];
+      }
+      out(['ok' => true, 'cari' => $cari, 'jumlah' => count($ringkas), 'kupon' => $ringkas,
+        'mentah' => mb_substr((string)json_encode($j, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), 0, 1500)]);
     }
 
     case 'voucher_sync': {
