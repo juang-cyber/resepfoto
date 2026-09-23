@@ -149,6 +149,7 @@ function db(): PDO {
   }
   importPromptPacks($pdo, $dir);
   fixAmbiguousPrompts($pdo);
+  fixSwappedImages($pdo);
   backfillPromptAuthors($pdo, $dir);
   return $pdo;
 }
@@ -180,6 +181,30 @@ function fixAmbiguousPrompts(PDO $pdo): void {
       'Upload a PRODUCT photo (not a person). Cinematic ad: your product floats above the city street, slung from thick spiderwebs at dusk.',
       'p34', 'Iklan sinematik: produkmu melayang di atas jalanan kota, digantung jaring laba-laba tebal saat senja.']);
     $pdo->prepare('INSERT OR REPLACE INTO settings (k, v) VALUES (?, ?)')->execute(['fix_ambigu_spiderman', gmdate('c')]);
+    $pdo->commit();
+  } catch (Throwable $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+  }
+}
+
+/**
+ * Sekali jalan: gambar contoh p23 & p24 tertukar sejak diimpor 17 Sep 2026 — img/p23.jpg
+ * berisi selfie Spider-Man dan img/p24.jpg berisi lift mewah, kebalikan dari judul dan
+ * prompt-nya. Yang ditukar RUJUKANNYA, bukan isi filenya: gambar di-cache browser 30 hari
+ * (.htaccess), jadi menukar isi file di bawah nama yang sama tetap menampilkan gambar yang
+ * salah ke siapa pun yang sudah pernah membukanya. Rujukan hanya diganti kalau MASIH persis
+ * seperti aslinya, supaya gambar yang sudah diganti admin tidak tertimpa.
+ */
+function fixSwappedImages(PDO $pdo): void {
+  $chk = $pdo->prepare('SELECT 1 FROM settings WHERE k = ?');
+  $chk->execute(['fix_gambar_p23_p24']);
+  if ($chk->fetchColumn() !== false) return;
+  try {
+    $pdo->beginTransaction();
+    $up = $pdo->prepare('UPDATE prompts SET image = ? WHERE id = ? AND image = ?');
+    $up->execute(['img/p24.jpg', 'p23', 'img/p23.jpg']);
+    $up->execute(['img/p23.jpg', 'p24', 'img/p24.jpg']);
+    $pdo->prepare('INSERT OR REPLACE INTO settings (k, v) VALUES (?, ?)')->execute(['fix_gambar_p23_p24', gmdate('c')]);
     $pdo->commit();
   } catch (Throwable $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();

@@ -952,8 +952,11 @@ const RECIPES = [
   ["rtlhygk1305","Profesional","Potret Estetik Kain Linen","img/837050fd6113af3d.jpg"],
   ["p21","Foto Jadul","Potret Gaya 1985","img/p21.jpg"],
   ["p22","Editorial","Potret Studio Ivory","img/p22.jpg"],
-  ["p23","Editorial","Lift Mewah Ala 90-an","img/p23.jpg"],
-  ["p24","Tren Viral","Selfie Spider-Man","img/p24.jpg"],
+  // p23 & p24 sengaja bersilang: isi p23.jpg = selfie Spider-Man, p24.jpg = lift mewah (tertukar
+  // sejak impor). Rujukan yang ditukar, bukan filenya, karena gambar di-cache 30 hari — lihat
+  // fixSwappedImages() di app/lib.php. Jangan "dirapikan" balik.
+  ["p23","Editorial","Lift Mewah Ala 90-an","img/p24.jpg"],
+  ["p24","Tren Viral","Selfie Spider-Man","img/p23.jpg"],
   ["p25","Kartun & Ilustrasi","Doodle Sketsa Lucu","img/p25.jpg"],
   ["p26","Tren Viral","Candid Malam Tertangkap Kamera","img/p26.jpg"],
   ["p27","Tren Viral","Singgasana Shinobi Gelap","img/p27.jpg"],

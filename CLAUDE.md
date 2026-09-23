@@ -479,6 +479,12 @@ env itu basisnya tetap `api.mayar.id` — override ini **hanya** alat uji, bukan
 - Halaman masuk: kalimat "Belum punya akses?" adalah **tautan ke `/promo`** (kelas `.login-promo`). Kalau
   teksnya diubah lewat kamus i18n, pastikan elemennya tetap `<a href="/promo">` — `data-i18n` hanya mengganti
   teks, bukan membangun ulang tautannya.
+- **Gambar contoh p23 & p24 bersilang dengan sengaja** (24 Sep 2026). Isi filenya tertukar sejak impor:
+  `p23.jpg` = selfie Spider-Man, `p24.jpg` = lift mewah. Perbaikannya menukar **rujukan** — database lewat
+  `fixSwappedImages()`, paket `pack2-prompts.json`, dan daftar resep di `landing/mockup.html` — bukan isi file,
+  karena gambar di-cache browser 30 hari: menukar isi file di bawah nama yang sama tetap menampilkan gambar lama
+  yang salah ke siapa pun yang pernah membukanya. **Jangan "merapikan" dengan menukar balik salah satunya.**
+  Pelajaran umumnya: gambar yang sudah tayang **diganti dengan nama file baru**, jangan ditimpa.
 
 ## Backlog / ide
 - Cover login: dukung video/animasi ringan; pratinjau langsung di tab Cover.
