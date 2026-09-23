@@ -152,10 +152,15 @@ terakhir slider. Kalau mengubah `PLANS`, `PER_PHOTO`, `STUDIO_MAX`, atau `QTY_MA
 tombol samping, alur di-mask lewat `.bezel` → `.screen`.
 
 ## Slot aset yang dipanggil dari luar
-- **Label CONTOH** → `https://ik.imagekit.io/oziera/contoh.png`, dipanggil lewat URL supaya pemilik repo bisa
-  memperbarui desainnya tanpa menyentuh kode. Ada fallback teks kalau gambarnya gagal dimuat. Lebar 104px, dan
-  **tidak bisa dilihat dari sesi remote** (ImageKit diblokir di sana). Dari PC lokal sudah diverifikasi termuat di
-  `/promo` — 104×39 px di pojok kanan-bawah (17 Sep 2026).
+- **Label CONTOH** → `https://img.glasspro.co.id/label-contoh.png` (sejak 23 Sep 2026), dipanggil lewat URL supaya
+  pemilik repo bisa memperbarui desainnya tanpa menyentuh kode. Lebar tampil 104px. Fallback teksnya **hanya jalan
+  kalau gambarnya gagal dimuat** — gambar yang termuat tapi transparan tidak memicunya, dan labelnya lenyap tanpa
+  tanda. Jadi tiap kali filenya diganti, periksa bahwa isinya benar-benar terlihat, jangan cuma HTTP 200.
+  Dipindah dari `ik.imagekit.io/oziera/contoh.png` karena dua temuan 23 Sep 2026: jaringan Indosat memblokir
+  `ik.imagekit.io` (DNS-nya dibelokkan ke halaman Internet Positif, jadi gambarnya tak pernah termuat dan yang
+  tampil selalu fallback teks), dan filenya di ImageKit ternyata transparan (alpha maksimum 3/255), jadi pengunjung
+  yang tidak diblokir tidak melihat label sama sekali. Saat alamatnya diganti, file di alamat baru masih kosong yang
+  sama; pemilik akan mengunggah ulang desainnya.
 - **Latar CTA penutup** → skrip mencoba `img/bg-final.jpg`, `.png`, lalu `.webp`. Kalau tidak ada satu pun, hiasan
   CSS bergradien yang dipakai. Filenya **belum pernah diterima**; slotnya sudah siap.
 
@@ -259,7 +264,6 @@ mengerjakannya:
 |---|---|
 | `resepfoto.kitlab.id` | Tidak bisa membaca database/katalog live. Data harus dikirim pemilik repo sebagai lampiran file |
 | `kitlab.myr.id`, `mayar.id`, `web.mayar.id` | Tidak bisa menyetel produk/webhook Mayar sama sekali |
-| `ik.imagekit.io` | Tidak bisa melihat label CONTOH |
 
 Yang **bisa** dijangkau: `github.com`, `raw.githubusercontent.com`, `fonts.googleapis.com`, registry npm & pypi,
 serta Google Drive lewat konektor. Itu jalur transfer file yang berhasil dipakai selama ini.
