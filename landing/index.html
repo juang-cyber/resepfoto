@@ -408,6 +408,14 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
 .anchor{margin:14px 0 0;padding:12px 14px;border-radius:14px;background:var(--tint);border:1px solid var(--line);
   text-align:center;font-size:14px;font-weight:800;color:var(--blue-d);line-height:1.5}
 .anchor small{display:block;font-weight:600;font-size:12px;color:var(--muted);margin-top:3px}
+.anchor .js-diff{white-space:nowrap}
+.anchor .checks{width:fit-content;max-width:100%;margin:10px auto 0;gap:7px;text-align:left}
+.anchor .checks li{font-size:13.5px;color:var(--ink2)}
+/* launch:mulai — pita "harga launching", HANYA pratinjau; dibuang build --live */
+.launch{display:flex;align-items:center;gap:8px;width:fit-content;max-width:100%;margin:12px 0 0;padding:8px 14px;border-radius:99px;background:var(--coral-soft);color:#B3243F;font-size:13px;font-weight:600;line-height:1.35}
+.launch b{font-weight:800}
+.launch .ico{width:16px;height:16px;color:var(--coral)}
+/* launch:selesai */
 .pays{display:flex;gap:6px;margin-top:14px;flex-wrap:wrap}
 .pays span{font-size:12px;font-weight:700;padding:6px 10px;border-radius:99px;background:var(--tint);color:var(--blue-d)}
 .vou{margin-top:14px}
@@ -677,9 +685,9 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
       <input type="range" id="qty" min="1" max="1000" value="10">
       <div class="cmp">
         <div class="cmp-row"><span>Foto di studio</span><div class="cmp-bar studio" id="bar-studio">Rp 195.700</div></div>
-        <div class="cmp-row"><span>ResepFoto</span><div class="cmp-bar rf" id="bar-rf">Rp 79.900</div></div>
+        <div class="cmp-row"><span>ResepFoto</span><div class="cmp-bar rf" id="bar-rf">Rp 49.900</div></div>
       </div>
-      <div class="save"><span>Kamu hemat sekitar</span><b id="save">Rp 115.800</b></div>
+      <div class="save"><span>Kamu hemat sekitar</span><b id="save">Rp 145.800</b></div>
       <p class="assume">*Estimasi Rp 50.000 untuk satu foto hasil edit studio, makin murah per foto untuk jumlah banyak, sampai Rp 3.000.000 untuk satu paket studio penuh di 1000 foto. Harga studio berbeda di tiap kota.</p>
     </div>
   </section>
@@ -688,6 +696,9 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
   <section class="pricing wrap" id="harga">
     <span class="eyebrow">Pilih paket</span>
     <h2>Sekali bayar, <span class="hl">akses selamanya.</span></h2>
+    <!-- launch:mulai — HANYA pratinjau; build --live membuang blok ini. Lihat landing/CLAUDE.md -->
+    <p class="launch"><svg class="ico"><use href="#i-spark"/></svg><span><b>Harga launching</b> &mdash; harga akan naik dalam 3 hari</span></p>
+    <!-- launch:selesai -->
     <div class="switch" id="switch" data-plan="premium" role="tablist" aria-label="Pilih paket">
       <span class="thumb"></span>
       <button data-plan="standard" aria-pressed="false">Standard</button>
@@ -697,8 +708,8 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
     <div class="plans">
       <article class="plan" id="plan-standard" hidden>
         <div class="plan-top"><div class="plan-name">Standard</div><span class="ribbon calm">Hemat</span></div>
-        <div class="price"><span class="rp">Rp</span><span class="num" data-count="49900">49.900</span><span class="per">/ sekali bayar</span></div>
-        <div class="was"><s>Rp 150.000</s><span class="off">Hemat 67%</span></div>
+        <div class="price"><span class="rp">Rp</span><span class="num" data-count="39900">39.900</span><span class="per">/ sekali bayar</span></div>
+        <div class="was"><s>Rp 150.000</s><span class="off">Hemat 73%</span></div>
         <p class="plan-desc">100 resep pilihan, akses selamanya.</p>
         <ul class="checks">
           <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Akses web selamanya</li>
@@ -716,8 +727,8 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
 
       <article class="plan premium" id="plan-premium">
         <div class="plan-top"><div class="plan-name">Premium</div><span class="ribbon">Paling laris</span></div>
-        <div class="price"><span class="rp">Rp</span><span class="num" data-count="79900">79.900</span><span class="per">/ sekali bayar</span></div>
-        <div class="was"><s>Rp 299.000</s><span class="off">Hemat 73%</span></div>
+        <div class="price"><span class="rp">Rp</span><span class="num" data-count="49900">49.900</span><span class="per">/ sekali bayar</span></div>
+        <div class="was"><s>Rp 299.000</s><span class="off">Hemat 83%</span></div>
         <p class="plan-desc">Semua resep &mdash; 250 sekarang, menuju 1000+. Setiap tambahan ikut, selamanya.</p>
         <ul class="checks">
           <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Akses web selamanya</li>
@@ -735,8 +746,16 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
         <button class="btn btn-main btn-block" data-buy="premium">Ambil Premium</button>
       </article>
     </div>
-    <p class="anchor">Beda Rp 30.000, dapat ratusan resep lebih banyak.
-      <small>Standard 100 resep &middot; Premium 250 resep dan terus bertambah</small></p>
+    <!-- Selisihnya diisi skrip dari PLANS (.js-diff), supaya tidak basi saat harga diganti —
+         baris lama "Beda Rp 30.000" sempat salah begitu. Isi daftar mengikuti tabel "Bandingkan paket". -->
+    <div class="anchor">
+      Cuma tambah <span class="js-diff">Rp 10.000</span>, Premium sudah dapat:
+      <ul class="checks">
+        <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>150 resep lebih banyak &mdash; 250, bukan 100</li>
+        <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Semua best seller &amp; tren viral, bukan cuma 7 &amp; 5</li>
+        <li><span class="ck"><svg class="ico"><use href="#i-check"/></svg></span>Update resep baru, selamanya</li>
+      </ul>
+    </div>
     <p class="honest"><svg class="ico"><use href="#i-info"/></svg>Bayar aman via Mayar (QRIS, transfer bank, e-wallet). Akses dikirim ke email setelah pembayaran.</p>
 
     <details class="vs">
@@ -745,9 +764,9 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
         <table>
           <thead><tr><th></th><th>Standard</th><th>Premium</th></tr></thead>
           <tbody>
-            <tr><td>Harga</td><td><s>Rp 150.000</s>Rp 49.900</td><td><s>Rp 299.000</s>Rp 79.900</td></tr>
+            <tr><td>Harga</td><td><s>Rp 150.000</s>Rp 39.900</td><td><s>Rp 299.000</s>Rp 49.900</td></tr>
             <tr><td>Jumlah resep</td><td class="part">100 pilihan</td><td class="yes">250 &amp; bertambah</td></tr>
-            <tr><td>Harga per resep</td><td class="part">Rp 499</td><td class="yes">Rp 320</td></tr>
+            <tr><td>Harga per resep</td><td class="part">Rp 399</td><td class="yes">Rp 200</td></tr>
             <tr><td>Tren viral</td><td class="part">5 resep</td><td class="yes">Semua &amp; yang baru</td></tr>
             <tr><td>Best seller</td><td class="part">7 resep</td><td class="yes">Semua</td></tr>
             <tr><td>Update resep baru</td><td class="nope">–</td><td class="yes">✓</td></tr>
@@ -833,15 +852,15 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
   <div class="grab"></div>
   <h3 id="co-title">Pilih paket kamu</h3>
   <p class="lead" style="margin-top:4px;font-size:14px">Kamu akan diarahkan ke halaman pembayaran aman Mayar. Isi nama, email, dan nomor HP di sana.</p>
-  <label class="opt"><input type="radio" name="plan" value="standard" id="co-standard"><span class="grow"><strong>Standard</strong><small>100 resep pilihan · akses selamanya</small></span><span class="p"><s>Rp 150.000</s>Rp 49.900</span></label>
-  <label class="opt"><input type="radio" name="plan" value="premium" id="co-premium" checked><span class="grow"><strong>Premium</strong><small>+ update resep & tren viral</small></span><span class="p"><s>Rp 299.000</s>Rp 79.900</span></label>
+  <label class="opt"><input type="radio" name="plan" value="standard" id="co-standard"><span class="grow"><strong>Standard</strong><small>100 resep pilihan · akses selamanya</small></span><span class="p"><s>Rp 150.000</s>Rp 39.900</span></label>
+  <label class="opt"><input type="radio" name="plan" value="premium" id="co-premium" checked><span class="grow"><strong>Premium</strong><small>+ update resep & tren viral</small></span><span class="p"><s>Rp 299.000</s>Rp 49.900</span></label>
  <div class="pays"><span>QRIS</span><span>Transfer bank</span><span>E-wallet</span></div>
   <div class="vou">
     <label for="co-vou">Punya kode voucher? (opsional)</label>
     <input id="co-vou" maxlength="24" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="mis. HEMAT20">
     <p class="hint">Potongannya dihitung di halaman pembayaran Mayar, jadi totalnya baru berubah di langkah berikutnya.</p>
   </div>
-  <div class="sum"><div><span>Paket</span><span id="sum-plan">Premium</span></div><div><span>Akses</span><span>Selamanya</span></div><div class="tot"><span>Total</span><span id="sum-total">Rp 79.900</span></div></div>
+  <div class="sum"><div><span>Paket</span><span id="sum-plan">Premium</span></div><div><span>Akses</span><span>Selamanya</span></div><div class="tot"><span>Total</span><span id="sum-total">Rp 49.900</span></div></div>
   <button class="btn btn-main btn-block" id="co-send" style="margin-top:14px">Lanjut ke pembayaran</button>
   <p class="honest"><svg class="ico"><use href="#i-info"/></svg>Akses dikirim ke email setelah lunas.</p>
 </div>
@@ -880,7 +899,7 @@ const ORDER_FEED_URL = "";      // contoh: "/api.php?a=recent_orders"
 // Jumlah pengunjung aktif dari sistem analitik asli (angka), atau null untuk disembunyikan.
 const LIVE_VIEWERS = null;
 
-const PLANS = { standard: {name: "Standard", price: 49900, was: 150000}, premium: {name: "Premium", price: 79900, was: 299000} };
+const PLANS = { standard: {name: "Standard", price: 39900, was: 150000}, premium: {name: "Premium", price: 49900, was: 299000} };
 
 const $ = (s, r=document) => r.querySelector(s);
 const $$ = (s, r=document) => [...r.querySelectorAll(s)];
@@ -1504,6 +1523,8 @@ document.addEventListener("click", e => {
 }, true);
 
 /* ---- init ---- */
+// selisih Premium - Standard selalu dari PLANS, jadi ikut benar kalau harganya diganti
+$$(".js-diff").forEach(el => { el.textContent = rp(PLANS.premium.price - PLANS.standard.price); });
 setPlan(plan);
 calc();
 })();

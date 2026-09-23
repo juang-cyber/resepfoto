@@ -1,7 +1,7 @@
 # Halaman iklan ResepFoto — panduan untuk Claude Code
 
 > Claude Code membaca file ini otomatis saat bekerja di folder `landing/`, sebagai tambahan `CLAUDE.md` di root repo.
-> Terakhir diperbarui: 17 September 2026.
+> Terakhir diperbarui: 23 September 2026.
 
 ## Ringkasan sepuluh detik
 Desain dirawat di **`landing/mockup.html`**. Halaman yang tayang di **`resepfoto.kitlab.id/promo`** tidak diedit
@@ -46,6 +46,18 @@ asli yang hanya boleh memakai data sungguhan:
 | `TESTIMONIALS` (5 kartu contoh) | tetap tampil | dikosongkan, bagiannya disembunyikan |
 | `RATING` (4,9 · 483 ulasan) | tetap tampil | jadi `null` |
 | Label pojok **CONTOH** | tetap tampil | markup, CSS, dan skripnya dibuang |
+| Pita **"Harga launching — harga akan naik dalam 3 hari"** | tetap tampil | markup & CSS-nya dibuang |
+
+**Pita "naik dalam 3 hari" sengaja hanya di pratinjau** (23 Sep 2026). Pemilik memintanya untuk halaman demo
+yang diuji bersama partner. Tenggatnya tidak terikat tanggal dan belum tentu dijalankan, jadi di halaman yang
+menarik uang ia menjadi klaim harga yang menyesatkan — risiko akun iklan Meta dan UU Perlindungan Konsumen
+Pasal 10. Karena itu `--live` membuangnya bersama data karangan lain, dan skrip build gagal keras kalau masih
+tersisa. Kalau pemilik ingin tenggat di produksi, pasang **tanggal yang benar-benar akan ditepati** (atau
+kuota sungguhan lewat kupon Mayar), jangan pindahkan pita ini apa adanya ke build `--live`.
+
+Blok **"Cuma tambah Rp 10.000, Premium sudah dapat…"** di bawah kartu paket tampil di **kedua** mode, karena
+isinya benar. Angka selisihnya diisi skrip dari `PLANS` (kelas `.js-diff`) — baris lama "Beda Rp 30.000"
+yang ditulis tangan sempat basi begitu harga berubah. Isi daftarnya wajib mengikuti tabel "Bandingkan paket".
 
 **Yang sekarang ter-commit di `landing/index.html` adalah mode pratinjau** (17 September 2026, atas permintaan
 pemilik repo — mereka ingin halaman terlihat ramai untuk demo). Jadi `/promo` saat ini adalah **halaman demo**:
@@ -61,7 +73,7 @@ Pembayaran Mayar tetap hidup sungguhan supaya bisa dites.
 | Konstanta | Nilai sekarang | Arti |
 |---|---|---|
 | `CHECKOUT.standard` / `.premium` | `https://kitlab.myr.id/pl/resepfoto-standard` / `-premium` | Link pembayaran Mayar |
-| `PLANS` | Standard `49900` (coret `150000`) · Premium `79900` (coret `299000`) | Harga tampil. **Harus sama** dengan harga di Mayar |
+| `PLANS` | Standard `39900` (coret `150000`) · Premium `49900` (coret `299000`) — sejak 23 Sep 2026, sebelumnya 49900 / 79900 | Harga tampil. **Harus sama** dengan harga di Mayar |
 | `PREVIEW` | `true` | Data pratinjau berlabel. Di-`false`-kan oleh skrip build |
 | `MOCKUP` | `true` | Pembayaran nonaktif + banner "versi presentasi". Di-`false`-kan oleh skrip build |
 | `TESTIMONIALS` | 5 kartu ILUSTRASI | Dibuang oleh `--live` |
@@ -184,14 +196,14 @@ dibangun.
 ## Pembayaran Mayar — setelan dashboard
 Kode sudah siap dan sudah diuji. Setelan dashboard **sudah terpasang 17 Sep 2026**; daftar ini untuk pengecekan ulang
 kalau produk atau harga diganti:
-1. Harga produk: Standard `49900`, Premium `79900`.
+1. Harga produk: Standard `39900`, Premium `49900` (sejak 23 Sep 2026).
 2. **Nama produk wajib memuat kata "Standard" / "Premium"** — mis. `ResepFoto Standard`, `ResepFoto Premium`.
    Slug URL tidak dibaca.
 3. Webhook → `https://resepfoto.kitlab.id/webhook-mayar.php`.
 4. Webhook Token dari Mayar → tempel di **Admin → Pesanan**. Tanpa token, pesanan masuk tapi tidak aktif otomatis.
 
 **KOREKSI PENTING — jangan diulangi.** Ambang `Rp 90.000` di `planFromProduct()` (`app/lib.php`) **bukan masalah**
-untuk Premium seharga Rp 79.900. Fungsi itu memeriksa nama produk lebih dulu; nominal cuma cadangan kalau nama
+untuk Premium seharga Rp 49.900 (dulu 79.900 — sama saja). Fungsi itu memeriksa nama produk lebih dulu; nominal cuma cadangan kalau nama
 produk tidak memuat kata "premium" atau "standard":
 ```php
 if (strpos($p, 'premium') !== false) return 'Premium';
@@ -286,6 +298,10 @@ dilampirkan sebagai file atau lewat Drive.
 - Semua desain dibangun sebagai CSS/SVG editable, bukan gambar tempel.
 
 ## Yang masih terbuka
+0. **Harga produk di Mayar harus diubah ke Standard `39900` / Premium `49900`** (23 Sep 2026). `PLANS` sudah
+   berubah, tapi sesi remote tidak bisa menjangkau Mayar, jadi ini dikerjakan pemilik di dashboard. Selama belum,
+   halaman menampilkan harga baru sementara Mayar menagih harga lama. **Jangan ganti nama produknya** — harus
+   tetap memuat "Standard"/"Premium" untuk `planFromProduct()`.
 1. **Ganti 16 foto `p21`–`p66` di halaman iklan** sebelum iklan berbayar jalan — lihat bagian hak cipta di atas.
 2. ~~Setelan Mayar~~ — sudah beres 17 Sep 2026: harga 49.900 / 79.900, webhook terdaftar, token terverifikasi
    ("token cocok" di Riwayat webhook).
