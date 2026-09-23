@@ -300,10 +300,7 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 .upsell{margin-top:12px;padding:12px 14px;border-radius:16px;background:var(--sun-soft);font-size:13px;font-weight:600;display:flex;gap:10px;align-items:center}
 .upsell button{margin-left:auto;flex:none;font-weight:800;color:var(--blue-d);text-decoration:underline}
 .vs{margin-top:16px;border-radius:20px;background:var(--paper);border:1px solid var(--line);overflow:hidden}
-.vs summary{list-style:none;cursor:pointer;padding:14px 16px;font-weight:800;display:flex;justify-content:space-between;align-items:center}
-.vs summary::-webkit-details-marker{display:none}
-.vs summary .ico{transition:transform .25s}
-.vs[open] summary .ico{transform:rotate(180deg)}
+.vs-head{padding:14px 16px;font-weight:800}
 .vs-table{overflow-x:auto}
 .vs table{width:100%;border-collapse:collapse;font-size:13px}
 .vs th,.vs td{padding:10px 12px;border-top:1px solid var(--line);text-align:center}
@@ -758,8 +755,9 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
     </div>
     <p class="honest"><svg class="ico"><use href="#i-info"/></svg>Bayar aman via Mayar (QRIS, transfer bank, e-wallet). Akses dikirim ke email setelah pembayaran.</p>
 
-    <details class="vs">
-      <summary>Bandingkan paket <svg class="ico"><use href="#i-down"/></svg></summary>
+    <!-- Selalu terbuka atas permintaan pemilik (23 Sep 2026) — dulu <details> yang harus diklik dulu. -->
+    <div class="vs">
+      <div class="vs-head">Bandingkan paket</div>
       <div class="vs-table">
         <table>
           <thead><tr><th></th><th>Standard</th><th>Premium</th></tr></thead>
@@ -776,7 +774,7 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
           </tbody>
         </table>
       </div>
-    </details>
+    </div>
   </section>
 
   <!-- LABEL GARANSI -->
