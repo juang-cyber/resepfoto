@@ -187,14 +187,21 @@ dibangun.
 - **Kolom kosong = pixel mati total** — tidak ada permintaan ke `connect.facebook.net` sama sekali. Sudah diuji.
 - Peristiwa yang dikirim, dipetakan dari `trk()` yang sudah ada: `PageView` + `ViewContent` saat halaman dibuka,
   `CTAClick` (custom) dari `cta`, `InitiateCheckout` dari `checkout`, `AddPaymentInfo` dari `pay`. `value` &
-  `currency` diambil dari `PLANS`, jadi otomatis ikut kalau harga berubah. Tiap peristiwa membawa `eventID` unik,
-  supaya kalau nanti Conversions API dipasang, deduplikasinya sudah siap.
-- **`Purchase` tidak dikirim dan memang tidak bisa** — pembayaran terjadi di domain Mayar (`kitlab.myr.id`), pixel
-  halaman ini tidak pernah melihatnya. Cara yang benar: Meta Conversions API dari `app/webhook-mayar.php`, di titik
-  `$paid`/`fulfillOrder()` yang tahu pembayaran sungguh lunas. **Belum dibuat.** Tanpa itu, Meta tidak bisa
-  dioptimalkan ke Purchase — paling jauh ke `AddPaymentInfo`.
-- Access Token Conversions API **tidak boleh** ikut ke `api.php?a=pixel` atau ke repo. Pixel ID publik (memang
-  terbaca di sumber halaman tiap situs), token tidak.
+  `currency` diambil dari `PLANS`, jadi otomatis ikut kalau harga berubah. Tiap peristiwa membawa `eventID` unik.
+- **`Purchase` dikirim oleh MAYAR, bukan oleh halaman atau server ini** (sejak 23 Sep 2026). Pembayaran terjadi di
+  domain Mayar (`kitlab.myr.id`), jadi pixel halaman ini tidak pernah melihatnya. Yang dipakai adalah fitur bawaan
+  Mayar: Pixel ID yang sama diisi di **tab TRACK kedua produk** (ResepFoto Standard & Premium), dan Access Token
+  Conversions API di **Pengaturan → Kustomisasi → Server Side Tracking → Meta Tracking Token Access**. Mayar lalu
+  mengirim Purchase dari servernya, bahkan kalau pembeli tidak membuka halaman terima kasih Mayar — penting, karena
+  Redirect URL membawa pembeli langsung ke `terima-kasih.html` kita.
+- **JANGAN membuat CAPI sendiri di `app/webhook-mayar.php`.** Sempat dirancang 23 Sep 2026 lalu dibatalkan, karena:
+  (1) Meta mewajibkan `client_user_agent` untuk event website dan membuang/tidak memakai event tanpa itu — webhook
+  datang dari server Mayar, jadi kita tidak pernah punya user agent pembeli, sedangkan checkout Mayar punya;
+  (2) dua pengirim Purchase untuk pembayaran yang sama = terhitung dua kali, karena event_id kita dan Mayar tidak
+  pernah sama. Webhook Mayar memang membawa `pixelFbp`/`pixelFbc`, tapi tetap tanpa user agent.
+- Access Token Conversions API hanya hidup di dashboard Mayar — **tidak** di repo, `settings`, atau
+  `api.php?a=pixel`. Menurut Mayar token itu **kedaluwarsa setelah 60 hari**: kalau Purchase berhenti muncul di
+  Events Manager, buat token baru di Events Manager → pixel → Settings → Conversions API, lalu tempel ulang di Mayar.
 - Pixel itu pelacak pihak ketiga. Kebijakan Meta dan UU PDP minta pemberitahuan ke pengunjung; `/promo` belum punya
   halaman kebijakan privasi.
 
@@ -206,6 +213,11 @@ kalau produk atau harga diganti:
    Slug URL tidak dibaca.
 3. Webhook → `https://resepfoto.kitlab.id/webhook-mayar.php`.
 4. Webhook Token dari Mayar → tempel di **Admin → Pesanan**. Tanpa token, pesanan masuk tapi tidak aktif otomatis.
+5. **Redirect URL** tiap link bayar → `https://resepfoto.kitlab.id/terima-kasih.html`. Sampai 23 Sep 2026 isinya
+   masih `resepfoto.oziera.co.id/…` — domain lama yang sudah tidak ada (NXDOMAIN), jadi sejak pindah domain
+   18 Sep pembeli mendarat di halaman error setelah bayar. **Kalau domain pindah lagi, ganti ini juga.**
+6. **Meta Pixel ID** di tab TRACK kedua produk, dan token **Server Side Tracking** di Pengaturan → Kustomisasi —
+   lihat bagian Meta Pixel di atas. Tokennya kedaluwarsa tiap 60 hari.
 
 **KOREKSI PENTING — jangan diulangi.** Ambang `Rp 90.000` di `planFromProduct()` (`app/lib.php`) **bukan masalah**
 untuk Premium seharga Rp 49.900 (dulu 79.900 — sama saja). Fungsi itu memeriksa nama produk lebih dulu; nominal cuma cadangan kalau nama
@@ -302,10 +314,8 @@ dilampirkan sebagai file atau lewat Drive.
 - Semua desain dibangun sebagai CSS/SVG editable, bukan gambar tempel.
 
 ## Yang masih terbuka
-0. **Harga produk di Mayar harus diubah ke Standard `39900` / Premium `49900`** (23 Sep 2026). `PLANS` sudah
-   berubah, tapi sesi remote tidak bisa menjangkau Mayar, jadi ini dikerjakan pemilik di dashboard. Selama belum,
-   halaman menampilkan harga baru sementara Mayar menagih harga lama. **Jangan ganti nama produknya** — harus
-   tetap memuat "Standard"/"Premium" untuk `planFromProduct()`.
+0. ~~Harga produk di Mayar diubah ke Standard `39900` / Premium `49900`~~ — sudah beres 23 Sep 2026, dari sesi
+   lokal, sebelum PR #11 di-merge. Nama produk tidak diganti.
 1. **Ganti 16 foto `p21`–`p66` di halaman iklan** sebelum iklan berbayar jalan — lihat bagian hak cipta di atas.
 2. ~~Setelan Mayar~~ — sudah beres 17 Sep 2026: harga 49.900 / 79.900, webhook terdaftar, token terverifikasi
    ("token cocok" di Riwayat webhook).

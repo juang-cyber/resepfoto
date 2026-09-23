@@ -1462,7 +1462,8 @@ const tList = TESTIMONIALS.length ? TESTIMONIALS.map(t => MOCKUP ? {...t, demo:t
    ID-nya diambil dari api.php?a=pixel, tidak ditanam di halaman, supaya bisa diganti dari
    panel admin tanpa membangun ulang. Kolom kosong = tidak ada satu pun skrip Meta dimuat.
    Purchase sengaja TIDAK ada di sini: pembayaran terjadi di domain Mayar, jadi pixel
-   halaman ini tidak pernah melihatnya. Itu tugas Conversions API dari webhook-mayar.php. */
+   halaman ini tidak pernah melihatnya. Purchase dikirim Mayar (Server Side Tracking) —
+   lihat landing/CLAUDE.md, dan jangan tambahkan pengirim kedua. */
 const fbSend = (() => {
   if (!TRACK_URL) return () => {};
   const queue = [];

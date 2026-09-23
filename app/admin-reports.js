@@ -222,7 +222,7 @@ function renderAds(d){
         <div class="field"><label for="px-id">Pixel ID</label><input class="input" id="px-id" inputmode="numeric" maxlength="20" value="${esc(d.metaPixelId || "")}" placeholder="contoh 1234567890123456"></div>
         <div class="field" style="display:flex;align-items:flex-end"><button class="btn btn-primary btn-sm" id="px-save" style="height:42px;width:100%">Simpan Pixel</button></div>
       </div>
-      <p class="muted" style="font-size:12px;margin:10px 0 0">Peristiwa yang dikirim: <code>PageView</code>, <code>ViewContent</code>, <code>CTAClick</code>, <code>InitiateCheckout</code>, <code>AddPaymentInfo</code>. <b><code>Purchase</code> tidak dikirim</b> — pembayaran terjadi di domain Mayar, jadi pixel halaman ini tidak bisa melihatnya.</p>`,
+      <p class="muted" style="font-size:12px;margin:10px 0 0">Peristiwa yang dikirim: <code>PageView</code>, <code>ViewContent</code>, <code>CTAClick</code>, <code>InitiateCheckout</code>, <code>AddPaymentInfo</code>. <b><code>Purchase</code> dikirim oleh Mayar</b>, bukan halaman ini — Pixel ID yang sama terpasang di tab TRACK kedua produk Mayar, dan token Conversions API ada di Mayar → Pengaturan → Kustomisasi → Server Side Tracking. Token itu kedaluwarsa tiap 60 hari: kalau Purchase berhenti muncul di Events Manager, buat token baru lalu tempel ulang di Mayar.</p>`,
       "Cek dengan ekstensi <b>Meta Pixel Helper</b> di Chrome, atau Events Manager → Test Events.")}
     ${card("Pembuat link iklan (UTM)", `
       <div class="field"><label for="utm-base">Alamat landing page</label><input class="input" id="utm-base" value="${esc(base)}"></div>

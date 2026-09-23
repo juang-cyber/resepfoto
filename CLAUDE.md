@@ -375,8 +375,10 @@ Panel admin: Resep (toolbar cari + chip kategori + **filter review**: status QC,
 Halaman iklan `/promo` dengan pelacakan corong lengkap, penghitung pengunjung aktif, dan notifikasi aktivitas
 (pesanan + keranjang) — **semuanya dari data asli**, lihat `landing/CLAUDE.md` bagian bukti sosial.
 **Meta Pixel** opsional di `/promo`: ID-nya diisi di Admin → Iklan (kunci `meta_pixel_id`), halaman membacanya lewat
-`api.php?a=pixel`. Kolom kosong = tidak ada satu pun skrip Meta dimuat. `Purchase` sengaja tidak dikirim dari
-halaman — pembayaran terjadi di domain Mayar; itu perlu Conversions API dari `webhook-mayar.php`, belum dibuat.
+`api.php?a=pixel`. Kolom kosong = tidak ada satu pun skrip Meta dimuat. `Purchase` **dikirim oleh Mayar** lewat
+fitur bawaannya (Pixel ID di tab TRACK tiap produk + token Server Side Tracking di Pengaturan → Kustomisasi), sejak
+23 Sep 2026. **Jangan buat Conversions API sendiri di `webhook-mayar.php`** — Purchase jadi terhitung dua kali, dan
+event tanpa user agent pembeli dibuang Meta. Alasan lengkap & cara ganti token (kedaluwarsa 60 hari): `landing/CLAUDE.md`.
 
 ## Aturan kerja
 1. **Escape semua data dinamis** di HTML dengan `esc()`; teks pakai `textContent`. Jangan pernah `innerHTML` nilai
