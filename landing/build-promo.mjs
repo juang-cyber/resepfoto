@@ -54,6 +54,14 @@ if (LIVE) {
   sub(/\n *<div class="corner-tag"[\s\S]*?<\/div>/, "", "label CONTOH (markup)");
   sub(/\/\* label "CONTOH"[\s\S]*?\n@media \(min-width:560px\)\{\.corner-tag\{[^\n]*\}\n/, "", "label CONTOH (CSS)");
   sub(/\/\* ---- label CONTOH[\s\S]*?\n\}\)\(\);\n\n/, "", "label CONTOH (skrip)");
+
+  /* pita "harga launching — naik dalam 3 hari": diminta pemilik untuk halaman DEMO (23 Sep 2026).
+     Di halaman yang menarik uang, tenggat yang tidak pasti dijalankan adalah klaim harga yang
+     menyesatkan, jadi ia ikut dibuang bersama data karangan lain. Kalau mau dipasang di produksi,
+     pakai tanggal yang memang akan ditepati — lihat landing/CLAUDE.md. */
+  sub(/\n *<!-- launch:mulai[\s\S]*?<!-- launch:selesai -->/, "", "pita launching (markup)");
+  sub(/\/\* launch:mulai[\s\S]*?\/\* launch:selesai \*\/\n/, "", "pita launching (CSS)");
+  if (/class="launch"|launch:mulai/.test(s)) throw new Error("pita launching masih tersisa di build --live");
 }
 
 /* penghitung pengunjung: angka asli di produksi, angka CONTOH berlabel di pratinjau */

@@ -82,7 +82,7 @@ Alur: pembeli klik paket di `/promo` → checkout Mayar → Mayar POST ke `app/w
 membuat member, mengirim email akses ke pembeli, dan email notifikasi ke admin.
 
 Paket ditentukan `planFromProduct()` di `app/lib.php`. **KOREKSI PENTING — jangan diulangi:** ambang `Rp 90.000`
-di fungsi itu **bukan masalah** untuk Premium seharga Rp 79.900, karena nama produk diperiksa lebih dulu:
+di fungsi itu **bukan masalah** untuk Premium seharga Rp 49.900 (dulu 79.900), karena nama produk diperiksa lebih dulu:
 ```php
 if (strpos($p, 'premium') !== false) return 'Premium';
 if (strpos($p, 'standard') !== false || strpos($p, 'standar') !== false) return 'Standard';

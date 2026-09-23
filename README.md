@@ -57,7 +57,7 @@ Pembeli klik paket di `/promo` → checkout Mayar → Mayar POST ke `webhook-may
 email akses dikirim ke pembeli (dan WhatsApp kalau token Fonnte diisi), notifikasi dikirim ke admin.
 
 Setelan di dashboard Mayar (**sudah terpasang 17 Sep 2026** — cek ulang kalau produk atau harga diganti):
-1. Harga produk: Standard `49900`, Premium `79900` — harus sama dengan `PLANS` di `landing/mockup.html`.
+1. Harga produk: Standard `39900`, Premium `49900` — harus sama dengan `PLANS` di `landing/mockup.html`.
 2. **Nama produk wajib memuat kata "Standard" / "Premium"** — nama inilah yang menentukan paket pembeli, bukan
    nominalnya. Slug URL tidak dibaca.
 3. Webhook → `https://resepfoto.kitlab.id/webhook-mayar.php`, event **Purchase** aktif.
