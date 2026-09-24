@@ -7,20 +7,21 @@ Resep prompt foto siap salin untuk Gemini & ChatGPT.
 |---|---|---|
 | `app/` | Aplikasi member + admin (PHP 7.4+ & SQLite), webhook Mayar, halaman terima kasih | Ya, auto-deploy ke resepfoto.kitlab.id |
 | `landing/index.html` | **Halaman iklan.** Dibangkitkan oleh `landing/build-promo.mjs` — jangan diedit langsung | Ya, auto-deploy ke resepfoto.kitlab.id/promo |
+| `app/promo-live/index.html` | **Halaman iklan versi PRODUKSI** — ikut dibangkitkan `build-promo.mjs`, selalu tanpa data contoh; gambarnya dari `/promo/img/` | Ya, resepfoto.kitlab.id/promo-live — **ini tujuan iklan** |
 | `landing/mockup.html` | **Sumber desain** halaman iklan, sekaligus versi presentasi (pembayaran nonaktif, berlabel CONTOH) | Tidak untuk publik, tidak ikut deploy |
 | `landing/build-promo.mjs` | Skrip build halaman iklan (tanpa dependency) | – |
 | `brand/` | Logo, ikon, gambar share + skrip pembuatnya | – |
 
 ## Auto-deploy (server menarik dari GitHub)
-Cron di cPanel jalan tiap **5 menit** (perintahnya ada di cPanel → Cron Jobs, bukan di `deploy/rf-deploy.sh`
+Cron di cPanel jalan tiap **15 menit** (perintahnya ada di cPanel → Cron Jobs, bukan di `deploy/rf-deploy.sh`
 yang tinggal jadi referensi versi SSH lama):
 1. `git fetch` + `git reset --hard origin/main` di `~/repositories/resepfoto` (clone HTTPS, repo publik).
 2. Kalau commit berubah **dan** `app/.autodeploy` ada:
-   - isi `app/` disalin ke `~/resepfoto.kitlab.id/`;
+   - isi `app/` (termasuk `promo-live/`) disalin ke `~/resepfoto.kitlab.id/`;
    - `landing/index.html` + `landing/img/` disalin ke `~/resepfoto.kitlab.id/promo/`.
 3. Riwayat deploy: `~/rf-deploy/deploy.log`, keluaran mentah: `~/rf-deploy/cron.log`.
 
-Jadi cukup push ke `main`, website ter-update dalam ±5 menit. Tidak ada password yang disimpan di GitHub.
+Jadi cukup push ke `main`, website ter-update dalam ±15 menit. Tidak ada password yang disimpan di GitHub.
 Yang **tidak** pernah disentuh: `config.php`, database `data/*.sqlite`, folder `uploads/` (tidak ada di repo).
 `landing/mockup.html` sengaja tidak ikut ter-deploy.
 
@@ -28,8 +29,8 @@ Yang **tidak** pernah disentuh: `config.php`, database `data/*.sqlite`, folder `
 Desainnya dirawat di `landing/mockup.html`, **bukan** di `landing/index.html`. Sesudah mengubah mockup, bangun ulang:
 
 ```bash
-node landing/build-promo.mjs           # PRATINJAU -> landing/index.html
-node landing/build-promo.mjs --live    # PRODUKSI, wajib sebelum dipasang di iklan
+node landing/build-promo.mjs           # /promo PRATINJAU -> landing/index.html  (+ /promo-live PRODUKSI)
+node landing/build-promo.mjs --live    # /promo juga PRODUKSI
 ```
 
 Dua-duanya menyalakan pembayaran Mayar, pelacakan iklan (`TRACK_URL = "/api.php"`), notifikasi pesanan, dan
@@ -42,14 +43,15 @@ penghitung pengunjung dari data asli. Bedanya cuma data ilustrasi:
 | Label **CONTOH** di pojok | tampil | dibuang |
 
 Pratinjau untuk dites sendiri dan dibagikan ke tim — halaman jujur menyatakan dirinya contoh.
-**Sebelum iklan diarahkan ke halaman ini, bangun ulang dengan `--live`.** Bagian testimoni otomatis disembunyikan
+**Iklan diarahkan ke `/promo-live/`** — setiap build menulis `app/promo-live/index.html` dalam mode produksi, jadi
+`/promo` boleh tetap demo. Kalau iklan memakai `/promo`, bangun ulang dengan `--live` dulu. Bagian testimoni otomatis disembunyikan
 selama `TESTIMONIALS` kosong — isi hanya dengan ulasan asli yang sudah diizinkan pembelinya. Aturan selengkapnya di
 `landing/CLAUDE.md`.
 
-Link iklan Meta:
+Link iklan (Meta, ChatGPT Ads):
 
 ```
-https://resepfoto.kitlab.id/promo?utm_source=facebook&utm_medium=paid&utm_campaign=NAMA&utm_content={{ad.name}}
+https://resepfoto.kitlab.id/promo-live/?utm_source=facebook&utm_medium=paid&utm_campaign=NAMA&utm_content={{ad.name}}
 ```
 
 ## Pembayaran Mayar

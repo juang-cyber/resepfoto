@@ -1,8 +1,8 @@
 # ResepFoto — panduan proyek untuk Claude Code
 
 > Baca file ini dulu sebelum mengubah apa pun. Detail privat (hosting, lokasi kredensial) ada di `CLAUDE.local.md`
-> (tidak di-commit). **Halaman iklan `/promo`: baca `landing/CLAUDE.md`.**
-> Terakhir diperbarui: 17 September 2026.
+> (tidak di-commit). **Halaman iklan `/promo` dan `/promo-live`: baca `landing/CLAUDE.md`.**
+> Terakhir diperbarui: 24 September 2026.
 
 ## Apa ini
 **ResepFoto** (resepfoto.kitlab.id) — web app berbayar berisi "resep" prompt foto AI yang disalin member ke
@@ -28,6 +28,8 @@ app/            ← yang di-deploy ke document root website
   webhook-mayar.php webhook pembayaran Mayar
   terima-kasih.html halaman sesudah bayar
   img/          foto contoh resep bawaan (p01…p66.jpg, 4:5) — ikut ter-deploy
+  promo-live/   index.html = halaman iklan PRODUKSI di /promo-live. DIBANGKITKAN build-promo.mjs — jangan
+                diedit tangan; gambarnya dirujuk ke /promo/img/, tidak punya salinan sendiri
   .htaccess     blokir file sensitif, paksa HTTPS, header keamanan, cache
   .autodeploy   PENANDA WAJIB — cron hanya men-deploy kalau file ini ada. Jangan dihapus
   config.example.php  template config (config.php asli TIDAK di repo)
@@ -46,10 +48,10 @@ deploy/         rf-deploy.sh lama (versi SSH) — referensi saja, yang aktif ada
 
 ## Alur deploy (sudah otomatis)
 1. Edit file di `app/`. Untuk halaman iklan: edit `landing/mockup.html` lalu jalankan
-   `node landing/build-promo.mjs` yang menulis ulang `landing/index.html`.
+   `node landing/build-promo.mjs` yang menulis ulang `landing/index.html` **dan** `app/promo-live/index.html`.
 2. `git add -A && git commit -m "..." && git push` (branch `main`).
-3. Cron di hosting (tiap 5 menit) menarik `origin/main`, dan **hanya jika commit berubah dan `app/.autodeploy` ada**, menyalin `app/.` ke document root **dan** `landing/index.html` + `landing/img/` ke `promo/`. `config.php`, database, `uploads/` tidak pernah tersentuh; `landing/mockup.html` sengaja tidak ikut.
-4. Verifikasi: `curl -s https://resepfoto.kitlab.id/api.php?a=me` → lihat field `"v"`; landing: `curl -sI https://resepfoto.kitlab.id/promo/`.
+3. Cron di hosting (tiap 15 menit — `*/15`, dicek di cPanel 24 Sep 2026) menarik `origin/main`, dan **hanya jika commit berubah dan `app/.autodeploy` ada**, menyalin `app/.` ke document root **dan** `landing/index.html` + `landing/img/` ke `promo/`. `config.php`, database, `uploads/` tidak pernah tersentuh; `landing/mockup.html` sengaja tidak ikut.
+4. Verifikasi: `curl -s https://resepfoto.kitlab.id/api.php?a=me` → lihat field `"v"`; landing: `curl -sI https://resepfoto.kitlab.id/promo/` dan `/promo-live/`.
 
 Perintah cron sebenarnya ada di **cPanel → Cron Jobs**, bukan di `deploy/rf-deploy.sh` (itu sisa versi SSH lama
 yang menyebut 2 menit tanpa guard `.autodeploy` — jangan dipercaya sebagai sumber kebenaran).
@@ -58,7 +60,7 @@ yang menyebut 2 menit tanpa guard `.autodeploy` — jangan dipercaya sebagai sum
 pada `<script src="admin-*.js?v=N">` di `index.html` untuk file JS yang berubah. HTML/JS sudah `Cache-Control:
 no-cache` lewat `.htaccess`, gambar di-cache 30 hari.
 
-## Halaman iklan `/promo`
+## Halaman iklan `/promo` dan `/promo-live`
 Tayang di `resepfoto.kitlab.id/promo`, disajikan dari **`landing/index.html`** yang disalin cron.
 **Sumber desainnya `landing/mockup.html`** — `landing/index.html` dibangkitkan, jangan diedit tangan:
 
@@ -73,9 +75,16 @@ Yang ter-commit sekarang adalah **mode pratinjau** (17 Sep 2026): `/promo` senga
 karangan di notifikasi, "45 orang sedang melihat", testimoni & rating contoh. Penandanya **label pojok CONTOH di
 kanan bawah**, satu untuk seluruh halaman — jangan tambah chip per angka, itu sudah dicoba dan diminta dibuang.
 Pembayaran Mayar tetap hidup supaya bisa dites.
-**Sebelum iklan Meta diarahkan ke situ, wajib bangun ulang dengan `--live`** — itu yang membuang semua data karangan
-dan menggantinya dengan data asli. Detail lengkap, aturan bukti sosial, dan checklist go-live ada di
+**Iklan diarahkan ke `/promo-live/`, bukan `/promo`** (lihat di bawah). Kalau suatu saat iklan memakai `/promo`, wajib
+bangun ulang dengan `--live` dulu — itu yang membuang semua data karangan dan menggantinya dengan data asli. Detail lengkap, aturan bukti sosial, dan checklist go-live ada di
 **`landing/CLAUDE.md`** — baca itu sebelum menyentuh apa pun soal iklan.
+
+**`/promo-live` (sejak 24 Sep 2026)** — setiap `node landing/build-promo.mjs` juga menulis
+`app/promo-live/index.html` dalam mode **PRODUKSI**, apa pun mode `/promo`. Isinya sama persis dengan build
+`--live`; bedanya hanya rujukan gambar `img/…` diarahkan ke `/promo/img/` (satu salinan gambar untuk dua halaman).
+Cron menyalinnya bersama `app/.`. Jadi `/promo` boleh tetap halaman demo, sementara **iklan (Meta, ChatGPT Ads)
+diarahkan ke `https://resepfoto.kitlab.id/promo-live/`**. Pelacakannya tetap `page: "promo"`, jadi Admin → Iklan dan
+umpan keranjang asli menggabungkan kedua halaman — bedakan lewat UTM.
 
 ## Pembayaran Mayar
 Alur: pembeli klik paket di `/promo` → checkout Mayar → Mayar POST ke `app/webhook-mayar.php` → `fulfillOrder()`

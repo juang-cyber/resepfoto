@@ -1,15 +1,17 @@
 # Halaman iklan ResepFoto — panduan untuk Claude Code
 
 > Claude Code membaca file ini otomatis saat bekerja di folder `landing/`, sebagai tambahan `CLAUDE.md` di root repo.
-> Terakhir diperbarui: 23 September 2026.
+> Terakhir diperbarui: 24 September 2026.
 
 ## Ringkasan sepuluh detik
 Desain dirawat di **`landing/mockup.html`**. Halaman yang tayang di **`resepfoto.kitlab.id/promo`** tidak diedit
 langsung — ia **dibangkitkan** dari mockup oleh `landing/build-promo.mjs`. Jadi alurnya selalu:
 
 ```
-landing/mockup.html  ──build-promo.mjs──▶  landing/index.html  ──cron cPanel──▶  <docroot>/promo/
-     (sumber desain)                        (jangan diedit tangan)      + landing/img/
+landing/mockup.html  ──build-promo.mjs─┬─▶  landing/index.html  ──cron cPanel──▶  <docroot>/promo/
+     (sumber desain)                    │   (jangan diedit tangan)      + landing/img/
+                                        └─▶  app/promo-live/index.html  ──cron (app/.)──▶  <docroot>/promo-live/
+                                             (selalu PRODUKSI, gambar dari /promo/img/)
 ```
 
 Kalau kamu menemukan diri sedang mengedit `landing/index.html`, berhenti — edit mockup-nya lalu bangun ulang.
@@ -22,6 +24,7 @@ Cron menyalin `landing/index.html` + `landing/img/` ke `promo/`; `mockup.html` s
 | `build-promo.mjs` | Membangkitkan `index.html` dari `mockup.html`. Tanpa dependency, jalan dengan `node` biasa |
 | `img/` | 122 file: **100** gambar katalog resep (`pNN.jpg` / `rtl*.jpg`, 600×750 q78 mozjpeg, rata-rata 46 KB) + `rb1-6`/`ra1-6` pasangan before/after hero + `av1-5` avatar testimoni + `tr1-5` foto hasil testimoni |
 | `index.html` | **Halaman yang tayang di `/promo`.** Dibangkitkan oleh `build-promo.mjs` — jangan diedit tangan, perubahannya akan tertimpa build berikutnya |
+| `../app/promo-live/index.html` | **Halaman yang tayang di `/promo-live`** — selalu build PRODUKSI, ikut dibangkitkan tiap `build-promo.mjs` jalan. Rujukan gambarnya `/promo/img/…`. Jangan diedit tangan |
 
 Artifact presentasi (privat, bisa dibagikan): https://claude.ai/artifact/QdRiZFRSZvidkHEguipAqw
 
@@ -35,6 +38,10 @@ Keduanya menulis **`landing/index.html`** dan menerapkan setelan produksi yang s
 produksi, **pembayaran Mayar aktif**, `TRACK_URL = "/api.php"` berikut blok pelacakan lengkap. `PREVIEW` hanya
 dimatikan oleh `--live` — di build pratinjau ia tetap `true`, karena itulah yang menyalakan kartu CONTOH.
 Gambarnya tidak disalin ke mana-mana — `landing/img/` sudah ikut diangkut cron apa adanya.
+
+Setiap build **juga** menulis `app/promo-live/index.html` dalam mode PRODUKSI, apa pun modenya — isinya identik
+dengan build `--live`, hanya `img/…` diganti `/promo/img/…`. Skripnya melempar error kalau masih ada rujukan
+`img/` yang tertinggal. Jadi `/promo` boleh tetap demo, dan iklan diarahkan ke `/promo-live/`.
 
 Bedanya **semua bukti sosial**. Pratinjau = halaman DEMO yang terang-terangan mengaku contoh; `--live` = halaman
 asli yang hanya boleh memakai data sungguhan:
@@ -66,8 +73,9 @@ untuk seluruh halaman, bukan label per angka. Itu keputusan pemilik repo (17 Sep
 kelihatan, jadi jangan pasang chip lagi di ulasan, penghitung pengunjung, atau kartu keranjang/pembelian.
 Pembayaran Mayar tetap hidup sungguhan supaya bisa dites.
 
-> **Sebelum iklan Meta diarahkan ke halaman ini, WAJIB `node landing/build-promo.mjs --live` lalu push.**
-> Tanpa itu, halaman berbayar akan memasang nama pembeli dan jumlah penonton yang tidak pernah ada.
+> **Iklan diarahkan ke `/promo-live/`, bukan ke halaman ini** — `/promo-live` selalu build PRODUKSI (24 Sep 2026).
+> Kalau iklan tetap mau memakai `/promo`, WAJIB `node landing/build-promo.mjs --live` lalu push dulu. Tanpa itu,
+> halaman berbayar akan memasang nama pembeli dan jumlah penonton yang tidak pernah ada.
 
 ## Pengaturan di `mockup.html` (blok `/* ---- ubah di sini ---- */`, sekitar baris 831)
 | Konstanta | Nilai sekarang | Arti |
@@ -171,9 +179,9 @@ diambil dari `utm_source`/`utm_medium`/`utm_campaign`/`utm_content`, `fbclid`, a
 Semua event menandai `page: "promo"`. Laporan muncul di **Admin → Iklan** (khusus super admin). Batas 300
 event/pengunjung/hari.
 
-Link iklan Meta:
+Link iklan (Meta, ChatGPT Ads) — pakai `/promo-live/` lengkap dengan garis miring, supaya tidak ada redirect:
 ```
-https://resepfoto.kitlab.id/promo?utm_source=facebook&utm_medium=paid&utm_campaign=NAMA&utm_content={{ad.name}}
+https://resepfoto.kitlab.id/promo-live/?utm_source=facebook&utm_medium=paid&utm_campaign=NAMA&utm_content={{ad.name}}
 ```
 
 ### Meta Pixel
@@ -230,14 +238,14 @@ return $amount >= 90000 ? 'Premium' : 'Standard';   // hanya cadangan
 Sudah dibuktikan dengan uji lokal (lihat bagian Pengujian). Tidak ada perubahan kode yang diperlukan.
 
 ## Go-live checklist
-1. `node landing/build-promo.mjs --live` — **wajib dan BELUM dijalankan untuk build yang ter-commit sekarang.**
-   Yang ter-commit adalah build pratinjau (halaman demo). Perintah inilah yang membuang 10 nama karangan, angka
-   "45 orang sedang melihat", testimoni karangan, rating karangan, dan label CONTOH, lalu menggantinya dengan data
-   asli. Ulangi tiap kali `mockup.html` diubah.
+1. Arahkan iklan ke **`/promo-live/`** — build PRODUKSI yang ikut dibangkitkan tiap build: tanpa 10 nama karangan,
+   angka "45 orang sedang melihat", testimoni/rating karangan, pita "harga naik dalam 3 hari", dan label CONTOH.
+   `/promo` sendiri masih build pratinjau (halaman demo); kalau iklan mau ke `/promo`, jalankan
+   `node landing/build-promo.mjs --live` dulu. Bangun ulang tiap kali `mockup.html` diubah — dua halaman ikut.
 2. Cek `CHECKOUT` & `PLANS` cocok dengan produk di Mayar, termasuk **nama produknya**.
 3. Webhook Mayar terdaftar dan Webhook Token sudah diisi di Admin → Pesanan.
-4. Commit & push ke `main`; tunggu ±5 menit, halaman tayang di `/promo`.
-   Verifikasi: `curl -sI https://resepfoto.kitlab.id/promo/`.
+4. Commit & push ke `main`; tunggu sampai 15 menit (cron `*/15`), halaman tayang di `/promo` dan `/promo-live`.
+   Verifikasi: `curl -sI https://resepfoto.kitlab.id/promo-live/`.
 5. Tes: buka `/promo?utm_source=test&utm_campaign=cek`, klik CTA & checkout, pastikan angkanya muncul di
    **Admin → Iklan**. Pelacakan jalan di kedua mode. Di build `--live`, klik checkout juga membuat kartu
    "Seseorang memasukkan Paket … ke keranjang" muncul di kunjungan berikutnya — itu peristiwamu sendiri, bukan

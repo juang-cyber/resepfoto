@@ -1,6 +1,8 @@
-// Membuat landing/index.html (halaman /promo) dari landing/mockup.html.
+// Membuat halaman iklan dari landing/mockup.html — dua halaman sekali jalan:
+//   landing/index.html         → /promo       (mode mengikuti --live, defaultnya PRATINJAU)
+//   app/promo-live/index.html  → /promo-live  (SELALU PRODUKSI, apa pun modenya)
 //
-// Mockup adalah sumber desain. Dua mode:
+// Mockup adalah sumber desain. Dua mode untuk /promo:
 //
 //   node landing/build-promo.mjs            PRATINJAU (default)
 //     Halaman DEMO. Pembayaran Mayar & pelacakan tetap aktif sungguhan, tapi semua
@@ -10,13 +12,23 @@
 //
 //   node landing/build-promo.mjs --live     PRODUKSI
 //     Sama, tapi semua data ilustrasi dibuang: testimoni karangan, rating, dan
-//     label CONTOH. Jalankan mode ini sebelum mengarahkan iklan ke halaman.
-import { readFileSync, writeFileSync } from "node:fs";
+//     label CONTOH. Jalankan mode ini sebelum mengarahkan iklan ke /promo.
+//
+// /promo-live ada supaya /promo boleh tetap jadi halaman demo sementara iklan sudah jalan
+// (permintaan pemilik, 24 Sep 2026): iklan diarahkan ke /promo-live, bukan /promo.
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 
 // Cron di server menyalin landing/index.html + landing/img/ ke <docroot>/promo/,
-// jadi keluarannya HARUS landing/index.html — bukan app/promo/.
-const SRC = "landing/mockup.html", OUT = "landing/index.html";
-const LIVE = process.argv.includes("--live");
+// jadi keluaran /promo HARUS landing/index.html — bukan app/promo/.
+// /promo-live ikut app/. (cron menyalin app/. ke document root) dan TIDAK punya salinan
+// gambar sendiri: rujukan "img/…" di halamannya diarahkan ke /promo/img/.
+const SRC = "landing/mockup.html", OUT = "landing/index.html", OUT_LIVE = "app/promo-live/index.html";
+const LIVE_PROMO = process.argv.includes("--live");
+
+// Isi fungsi sengaja tidak diindentasi: template literal di dalamnya ikut masuk ke HTML
+// apa adanya, jadi menambah indentasi akan mengubah halaman yang dihasilkan.
+function build(LIVE) {
 let s = readFileSync(SRC, "utf8").replace(/\r\n?/g, "\n");   // checkout Windows bisa CRLF; semua pola di bawah memakai \n
 let n = 0;
 const rep = (old, neu, label) => {
@@ -166,7 +178,22 @@ document.addEventListener("click", e => {
 
 /* trk dipakai sebelum dideklarasikan pada openSheet; angkat deklarasinya */
 if (!/const trk = \(\(\) =>/.test(s)) throw new Error("blok trk hilang");
+return {s, n};
+}
 
-writeFileSync(OUT, s);   // img/ sudah di landing/img/, ikut disalin cron apa adanya
-console.log(`landing/index.html dibuat — mode ${LIVE ? "PRODUKSI" : "PRATINJAU"}, ${n} perubahan, ${(s.length/1024).toFixed(0)} KB`);
-if (!LIVE) console.log('Testimoni, rating, dan label CONTOH masih tampil. Jalankan dengan --live sebelum dipasang di iklan.');
+/* /promo */
+const promo = build(LIVE_PROMO);
+writeFileSync(OUT, promo.s);   // img/ sudah di landing/img/, ikut disalin cron apa adanya
+console.log(`${OUT} dibuat — mode ${LIVE_PROMO ? "PRODUKSI" : "PRATINJAU"}, ${promo.n} perubahan, ${(promo.s.length/1024).toFixed(0)} KB`);
+
+/* /promo-live — selalu produksi. Semua rujukan gambar di mockup berbentuk "img/…" di dalam
+   kutip (atribut src dan data JS), jadi cukup diganti ke /promo/img/ yang sudah disalin cron. */
+const live = build(true);
+const IMG_REF = /(["'`(])img\//g;
+const nImg = (live.s.match(IMG_REF) || []).length;
+const liveHtml = live.s.replace(IMG_REF, "$1/promo/img/");
+if (!nImg || /(["'`(])img\//.test(liveHtml)) throw new Error("promo-live: rujukan gambar img/ tidak terganti semua");
+mkdirSync(dirname(OUT_LIVE), {recursive: true});
+writeFileSync(OUT_LIVE, liveHtml);
+console.log(`${OUT_LIVE} dibuat — mode PRODUKSI, ${live.n} perubahan, ${nImg} rujukan gambar → /promo/img/, ${(liveHtml.length/1024).toFixed(0)} KB`);
+if (!LIVE_PROMO) console.log('/promo masih halaman DEMO (testimoni, rating, label CONTOH). Iklan diarahkan ke /promo-live, bukan /promo.');
