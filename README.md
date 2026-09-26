@@ -100,9 +100,9 @@ tidak tertimpa) dan ditandai selesai lewat kunci `pack_<version>` di tabel `sett
 ingin paket yang sama diimpor ulang. Resep baru memakai `created_at` saat impor, jadi member paket
 **Standard** yang mendaftar sebelum itu tidak otomatis melihatnya.
 
-## Admin: AI Gemini, laporan
-- **AI Gemini**: isi API key dari Google AI Studio di Admin → AI Gemini. Model default `gemini-3.8-flash` (analisa & link referensi) dan `gemini-3.1-flash-image` (tes generate). Key disimpan di database server, tidak di kode.
-- **Tambah resep**: mode *Link referensi* (link share Gemini/ChatGPT) atau *Upload sendiri* (klik area gambar lalu Ctrl+V / pilih file + tempel prompt → "Isi otomatis dengan Gemini"). Di bawah form ada *Hasil tes internal* (upload/tempel hasil atau generate dengan Gemini).
+## Admin: AI (Gemini & DeepSeek), laporan
+- **AI**: isi API key Gemini (Google AI Studio) dan DeepSeek (platform.deepseek.com) di Admin → AI. Model default `gemini-3.8-flash` (analisa & OCR), `gemini-3.1-flash-image` (tes generate), dan `deepseek-flash` (baca link Instagram). Mesin utama untuk link Instagram bisa dipilih; yang satunya jadi cadangan otomatis. Key disimpan di database server, tidak di kode.
+- **Tambah resep**: tiga mode — *Upload sendiri* (klik area gambar lalu Ctrl+V / pilih file + tempel prompt → "Isi otomatis dengan Gemini"), *Prompt dari gambar* (OCR screenshot), dan *Link Instagram* (tempel link postingan → caption + semua slide dibaca, prompt dicari di caption atau tulisan di slide, semua kolom terisi; komentar ditempel manual di "Teks tambahan"). Di bawah form ada *Hasil tes internal* (upload/tempel hasil atau generate dengan Gemini).
 - **Pengguna**: laporan member, pemakaian app (buka/salin/favorit), resep terpopuler, pesanan.
 - **Iklan**: laporan landing page (pengunjung, corong, kampanye UTM, perangkat), input biaya iklan harian, ROAS/CPA, pembuat link UTM. Aktif setelah landing page di-deploy dan `TRACK_URL = "/api.php"`.
 

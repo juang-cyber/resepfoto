@@ -47,6 +47,8 @@ function db(): PDO {
   $pdo->exec('CREATE TABLE IF NOT EXISTS ai_log (id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT, action TEXT, model TEXT, ok INTEGER, tokens_in INTEGER, tokens_out INTEGER, ms INTEGER, note TEXT)');
   $pdo->exec('CREATE TABLE IF NOT EXISTS prompt_tests (id INTEGER PRIMARY KEY AUTOINCREMENT, prompt_id TEXT, image TEXT, input_image TEXT, source TEXT, model TEXT, tool TEXT, status TEXT, note TEXT, created_at TEXT)');
   $pdo->exec('CREATE INDEX IF NOT EXISTS ix_tests_prompt ON prompt_tests(prompt_id)');
+  // Pustaka foto wajah (tim/model yang sudah setuju) untuk generate thumbnail resep sendiri.
+  $pdo->exec('CREATE TABLE IF NOT EXISTS faces (id INTEGER PRIMARY KEY AUTOINCREMENT, image TEXT, created_by TEXT, created_at TEXT)');
   $pdo->exec('CREATE TABLE IF NOT EXISTS events (id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT, username TEXT, type TEXT, prompt_id TEXT)');
   $pdo->exec('CREATE INDEX IF NOT EXISTS ix_events_ts ON events(ts)');
   $pdo->exec('CREATE TABLE IF NOT EXISTS lt_events (id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT, day TEXT, vid TEXT, sid TEXT, type TEXT, plan TEXT, src TEXT, med TEXT, camp TEXT, content TEXT, ref TEXT, device TEXT, page TEXT)');
