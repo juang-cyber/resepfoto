@@ -6,6 +6,16 @@ RewriteEngine On
 RewriteCond %{HTTPS} !=on
 RewriteCond %{HTTP:X-Forwarded-Proto} !https
 RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Etalase internasional imagine.kitlab.id: folder, kode, dan database yang SAMA dengan ResepFoto.
+# Halaman utama & manifest lewat site.php (English saja). Landing /promo masih berbahasa Indonesia,
+# jadi dialihkan ke beranda sampai versi English-nya ada.
+RewriteCond %{HTTP_HOST} ^imagine\. [NC]
+RewriteRule ^promo(-live)?(/.*)?$ / [R=302,L]
+RewriteCond %{HTTP_HOST} ^imagine\. [NC]
+RewriteRule ^(index\.html)?$ site.php [L]
+RewriteCond %{HTTP_HOST} ^imagine\. [NC]
+RewriteRule ^site\.webmanifest$ site.php?f=manifest [L]
 </IfModule>
 
 <FilesMatch "^(config\.php|config\.example\.php|lib\.php|ai\.php|xlsx\.php|php\.ini|\.user\.ini|\.autodeploy|.*\.(sqlite|sqlite-wal|sqlite-shm|json|part|md|log|zip|sql|bak|tar|gz))$">

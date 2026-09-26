@@ -7,15 +7,40 @@ const { api, toast, esc } = APP;
 const $ = (s, r = document) => r.querySelector(s);
 const num = n => Number(n || 0).toLocaleString("id-ID");
 const when = iso => iso ? new Date(iso).toLocaleString("id-ID", {day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"}) : "-";
-const ACT = {test: "Tes koneksi", link: "Link referensi", reference: "Link Instagram", analyze: "Isi otomatis", ocr: "Prompt dari gambar", generate: "Tes generate", thumb: "Thumbnail sendiri"};
+const ACT = {test: "Tes koneksi", link: "Link referensi", reference: "Link Instagram", analyze: "Isi otomatis", ocr: "Prompt dari gambar", generate: "Tes generate", thumb: "Thumbnail sendiri", translate: "Terjemah EN"};
 
 const box = APP.addAdminTab({id: "ai", label: "AI", onShow: () => load(), superOnly: true});
 let data = null;
 
 async function load(){
   if (!data) box.innerHTML = `<div class="empty">Memuat pengaturan AI…</div>`;
-  try { data = await api("ai_settings"); render(); }
+  try {
+    const [s, en] = await Promise.all([api("ai_settings"), api("en_status").catch(() => null)]);
+    data = s; data.en = en ? en.status : null; render();
+  }
   catch (e) { box.innerHTML = `<div class="error">${esc(e.message)}</div>`; }
+}
+
+/* Kartu etalase internasional: berapa resep sudah tampil di imagine.kitlab.id, dan tombol melengkapi kolom EN. */
+function enCard(){
+  const s = data.en;
+  if (!s) return "";
+  const f = s.fields, left = f.title + f.desc + f.tips + f.cat + f.prompt;
+  return `
+    <div class="set-card">
+      <div class="set-row"><h3>Versi English · imagine.kitlab.id</h3><span class="pill ${s.visible === s.total ? "ok" : "warn"}">${num(s.visible)} / ${num(s.total)} resep tampil</span></div>
+      <small class="muted">Etalase internasional hanya menampilkan resep yang sudah punya <b>judul English</b> dan prompt yang bisa dibaca dalam <b>bahasa Inggris</b>. Tombol di bawah mengisi kolom English yang <b>masih kosong</b> dengan AI (mesin utama di atas, cadangannya otomatis). Teks Indonesia dan prompt utama ResepFoto tidak pernah diubah, dan terjemahan yang sudah ada tidak ditimpa.</small>
+      <div class="stats" style="grid-template-columns:repeat(5,minmax(0,1fr))">
+        <div class="stat"><b>${num(f.title)}</b><span>Judul</span></div>
+        <div class="stat"><b>${num(f.desc)}</b><span>Deskripsi</span></div>
+        <div class="stat"><b>${num(f.tips)}</b><span>Tips</span></div>
+        <div class="stat"><b>${num(f.cat)}</b><span>Kategori</span></div>
+        <div class="stat"><b>${num(f.prompt)}</b><span>Prompt Indonesia</span></div>
+      </div>
+      <small class="muted">Angka di atas = kolom English yang masih kosong. Hasil AI tetap bisa disunting per resep (form resep → Versi English).</small>
+      <div class="ord-actions"><button class="main" id="en-fill" ${left ? "" : "disabled"}>${left ? "Lengkapi versi English dengan AI" : "Semua sudah lengkap ✓"}</button></div>
+      <div id="en-out"></div>
+    </div>`;
 }
 
 function render(){
@@ -63,6 +88,8 @@ function render(){
       </div>
       <div id="ds-test-out"></div>
     </div>
+
+    ${enCard()}
 
     <div class="set-card">
       <div class="set-row"><h3>Pemakaian 30 hari</h3><button class="sq" id="ai-refresh" aria-label="Muat ulang">↻</button></div>
@@ -113,6 +140,25 @@ function bind(){
   $("#ai-test").onclick = test("gemini", $("#ai-test"), $("#ai-test-out"), "Gemini");
   $("#ds-test").onclick = test("deepseek", $("#ds-test"), $("#ds-test-out"), "DeepSeek");
   $("#ai-refresh").onclick = () => load();
+  const enBtn = $("#en-fill");
+  if (enBtn) enBtn.onclick = async () => {
+    const out = $("#en-out"); enBtn.disabled = true;
+    const st = (h, k) => { out.innerHTML = `<div class="ai-status ${k || ""}">${k === "busy" ? '<span class="spin"></span>' : ""}<div>${h}</div></div>`; };
+    let done = 0;
+    try {
+      // Satu putaran = beberapa resep. Berhenti kalau sudah habis, atau kalau satu putaran tidak menghasilkan apa-apa.
+      for (let i = 0; i < 300; i++){
+        st(`Menerjemahkan ke bahasa Inggris… ${done} resep selesai. Biarkan tab ini terbuka.`, "busy");
+        const r = await api("en_fill", {});
+        done += r.done || 0;
+        const f = r.status.fields, left = f.title + f.desc + f.tips + f.cat + f.prompt;
+        if (!left){ st(`Selesai: ${done} resep diterjemahkan. ${num(r.status.visible)} dari ${num(r.status.total)} resep kini tampil di imagine.kitlab.id.`, "ok"); break; }
+        if (!r.done){ st(`Berhenti di ${done} resep: AI tidak mengembalikan terjemahan untuk sisanya. Coba tekan lagi, atau isi manual di form resep.`, "err"); break; }
+      }
+    } catch (e) { st(`${esc(e.message)} (${done} resep sempat diterjemahkan)`, "err"); }
+    const keep = out.innerHTML;
+    try { data.en = (await api("en_status")).status; render(); $("#en-out").innerHTML = keep; } catch {}
+  };
   $("#ai-new").onclick = () => APP.openPromptForm(null);
 }
 })();

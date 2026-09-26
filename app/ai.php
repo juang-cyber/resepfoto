@@ -149,7 +149,7 @@ function dataUri(string $path): string {
  * Mesin utama mengikuti refEngine(); kalau gagal (atau jawabannya bukan JSON) langsung dicoba mesin satunya,
  * asal key-nya terisi. 'fallback' berisi alasan mesin utama gagal supaya admin tahu.
  */
-function aiVisionJson(string $action, string $instr, array $images): array {
+function aiVisionJson(string $action, string $instr, array $images, array $opts = []): array {
   $order = refEngine() === 'gemini' ? ['gemini', 'deepseek'] : ['deepseek', 'gemini'];
   $order = array_values(array_filter($order, fn($e) => ($e === 'gemini' ? aiKey() : dsKey()) !== ''));
   if (!$order) throw new RfError('Isi dulu API key DeepSeek atau Gemini di Admin → AI.');
@@ -163,7 +163,7 @@ function aiVisionJson(string $action, string $instr, array $images): array {
           $content[] = ['type' => 'text', 'text' => $im['label'] . ':'];
           $content[] = ['type' => 'image_url', 'image_url' => ['url' => dataUri($im['path'])]];
         }
-        $res = deepseekCall($action, $content, ['json' => true, 'timeout' => 150]);
+        $res = deepseekCall($action, $content, ['json' => true, 'timeout' => 150, 'maxTokens' => (int)($opts['maxTokens'] ?? 4000)]);
       } else {
         $parts = [['text' => $instr]];
         foreach ($images as $im) { $parts[] = ['text' => $im['label'] . ':']; $parts[] = imagePart($im['path']); }
@@ -469,6 +469,97 @@ function generateThumbnail(string $prompt, ?string $refPath, ?string $facePath, 
   }
   if (!$res['images']) throw new RfError('Model tidak mengembalikan gambar' . ($res['text'] ? ': ' . mb_substr($res['text'], 0, 160) : '.'));
   return $res;
+}
+
+/* ---------- Versi English untuk etalase internasional (imagine.kitlab.id) ---------- */
+
+/** Nama Inggris bawaan kategori (sama dengan CAT_EN di index.html). Nama yang sudah dipakai di database menang. */
+const CAT_EN_MAP = ['Foto Jadul' => 'Retro Photos', 'Jalan-jalan' => 'Travel', 'Keluarga' => 'Family', 'Momen Spesial' => 'Special Moments',
+  'Profesional' => 'Professional', 'Tren Viral' => 'Viral Trends', 'Editorial' => 'Editorial', 'Gaya Jalanan' => 'Street Style',
+  'Kartun & Ilustrasi' => 'Cartoon & Art'];
+
+/** Kolom EN yang masih kosong di satu resep. "prompt" hanya kalau prompt utamanya berbahasa Indonesia. */
+function enNeeds(array $r): array {
+  $need = [];
+  foreach (['title' => ['title', 'title_en'], 'desc' => ['descr', 'descr_en'], 'tips' => ['tips', 'tips_en'], 'cat' => ['cat', 'cat_en']] as $f => [$src, $dst]) {
+    if (trim((string)($r[$dst] ?? '')) === '' && trim((string)($r[$src] ?? '')) !== '') $need[] = $f;
+  }
+  if (trim((string)($r['prompt_en'] ?? '')) === '' && looksIndonesian((string)$r['prompt'])) $need[] = 'prompt';
+  return $need;
+}
+
+/** Tampil di etalase EN = punya judul EN dan prompt-nya bisa dibaca dalam bahasa Inggris. */
+function enVisible(array $r): bool {
+  return trim((string)($r['title_en'] ?? '')) !== '' && !(looksIndonesian((string)$r['prompt']) && trim((string)($r['prompt_en'] ?? '')) === '');
+}
+
+function enStatus(): array {
+  $s = ['total' => 0, 'visible' => 0, 'complete' => 0, 'fields' => ['title' => 0, 'desc' => 0, 'tips' => 0, 'cat' => 0, 'prompt' => 0]];
+  foreach (db()->query('SELECT * FROM prompts')->fetchAll() as $r) {
+    $s['total']++;
+    if (enVisible($r)) $s['visible']++;
+    $n = enNeeds($r);
+    if (!$n) $s['complete']++;
+    foreach ($n as $f) $s['fields'][$f]++;
+  }
+  return $s;
+}
+
+function enInstructions(): string {
+  return <<<TXT
+You translate the catalog of ResepFoto, an Indonesian store of AI photo "recipes" (prompts that people paste into Gemini or ChatGPT together with their own photo), for its international English storefront called Imagine.
+For every item in ITEMS translate ONLY the fields that are present:
+- "title": natural, catchy English title in Title Case, max 40 characters, no emoji.
+- "desc": one benefit sentence for buyers, max 100 characters.
+- "tips": 1–2 short sentences of practical advice; keep quoted prompt fragments in English.
+- "cat": English category name, 1–3 words, Title Case (for example Retro Photos, Travel, Family, Special Moments, Professional, Viral Trends).
+- "prompt": an AI image-generation prompt written in Indonesian. Translate it faithfully into clear English that an image model understands. Keep EVERY instruction, detail, number, order and line break. Do not add, remove or "improve" anything. Keep the instruction that the face and identity must stay exactly the same as the uploaded photo.
+Write for an international audience. Do not mention Indonesia or Rupiah unless the content itself is about it (traditional Indonesian clothing, for example, stays as it is).
+Reply with JSON only: {"items":[{"id":"<same id>", ...the same fields, translated...}]}
+TXT;
+}
+
+/**
+ * Lengkapi kolom EN beberapa resep sekaligus. HANYA mengisi kolom yang masih kosong — terjemahan yang sudah ada
+ * dan suntingan admin tidak pernah ditimpa, dan kolom Indonesia (termasuk prompt utama) tidak pernah diubah.
+ */
+function enFill(int $batch = 4): array {
+  $pdo = db();
+  // 1) Kategori tanpa AI: pakai nama EN yang sudah dipakai kategori yang sama, atau peta bawaan.
+  $known = [];
+  foreach ($pdo->query("SELECT cat, cat_en FROM prompts WHERE COALESCE(cat_en, '') <> ''")->fetchAll() as $r) $known[$r['cat']] = $r['cat_en'];
+  $known += CAT_EN_MAP;
+  $up = $pdo->prepare("UPDATE prompts SET cat_en = ? WHERE cat = ? AND COALESCE(cat_en, '') = ''");
+  foreach ($known as $cat => $en) $up->execute([$en, $cat]);
+  // 2) Sisanya lewat AI, beberapa resep per permintaan supaya jawaban tidak terpotong.
+  $todo = [];
+  foreach ($pdo->query('SELECT * FROM prompts ORDER BY ord')->fetchAll() as $r) {
+    if ($n = enNeeds($r)) $todo[$r['id']] = [$r, $n];
+    if (count($todo) >= $batch) break;
+  }
+  if (!$todo) return ['done' => 0, 'status' => enStatus()];
+  $src = ['title' => 'title', 'desc' => 'descr', 'tips' => 'tips', 'cat' => 'cat', 'prompt' => 'prompt'];
+  $items = [];
+  foreach ($todo as $id => [$r, $n]) { $it = ['id' => $id]; foreach ($n as $f) $it[$f] = (string)$r[$src[$f]]; $items[] = $it; }
+  $ai = aiVisionJson('translate', enInstructions() . "\n\nITEMS (JSON):\n" . json_encode($items, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), [], ['maxTokens' => 8000]);
+  $dst = ['title' => ['title_en', 80], 'desc' => ['descr_en', 160], 'tips' => ['tips_en', 400], 'cat' => ['cat_en', 40], 'prompt' => ['prompt_en', 6000]];
+  $done = 0;
+  foreach ((array)($ai['json']['items'] ?? []) as $x) {
+    $id = is_array($x) ? (string)($x['id'] ?? '') : '';
+    if (!isset($todo[$id])) continue;   // id karangan AI diabaikan
+    $wrote = false;
+    foreach ($todo[$id][1] as $f) {
+      $v = mb_substr(trim((string)($x[$f] ?? '')), 0, $dst[$f][1]);
+      if ($v === '') continue;
+      [$col] = $dst[$f];
+      $st = $pdo->prepare("UPDATE prompts SET $col = ? WHERE id = ? AND COALESCE($col, '') = ''");
+      $st->execute([$v, $id]);
+      $wrote = $wrote || $st->rowCount() > 0;
+      if ($f === 'cat') $pdo->prepare("UPDATE prompts SET cat_en = ? WHERE cat = ? AND COALESCE(cat_en, '') = ''")->execute([$v, $todo[$id][0]['cat']]);
+    }
+    if ($wrote) $done++;
+  }
+  return ['done' => $done, 'engine' => $ai['engine'], 'status' => enStatus()];
 }
 
 /** Tes generate internal memakai model gambar Gemini. */
