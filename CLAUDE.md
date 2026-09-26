@@ -86,6 +86,35 @@ Cron menyalinnya bersama `app/.`. Jadi `/promo` boleh tetap halaman demo, sement
 diarahkan ke `https://resepfoto.kitlab.id/promo-live/`**. Pelacakannya tetap `page: "promo"`, jadi Admin → Iklan dan
 umpan keranjang asli menggabungkan kedua halaman — bedakan lewat UTM.
 
+## Etalase internasional (imagine.kitlab.id) — Tahap 1, 26 Sep 2026
+Satu folder, satu kode, **satu database** untuk semua etalase. Domain `imagine.kitlab.id` dibuat di cPanel
+(Domains → Create A New Domain) dengan document root **`/resepfoto.kitlab.id`** — folder yang sama, jadi cron deploy
+tidak perlu diubah. DNS kitlab.id ada di nameserver Jagoan, SSL memakai sertifikat AutoSSL `*.kitlab.id`.
+- **`.htaccess`**: host `imagine.*` → `/` dan `/index.html` dilayani **`app/site.php`**, `/site.webmanifest` →
+  `site.php?f=manifest`, dan `/promo`, `/promo-live` dialihkan ke `/` (landing masih berbahasa Indonesia).
+- **`site.php`** membaca `index.html`, mengganti blok di antara `<!--site:head-->…<!--/site:head-->` dengan meta
+  English, dan memasang `<html lang="en" data-site="imagine" data-langs="en" data-brand="Imagine" data-title=…>`.
+  Host lain → `index.html` apa adanya (diuji byte-per-byte). **Jangan hapus penanda site:head.**
+- **`index.html`** membaca atribut itu jadi `SITE`. Kalau `id` tidak ada di `data-langs` (`HAS_ID = false`):
+  bahasa dikunci English, `t()` tidak jatuh ke kamus Indonesia, `loc()` tidak jatuh ke kolom Indonesia, pilihan
+  bahasa & tautan /promo disembunyikan (`applySite()`), "ResepFoto" di kamus diganti nama brand, logo memakai
+  simbol `#im-lockup` / `#im-lockup-t`, dan **hanya resep `enReady`** yang dimuat (judul EN ada, dan prompt-nya
+  tidak berbahasa Indonesia atau sudah punya `prompt_en`). Teks khusus Indonesia per etalase ada di `SITE_TEXT`.
+- **Akun berlaku di semua etalase** (keputusan pemilik): tabel `members` dipakai bersama, login sama. Catatan:
+  aturan satu-sesi berarti login di imagine pada perangkat yang sama menendang sesi di resepfoto.
+- **`prompts.prompt_en`** (kolom baru): prompt versi Inggris, diisi **hanya** kalau prompt utama berbahasa
+  Indonesia (`looksIndonesian()` di `lib.php`). Prompt utama tidak pernah diubah, jadi ResepFoto tetap sama.
+  API mengirim `promptEn` + `promptId`; tampilan English (termasuk ResepFoto mode EN) memakai `promptOf()`.
+  `prompt_save` mempertahankan `prompt_en` lama kalau klien tidak mengirimnya (INSERT OR REPLACE menulis ulang baris).
+  Excel ekspor/impor **belum** memuat `prompt_en` (impor tidak menyentuhnya).
+- **Admin → AI → kartu "Versi English"**: `en_status` (hitungan) + `en_fill` (4 resep per putaran, diulang panel).
+  Mengisi HANYA kolom EN yang kosong (judul, deskripsi, tips, kategori, `prompt_en`); kategori dikenal diisi dari
+  `CAT_EN_MAP` tanpa AI; id karangan AI diabaikan. Dicek dengan DeepSeek asli: 9 prompt Indonesia di data lokal
+  diterjemahkan setia (instruksi, urutan, bahkan huruf kapital terjaga) dalam 3 putaran.
+- **Belum**: pembayaran & landing EN (sengaja ditunda pemilik), og:image English, Excel `prompt_en`.
+- **Tahap 2 (rencana)**: `imagine.kitlab.id/th` — bahasa Thai bawaan + EN, kolom `*_th`, kamus TH, terjemahan AI
+  dengan cek penutur Thai. Pemilik minta kualitas Thai-nya benar-benar bagus.
+
 ## Pembayaran Mayar
 Alur: pembeli klik paket di `/promo` → checkout Mayar → Mayar POST ke `app/webhook-mayar.php` → `fulfillOrder()`
 membuat member, mengirim email akses ke pembeli, dan email notifikasi ke admin.
@@ -212,7 +241,7 @@ Tanpa token cocok, pesanan tetap tercatat tapi hanya `notifyAdmin()` yang jalan 
 
 ## Data
 Tabel: `prompts, prompts_trash, members, attempts, settings, orders, webhook_log, ai_log, prompt_tests, faces, events,
-lt_events, presence, ad_spend, vouchers`.
+lt_events, presence, ad_spend, vouchers`. Kolom `prompts.prompt_en` = prompt Inggris untuk etalase imagine.
 Kolom penting `members`: `username, name, code_hash, code_hint, plan, expires, active, email, phone, role, avatar, session_token, plan_cap, allow_ids`.
 Kolom penting `prompts`: `id, ord, cat, title, descr, popular, tools, prompt, tips, image, created_at,
 updated_at, cat_en, title_en, descr_en, tips_en, created_by, qc_status, result_status, en_only`.
@@ -431,7 +460,7 @@ sebagai **teks ISO**, bukan tanggal Excel, supaya tidak bergeser sehari saat bol
 |---|---|
 | publik | `me` (juga mengembalikan `cover` & `v`), `login`, `logout`, `recent_orders` (pesanan asli + aktivitas keranjang asli, keduanya anonim), `lt` (tracking halaman iklan), `live` (`?page=` opsional), `pixel` (Meta Pixel ID untuk `/promo`) |
 | user | `prompts`, `track`, `avatar_save` (admin boleh isi `username` untuk member lain) |
-| admin | `prompt_save`, `prompt_review` (ubah status QC/hasil dari daftar), `prompt_cover_from_test` (hasil tes jadi gambar contoh), `prompt_delete` (→ tempat sampah), `trash`, `trash_restore`, `trash_purge`, `members`, `member_save` (FormData, boleh `avatar`/`clearAvatar`), `member_delete`, `cover_save`, `ai_analyze`, `ai_ocr`, `ai_reference` (link Instagram → resep), `ai_thumb` (thumbnail sendiri dari slide referensi), `faces`, `face_add`, `face_delete`, `prompt_tests`, `prompt_test_add/generate/update/delete` |
+| admin | `prompt_save`, `prompt_review` (ubah status QC/hasil dari daftar), `prompt_cover_from_test` (hasil tes jadi gambar contoh), `prompt_delete` (→ tempat sampah), `trash`, `trash_restore`, `trash_purge`, `members`, `member_save` (FormData, boleh `avatar`/`clearAvatar`), `member_delete`, `cover_save`, `ai_analyze`, `ai_ocr`, `ai_reference` (link Instagram → resep), `ai_thumb` (thumbnail sendiri dari slide referensi), `faces`, `face_add`, `face_delete`, `en_status`, `en_fill` (versi English, lihat Etalase internasional), `prompt_tests`, `prompt_test_add/generate/update/delete` |
 | super | `admins`, `admin_save`, `admin_delete`, `admin_change_code`, `orders`, `order_action` (`approve/resend/newcode/remind/reject`), `settings_save`, `test_email`, `test_wa`, `ai_settings`, `ai_settings_save`, `ai_test` (`engine: gemini|deepseek`), `report_users`, `report_ads`, `ad_spend_save`, `vouchers`, `voucher_create` (buat kupon di Mayar), `voucher_sync` (baca status dari Mayar), `voucher_save` (catat kode saja), `voucher_delete`, `mayar_coupons` (lihat daftar kupon Mayar apa adanya — alat diagnosis), `prompts_export` (unduh katalog sebagai .xlsx), `prompts_import` (impor balik; `dryRun=1` = pratinjau) |
 
 ## Fitur yang sudah ada (jangan dibuat ulang)
@@ -501,6 +530,7 @@ bash test/uji-voucher-mayar.sh   # voucher_create + voucher_sync lewat Mayar TIR
 bash test/uji-link-instagram.sh  # mode Link Instagram + setelan DeepSeek lewat Instagram/DeepSeek/Gemini
                                  #   + thumbnail sendiri (ai_thumb, pustaka wajah) lewat server TIRUAN
                                  #   (RF_IG_BASE, RF_DEEPSEEK_BASE, RF_GEMINI_BASE) — 86 cek
+bash test/uji-etalase-imagine.sh # etalase imagine: site.php per host, prompt_en, en_fill — 35 cek
 bash test/uji-konten-excel.sh    # ekspor/impor resep lewat Excel (tab Konten)
 ```
 `uji-voucher-mayar.sh` menjalankan server tiruan dan mengarahkan aplikasi ke situ lewat

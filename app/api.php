@@ -171,10 +171,11 @@ function rowToPrompt(array $r, bool $forAdmin = false, bool $locked = false): ar
     'tips' => $r['tips'], 'image' => $r['image'], 'createdAt' => $r['created_at'] ?? '',
     'catEn' => (string)($r['cat_en'] ?? ''), 'titleEn' => (string)($r['title_en'] ?? ''),
     'descEn' => (string)($r['descr_en'] ?? ''), 'tipsEn' => (string)($r['tips_en'] ?? ''),
+    'promptEn' => (string)($r['prompt_en'] ?? ''), 'promptId' => looksIndonesian((string)$r['prompt']),
     'enOnly' => (bool)($r['en_only'] ?? 0), 'locked' => $locked];
   // Resep terkunci tetap tampil (judul + thumbnail), tapi isinya TIDAK pernah dikirim ke klien.
   // Kalau hanya disembunyikan di CSS, siapa pun bisa membacanya lewat devtools.
-  if ($locked) { $p['prompt'] = ''; $p['tips'] = ''; $p['tipsEn'] = ''; }
+  if ($locked) { $p['prompt'] = ''; $p['promptEn'] = ''; $p['tips'] = ''; $p['tipsEn'] = ''; }
   if ($forAdmin) {
     $p['createdBy'] = (string)($r['created_by'] ?? '');
     $p['qc'] = (string)($r['qc_status'] ?? '');
@@ -376,7 +377,7 @@ try {
   switch ($a) {
     case 'me': {
       $who = currentUser();
-      $res = ['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => $who, 'cover' => coverConfig(), 'v' => 'admin-39'];
+      $res = ['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => $who, 'cover' => coverConfig(), 'v' => 'admin-40'];
       if (!$who && !empty($GLOBALS['rf_session_taken'])) $res['sessionTaken'] = true;
       out($res);
     }
@@ -485,11 +486,13 @@ try {
       $pick = function ($k, array $ok) use ($in) { $v = str($in, $k, 20); return in_array($v, $ok, true) ? $v : ''; };
       $qc = $pick('qc', ['lolos', 'review', 'gagal']);
       $result = $pick('result', ['cocok', 'kurang']);
-      $pdo->prepare('INSERT OR REPLACE INTO prompts (id, ord, cat, title, descr, popular, tools, prompt, tips, image, updated_at, created_at, cat_en, title_en, descr_en, tips_en, created_by, qc_status, result_status, en_only) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')->execute([
+      // prompt_en: kalau klien lama tidak mengirimnya, nilai lama dipertahankan (INSERT OR REPLACE menulis ulang baris).
+      $promptEn = array_key_exists('prompt_en', $in) ? str($in, 'prompt_en', 6000) : (string)($old['prompt_en'] ?? '');
+      $pdo->prepare('INSERT OR REPLACE INTO prompts (id, ord, cat, title, descr, popular, tools, prompt, tips, image, updated_at, created_at, cat_en, title_en, descr_en, tips_en, created_by, qc_status, result_status, en_only, prompt_en) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')->execute([
         $id, $ord, $cat, $title, str($in, 'desc', 160), $flag('popular'),
         json_encode($tools), $prompt, str($in, 'tips', 400), $image, gmdate('c'), $old['created_at'] ?? gmdate('c'),
         str($in, 'cat_en', 40), str($in, 'title_en', 80), str($in, 'desc_en', 160), str($in, 'tips_en', 400),
-        $old ? (string)($old['created_by'] ?? '') : (string)$me['username'], $qc, $result, $flag('en_only')]);
+        $old ? (string)($old['created_by'] ?? '') : (string)$me['username'], $qc, $result, $flag('en_only'), $promptEn]);
       $st = $pdo->prepare('SELECT * FROM prompts WHERE id = ?'); $st->execute([$id]);
       out(['ok' => true, 'prompt' => rowToPrompt($st->fetch(), true)]);
     }
@@ -1193,6 +1196,19 @@ try {
     case 'faces': {
       requireAdmin();
       out(['ok' => true, 'faces' => facesList()]);
+    }
+
+    /* ---------- versi English (etalase imagine.kitlab.id) ---------- */
+    case 'en_status': {
+      requireAdmin();
+      out(['ok' => true, 'status' => enStatus()]);
+    }
+
+    case 'en_fill': {
+      // Satu putaran = beberapa resep. Panel memanggilnya berulang sampai tidak ada yang tersisa.
+      requireAdmin();
+      @set_time_limit(200);
+      out(['ok' => true] + enFill(4));
     }
 
     case 'face_add': {

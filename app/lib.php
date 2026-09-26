@@ -102,6 +102,9 @@ function db(): PDO {
   if (!in_array('qc_status', $cols, true)) $pdo->exec("ALTER TABLE prompts ADD COLUMN qc_status TEXT DEFAULT ''");
   if (!in_array('result_status', $cols, true)) $pdo->exec("ALTER TABLE prompts ADD COLUMN result_status TEXT DEFAULT ''");
   if (!in_array('en_only', $cols, true)) $pdo->exec('ALTER TABLE prompts ADD COLUMN en_only INTEGER DEFAULT 0');
+  // Prompt versi Inggris untuk etalase internasional (imagine.kitlab.id). Diisi HANYA kalau prompt utamanya
+  // berbahasa Indonesia; prompt utama sendiri tidak pernah diubah, jadi resep di ResepFoto tetap sama persis.
+  if (!in_array('prompt_en', $cols, true)) $pdo->exec("ALTER TABLE prompts ADD COLUMN prompt_en TEXT DEFAULT ''");
   $mcols = array_column($pdo->query('PRAGMA table_info(members)')->fetchAll(), 'name');
   if (!in_array('email', $mcols, true)) $pdo->exec('ALTER TABLE members ADD COLUMN email TEXT');
   if (!in_array('phone', $mcols, true)) $pdo->exec('ALTER TABLE members ADD COLUMN phone TEXT');
@@ -327,6 +330,16 @@ function setSetting(string $k, string $v): void {
 }
 
 function today(): string { return (new DateTime('now', new DateTimeZone('Asia/Jakarta')))->format('Y-m-d'); }
+/**
+ * Apakah teks prompt ini berbahasa Indonesia? Hitungan kata-kata fungsi Indonesia yang hampir tidak pernah
+ * muncul di prompt Inggris. Dipakai untuk menentukan resep mana yang butuh prompt_en di etalase EN.
+ */
+function looksIndonesian(string $s): bool {
+  $n = preg_match_all('/\b(yang|dan|dengan|untuk|ini|itu|pada|dari|saya|kamu|gunakan|buat|buatkan|ubah|jadikan|menjadi|wajah|latar|belakang|pakai|memakai|menggunakan|seperti|tanpa|agar|supaya|sama|persis|rambut|baju|mengenakan|sedang|tidak|jangan)\b/iu', $s);
+  $words = max(1, str_word_count(preg_replace('/[^\p{L}\s]/u', ' ', $s)));
+  return $n >= 3 && $n / $words >= 0.04;
+}
+
 /* ---------------- hak akses katalog per paket ---------------- */
 const VIRAL_CAT = 'Tren Viral';
 
