@@ -7,7 +7,7 @@ const { api, toast, esc } = APP;
 const $ = (s, r = document) => r.querySelector(s);
 const num = n => Number(n || 0).toLocaleString("id-ID");
 const when = iso => iso ? new Date(iso).toLocaleString("id-ID", {day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"}) : "-";
-const ACT = {test: "Tes koneksi", link: "Link referensi", reference: "Link Instagram", analyze: "Isi otomatis", ocr: "Prompt dari gambar", generate: "Tes generate", thumb: "Thumbnail sendiri", translate: "Terjemah EN"};
+const ACT = {test: "Tes koneksi", link: "Link referensi", reference: "Link Instagram", analyze: "Isi otomatis", ocr: "Prompt dari gambar", generate: "Tes generate", thumb: "Thumbnail sendiri", translate: "Terjemah EN", translate_th: "Terjemah TH"};
 
 const box = APP.addAdminTab({id: "ai", label: "AI", onShow: () => load(), superOnly: true});
 let data = null;
@@ -15,8 +15,8 @@ let data = null;
 async function load(){
   if (!data) box.innerHTML = `<div class="empty">Memuat pengaturan AI…</div>`;
   try {
-    const [s, en] = await Promise.all([api("ai_settings"), api("en_status").catch(() => null)]);
-    data = s; data.en = en ? en.status : null; render();
+    const [s, en, th] = await Promise.all([api("ai_settings"), api("en_status").catch(() => null), api("th_status").catch(() => null)]);
+    data = s; data.en = en ? en.status : null; data.th = th ? th.status : null; render();
   }
   catch (e) { box.innerHTML = `<div class="error">${esc(e.message)}</div>`; }
 }
@@ -40,6 +40,27 @@ function enCard(){
       <small class="muted">Angka di atas = kolom English yang masih kosong. Hasil AI tetap bisa disunting per resep (form resep → Versi English).</small>
       <div class="ord-actions"><button class="main" id="en-fill" ${left ? "" : "disabled"}>${left ? "Lengkapi versi English dengan AI" : "Semua sudah lengkap ✓"}</button></div>
       <div id="en-out"></div>
+    </div>`;
+}
+
+/* Kartu etalase Thailand (/th): teks Thai (judul, deskripsi, tips, kategori). Prompt tetap English. */
+function thCard(){
+  const s = data.th;
+  if (!s) return "";
+  const f = s.fields, left = f.title + f.desc + f.tips + f.cat;
+  return `
+    <div class="set-card">
+      <div class="set-row"><h3>Versi Thai · imagine.kitlab.id/th</h3><span class="pill ${s.visibleComplete === s.visible ? "ok" : "warn"}">${num(s.visibleComplete)} / ${num(s.visible)} resep berbahasa Thai</span></div>
+      <small class="muted">Etalase Thailand menampilkan resep yang sama dengan etalase English (jadi lengkapi <b>versi English dulu</b>). Tombol di bawah menulis <b>judul, deskripsi, tips, dan kategori</b> dalam bahasa Thai untuk kolom yang <b>masih kosong</b>, dengan gaya bahasa aplikasi Thai yang natural. Prompt tidak diterjemahkan: model gambar paling patuh pada prompt English. Kolom Thai yang kosong tampil dalam English.</small>
+      <div class="stats" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+        <div class="stat"><b>${num(f.title)}</b><span>Judul</span></div>
+        <div class="stat"><b>${num(f.desc)}</b><span>Deskripsi</span></div>
+        <div class="stat"><b>${num(f.tips)}</b><span>Tips</span></div>
+        <div class="stat"><b>${num(f.cat)}</b><span>Kategori</span></div>
+      </div>
+      <small class="muted">Angka di atas = kolom Thai yang masih kosong. Hasil AI tetap bisa disunting per resep (form resep → Versi Thai). Sebelum mulai jualan, sebaiknya minta penutur asli Thai membaca sekilas.</small>
+      <div class="ord-actions"><button class="main" id="th-fill" ${left ? "" : "disabled"}>${left ? "Lengkapi versi Thai dengan AI" : "Semua sudah lengkap ✓"}</button></div>
+      <div id="th-out"></div>
     </div>`;
 }
 
@@ -90,6 +111,7 @@ function render(){
     </div>
 
     ${enCard()}
+    ${thCard()}
 
     <div class="set-card">
       <div class="set-row"><h3>Pemakaian 30 hari</h3><button class="sq" id="ai-refresh" aria-label="Muat ulang">↻</button></div>
@@ -158,6 +180,24 @@ function bind(){
     } catch (e) { st(`${esc(e.message)} (${done} resep sempat diterjemahkan)`, "err"); }
     const keep = out.innerHTML;
     try { data.en = (await api("en_status")).status; render(); $("#en-out").innerHTML = keep; } catch {}
+  };
+  const thBtn = $("#th-fill");
+  if (thBtn) thBtn.onclick = async () => {
+    const out = $("#th-out"); thBtn.disabled = true;
+    const st = (h, k) => { out.innerHTML = `<div class="ai-status ${k || ""}">${k === "busy" ? '<span class="spin"></span>' : ""}<div>${h}</div></div>`; };
+    let done = 0;
+    try {
+      for (let i = 0; i < 300; i++){
+        st(`Menulis versi Thai… ${done} resep selesai. Biarkan tab ini terbuka.`, "busy");
+        const r = await api("th_fill", {});
+        done += r.done || 0;
+        const f = r.status.fields, left = f.title + f.desc + f.tips + f.cat;
+        if (!left){ st(`Selesai: ${done} resep kini punya teks Thai. Cek hasilnya di imagine.kitlab.id/th.`, "ok"); break; }
+        if (!r.done){ st(`Berhenti di ${done} resep: AI tidak mengembalikan teks Thai untuk sisanya. Coba tekan lagi, atau isi manual di form resep.`, "err"); break; }
+      }
+    } catch (e) { st(`${esc(e.message)} (${done} resep sempat diterjemahkan)`, "err"); }
+    const keep = out.innerHTML;
+    try { data.th = (await api("th_status")).status; render(); $("#th-out").innerHTML = keep; } catch {}
   };
   $("#ai-new").onclick = () => APP.openPromptForm(null);
 }

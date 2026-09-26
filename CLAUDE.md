@@ -112,8 +112,34 @@ tidak perlu diubah. DNS kitlab.id ada di nameserver Jagoan, SSL memakai sertifik
   `CAT_EN_MAP` tanpa AI; id karangan AI diabaikan. Dicek dengan DeepSeek asli: 9 prompt Indonesia di data lokal
   diterjemahkan setia (instruksi, urutan, bahkan huruf kapital terjaga) dalam 3 putaran.
 - **Belum**: pembayaran & landing EN (sengaja ditunda pemilik), og:image English, Excel `prompt_en`.
-- **Tahap 2 (rencana)**: `imagine.kitlab.id/th` — bahasa Thai bawaan + EN, kolom `*_th`, kamus TH, terjemahan AI
-  dengan cek penutur Thai. Pemilik minta kualitas Thai-nya benar-benar bagus.
+
+## Etalase Thailand (imagine.kitlab.id/th) — Tahap 2, 26 Sep 2026
+Sub-etalase di host imagine: **Thai bawaan + English**, database & akun sama. Pemilik minta Thai yang benar-benar
+natural, jadi kamus ditulis manual lalu di-review DeepSeek sebagai penutur asli; tetap sarankan cek penutur Thai.
+- **`.htaccess`** (host `imagine.*`, urutan penting): `/th` → 301 `/th/`; `/th/` & `/th/index.html` →
+  `site.php?s=th`; `/th/site.webmanifest` → `site.php?s=th&f=manifest`; **`/th/(.+)` → `$1`** (api.php, img/,
+  uploads/, admin-*.js dilayani dari folder utama, jadi alamat relatif di index.html jalan tanpa `<base>` —
+  `<base>` merusak ikon `<use href="#…">`); `/th/promo*` → `/th/`.
+- **`site.php`**: entri `imagine-th` (`parent` imagine, `sub` th): `<html lang="th" data-site="imagine-th"
+  data-langs="th,en">`, meta & og Thai (`th_TH`), canonical `/th/`, hreflang en/th/x-default di kedua etalase,
+  manifest `start_url`/`scope` `/th/`, dan link Google Fonts **Noto Sans Thai** (CSS `html[lang="th"]` memakai
+  Inter untuk huruf Latin + Noto Sans Thai untuk huruf Thai, tanpa letter-spacing negatif).
+- **`index.html`**: `I18N.th` (119 kunci teks pembeli; teks admin `adm./pf./mf.` jatuh ke English). Urutan cadangan
+  isi resep `loc()`: **Thai → English → (Indonesia hanya di ResepFoto)**. `promptOf()` memakai `promptEn` untuk
+  semua bahasa selain Indonesia — **prompt tidak pernah diterjemahkan ke Thai** (model gambar paling patuh pada
+  prompt English). `catName()` pakai `catTh` / `CAT_TH`. Bahasa tersimpan **per etalase** (`LANG_KEY`:
+  `rf_lang` di ResepFoto, `rf_lang_<site>` di etalase lain; juga di skrip awal `<head>`). Tanggal `th-TH`
+  (kalender Buddha, wajar untuk pembaca Thai). Server hanya kenal ID/EN (`X-Lang: en` untuk Thai); pesan error
+  yang sering dilihat pembeli diterjemahkan di `TH_ERR`. Teks cover & chip dari admin tidak dipakai di etalase
+  tanpa Indonesia (kamus yang dipakai). `applySite()` membangun ulang tombol bahasa TH/EN & label "ภาษา · Language".
+- **Kolom baru `prompts.cat_th, title_th, descr_th, tips_th`**: API mengirim `catTh/titleTh/descTh/tipsTh`
+  (`tipsTh` dikosongkan untuk resep terkunci); `prompt_save` mempertahankan kolom Thai kalau klien tidak mengirimnya.
+  Form resep punya blok "Versi Thai". Excel belum memuat kolom Thai (impor tidak menyentuhnya).
+- **Admin → AI → kartu "Versi Thai"**: `th_status` + `th_fill` (6 resep per putaran, resep yang tampil di /th
+  didahulukan). Sumber = English (utama) + Indonesia (cek makna); hanya mengisi kolom kosong; kategori dikenal dari
+  `CAT_TH_MAP` tanpa AI; jawaban tanpa huruf Thai ditolak; log AI `translate_th`. `/th` menampilkan resep yang
+  sama dengan etalase English (`enReady`), jadi **jalankan "Versi English" dulu**. Dicek dengan DeepSeek asli:
+  12 resep, hasil natural setelah instruksi ditambah larangan kata Inggris tersisa & cek kolokasi.
 
 ## Pembayaran Mayar
 Alur: pembeli klik paket di `/promo` → checkout Mayar → Mayar POST ke `app/webhook-mayar.php` → `fulfillOrder()`
@@ -241,7 +267,8 @@ Tanpa token cocok, pesanan tetap tercatat tapi hanya `notifyAdmin()` yang jalan 
 
 ## Data
 Tabel: `prompts, prompts_trash, members, attempts, settings, orders, webhook_log, ai_log, prompt_tests, faces, events,
-lt_events, presence, ad_spend, vouchers`. Kolom `prompts.prompt_en` = prompt Inggris untuk etalase imagine.
+lt_events, presence, ad_spend, vouchers`. Kolom `prompts.prompt_en` = prompt Inggris untuk etalase imagine;
+`prompts.cat_th, title_th, descr_th, tips_th` = teks Thai untuk imagine.kitlab.id/th (prompt tetap English).
 Kolom penting `members`: `username, name, code_hash, code_hint, plan, expires, active, email, phone, role, avatar, session_token, plan_cap, allow_ids`.
 Kolom penting `prompts`: `id, ord, cat, title, descr, popular, tools, prompt, tips, image, created_at,
 updated_at, cat_en, title_en, descr_en, tips_en, created_by, qc_status, result_status, en_only`.
@@ -530,7 +557,8 @@ bash test/uji-voucher-mayar.sh   # voucher_create + voucher_sync lewat Mayar TIR
 bash test/uji-link-instagram.sh  # mode Link Instagram + setelan DeepSeek lewat Instagram/DeepSeek/Gemini
                                  #   + thumbnail sendiri (ai_thumb, pustaka wajah) lewat server TIRUAN
                                  #   (RF_IG_BASE, RF_DEEPSEEK_BASE, RF_GEMINI_BASE) — 86 cek
-bash test/uji-etalase-imagine.sh # etalase imagine: site.php per host, prompt_en, en_fill — 35 cek
+bash test/uji-etalase-imagine.sh # etalase imagine (EN) & /th (Thai): site.php per host/sub, kamus Thai,
+                                 #   prompt_en, en_fill, kolom *_th, th_fill — 70 cek
 bash test/uji-konten-excel.sh    # ekspor/impor resep lewat Excel (tab Konten)
 ```
 `uji-voucher-mayar.sh` menjalankan server tiruan dan mengarahkan aplikasi ke situ lewat

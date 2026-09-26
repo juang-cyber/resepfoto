@@ -562,6 +562,107 @@ function enFill(int $batch = 4): array {
   return ['done' => $done, 'engine' => $ai['engine'], 'status' => enStatus()];
 }
 
+/* ---------- Versi Thai untuk etalase imagine.kitlab.id/th ---------- */
+
+/** Nama Thai bawaan kategori (sama dengan CAT_TH di index.html). Nama yang sudah dipakai di database menang. */
+const CAT_TH_MAP = ['Foto Jadul' => 'ภาพย้อนยุค', 'Jalan-jalan' => 'ท่องเที่ยว', 'Keluarga' => 'ครอบครัว', 'Momen Spesial' => 'โมเมนต์พิเศษ',
+  'Profesional' => 'มืออาชีพ', 'Tren Viral' => 'เทรนด์ไวรัล', 'Editorial' => 'สไตล์นิตยสาร', 'Gaya Jalanan' => 'สตรีทสไตล์',
+  'Kartun & Ilustrasi' => 'การ์ตูนและภาพวาด'];
+/** field => [kolom Indonesia, kolom English, kolom Thai, panjang maksimum Thai] */
+const TH_COLS = ['title' => ['title', 'title_en', 'title_th', 120], 'desc' => ['descr', 'descr_en', 'descr_th', 240],
+  'tips' => ['tips', 'tips_en', 'tips_th', 600], 'cat' => ['cat', 'cat_en', 'cat_th', 60]];
+
+/** Kolom Thai yang masih kosong di satu resep (sumbernya teks Indonesia dan/atau English). Prompt tidak ikut. */
+function thNeeds(array $r): array {
+  $need = [];
+  foreach (TH_COLS as $f => [$id, $en, $th]) {
+    if (trim((string)($r[$th] ?? '')) === '' && (trim((string)($r[$id] ?? '')) !== '' || trim((string)($r[$en] ?? '')) !== '')) $need[] = $f;
+  }
+  return $need;
+}
+
+/** visible = resep yang tampil di /th (sama dengan etalase English); complete = semua teks Thai-nya sudah ada. */
+function thStatus(): array {
+  $s = ['total' => 0, 'visible' => 0, 'complete' => 0, 'visibleComplete' => 0, 'fields' => ['title' => 0, 'desc' => 0, 'tips' => 0, 'cat' => 0]];
+  foreach (db()->query('SELECT * FROM prompts')->fetchAll() as $r) {
+    $s['total']++;
+    $n = thNeeds($r);
+    if (!$n) $s['complete']++;
+    if (enVisible($r)) { $s['visible']++; if (!$n) $s['visibleComplete']++; }
+    foreach ($n as $f) $s['fields'][$f]++;
+  }
+  return $s;
+}
+
+function thInstructions(): string {
+  return <<<TXT
+You are a native Thai UX copywriter localizing the catalog of an AI photo "recipe" app for its Thai storefront (brand name: Imagine).
+A recipe is a ready-made prompt that people copy, then paste into Gemini or ChatGPT together with their own photo. The prompt itself stays in English, so never translate prompt text.
+Each field in ITEMS gives the source text in Indonesian ("id") and, when available, English ("en"). Use English as the main source and Indonesian to check the meaning.
+Write ONLY the fields that are present, in natural modern Thai: the way popular Thai lifestyle, beauty and photo apps talk to users. Warm, clear and friendly. Localize; do not translate word for word.
+- "title": short, catchy Thai title, max 30 characters, no emoji, no quotation marks.
+- "desc": one short benefit sentence for buyers, max 90 characters.
+- "tips": 1-2 short practical sentences. Words or phrases that refer to text inside the prompt stay in English inside quotation marks, exactly as written in the source.
+- "cat": Thai category name, 1-3 words.
+Thai writing rules: no spaces between words; use a single space only between clauses or sentences; no full stop at the end; no ครับ/ค่ะ or other gendered particles; avoid stiff or overly formal words.
+Use the English loanwords Thai users actually say: AI, พรอมต์, โปรไฟล์, ลุค, วินเทจ, ฟิล์ม, สตูดิโอ, คอนเทนต์. Keep brand names in Latin script: Gemini, ChatGPT, LinkedIn, Instagram, TikTok.
+Apart from those loanwords, brand names and quoted prompt fragments, write no English words in Latin script (for example "restore" becomes ซ่อมรูปเก่า / ฟื้นฟูภาพเก่า).
+Before answering, reread every string as a Thai reader would and rewrite anything that sounds translated: use natural Thai collocations (หันหน้าเข้าหาพระอาทิตย์ตก, not หันหน้าเจอ; ถ่ายคนเดียวหรือเป็นกลุ่ม for "solo or group").
+Do not mention Indonesia or Rupiah unless the content itself is about it (traditional Indonesian clothing, for example, stays as it is).
+Reply with JSON only: {"items":[{"id":"<same id>", ...only the requested fields, each as a plain Thai string...}]}
+TXT;
+}
+
+/**
+ * Lengkapi kolom Thai beberapa resep sekaligus. Sama seperti enFill: HANYA mengisi kolom yang masih kosong,
+ * tidak pernah menimpa terjemahan/suntingan yang sudah ada, dan tidak pernah mengubah kolom Indonesia/English.
+ */
+function thFill(int $batch = 6): array {
+  $pdo = db();
+  // 1) Kategori tanpa AI: nama Thai yang sudah dipakai kategori yang sama, atau peta bawaan.
+  $known = [];
+  foreach ($pdo->query("SELECT cat, cat_th FROM prompts WHERE COALESCE(cat_th, '') <> ''")->fetchAll() as $r) $known[$r['cat']] = $r['cat_th'];
+  $known += CAT_TH_MAP;
+  $up = $pdo->prepare("UPDATE prompts SET cat_th = ? WHERE cat = ? AND COALESCE(cat_th, '') = ''");
+  foreach ($known as $cat => $th) $up->execute([$th, $cat]);
+  // 2) Sisanya lewat AI. Resep yang sudah tampil di /th didahulukan.
+  $rows = $pdo->query('SELECT * FROM prompts ORDER BY ord')->fetchAll();
+  usort($rows, fn($a, $b) => (int)enVisible($b) <=> (int)enVisible($a));
+  $todo = [];
+  foreach ($rows as $r) {
+    if ($n = thNeeds($r)) $todo[$r['id']] = [$r, $n];
+    if (count($todo) >= $batch) break;
+  }
+  if (!$todo) return ['done' => 0, 'status' => thStatus()];
+  $items = [];
+  foreach ($todo as $id => [$r, $n]) {
+    $it = ['id' => $id];
+    foreach ($n as $f) {
+      [$src, $en] = TH_COLS[$f];
+      $it[$f] = array_filter(['id' => trim((string)$r[$src]), 'en' => trim((string)($r[$en] ?? ''))], 'strlen');
+    }
+    $items[] = $it;
+  }
+  $ai = aiVisionJson('translate_th', thInstructions() . "\n\nITEMS (JSON):\n" . json_encode($items, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), [], ['maxTokens' => 8000]);
+  $done = 0;
+  foreach ((array)($ai['json']['items'] ?? []) as $x) {
+    $id = is_array($x) ? (string)($x['id'] ?? '') : '';
+    if (!isset($todo[$id])) continue;   // id karangan AI diabaikan
+    $wrote = false;
+    foreach ($todo[$id][1] as $f) {
+      [, , $col, $max] = TH_COLS[$f];
+      $v = is_string($x[$f] ?? null) ? mb_substr(trim($x[$f]), 0, $max) : '';
+      if (!preg_match('/\p{Thai}/u', $v)) continue;   // jawaban yang bukan huruf Thai tidak disimpan
+      $st = $pdo->prepare("UPDATE prompts SET $col = ? WHERE id = ? AND COALESCE($col, '') = ''");
+      $st->execute([$v, $id]);
+      $wrote = $wrote || $st->rowCount() > 0;
+      if ($f === 'cat') $pdo->prepare("UPDATE prompts SET cat_th = ? WHERE cat = ? AND COALESCE(cat_th, '') = ''")->execute([$v, $todo[$id][0]['cat']]);
+    }
+    if ($wrote) $done++;
+  }
+  return ['done' => $done, 'engine' => $ai['engine'], 'status' => thStatus()];
+}
+
 /** Tes generate internal memakai model gambar Gemini. */
 function generateTestImage(string $prompt, string $inputPath): array {
   $res = geminiCall('generate', [['text' => $prompt], imagePart($inputPath)],

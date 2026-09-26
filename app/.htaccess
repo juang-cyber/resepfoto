@@ -9,9 +9,20 @@ RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
 # Etalase internasional imagine.kitlab.id: folder, kode, dan database yang SAMA dengan ResepFoto.
 # Halaman utama & manifest lewat site.php (English saja). Landing /promo masih berbahasa Indonesia,
-# jadi dialihkan ke beranda sampai versi English-nya ada.
+# jadi dialihkan ke beranda etalasenya sampai versi English/Thai-nya ada.
 RewriteCond %{HTTP_HOST} ^imagine\. [NC]
-RewriteRule ^promo(-live)?(/.*)?$ / [R=302,L]
+RewriteRule ^(th/)?promo(-live)?(/.*)?$ /$1 [R=302,L]
+# Etalase Thailand imagine.kitlab.id/th/ (Thai bawaan + English): halaman utama & manifest lewat site.php?s=th.
+# Semua file lain di bawah /th/ (api.php, img/, uploads/, …) dilayani dari folder utama, jadi alamat relatif
+# di index.html tetap jalan tanpa <base> (yang akan merusak ikon <use href="#…">).
+RewriteCond %{HTTP_HOST} ^imagine\. [NC]
+RewriteRule ^th$ /th/ [R=301,L]
+RewriteCond %{HTTP_HOST} ^imagine\. [NC]
+RewriteRule ^th/(index\.html)?$ site.php?s=th [L,QSA]
+RewriteCond %{HTTP_HOST} ^imagine\. [NC]
+RewriteRule ^th/site\.webmanifest$ site.php?s=th&f=manifest [L]
+RewriteCond %{HTTP_HOST} ^imagine\. [NC]
+RewriteRule ^th/(.+)$ $1 [L]
 RewriteCond %{HTTP_HOST} ^imagine\. [NC]
 RewriteRule ^(index\.html)?$ site.php [L]
 RewriteCond %{HTTP_HOST} ^imagine\. [NC]
