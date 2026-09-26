@@ -10,10 +10,15 @@ class RfError extends Exception {}
 
 const AI_DEFAULT_MODEL = 'gemini-3.8-flash';
 const AI_DEFAULT_IMAGE_MODEL = 'gemini-3.1-flash-image';
+const DS_DEFAULT_MODEL = 'deepseek-flash';
 
 function aiKey(): string { return setting('gemini_api_key'); }
 function aiModel(): string { $m = setting('gemini_model'); return $m !== '' ? $m : AI_DEFAULT_MODEL; }
 function aiImageModel(): string { $m = setting('gemini_image_model'); return $m !== '' ? $m : AI_DEFAULT_IMAGE_MODEL; }
+function dsKey(): string { return setting('deepseek_api_key'); }
+function dsModel(): string { $m = setting('deepseek_model'); return $m !== '' ? $m : DS_DEFAULT_MODEL; }
+/** Mesin utama untuk membaca referensi: 'deepseek' (bawaan) atau 'gemini'. Yang satunya jadi cadangan. */
+function refEngine(): string { return setting('ai_ref_engine') === 'gemini' ? 'gemini' : 'deepseek'; }
 
 function aiLog(string $action, string $model, bool $ok, array $usage, int $ms, string $note = ''): void {
   db()->prepare('INSERT INTO ai_log (ts, action, model, ok, tokens_in, tokens_out, ms, note) VALUES (?,?,?,?,?,?,?,?)')
@@ -47,7 +52,8 @@ function httpRequest(string $method, string $url, array $headers = [], ?string $
   }
   $hdr = '';
   foreach ($headers as $k => $v) $hdr .= "$k: $v\r\n";
-  $ctx = stream_context_create(['http' => ['method' => $method, 'header' => $hdr . "User-Agent: Mozilla/5.0 (compatible; ResepFotoBot/1.0)\r\n",
+  if (!isset($headers['User-Agent'])) $hdr .= "User-Agent: Mozilla/5.0 (compatible; ResepFotoBot/1.0)\r\n";
+  $ctx = stream_context_create(['http' => ['method' => $method, 'header' => $hdr,
     'content' => $body ?? '', 'timeout' => $timeout, 'ignore_errors' => true, 'follow_location' => 1, 'max_redirects' => 5]]);
   $res = @file_get_contents($url, false, $ctx, 0, $maxBytes);
   if ($res === false) throw new RfError('Koneksi gagal.');
@@ -97,6 +103,78 @@ function geminiCall(string $action, array $parts, array $opts = []): array {
     throw new RfError('Gemini tidak memberi jawaban' . ($block ? " ($block)" : '') . '.');
   }
   return ['text' => $text, 'images' => $images, 'ms' => $ms, 'model' => $model];
+}
+
+/**
+ * Panggil DeepSeek chat/completions (format OpenAI). $content = daftar part
+ * ['type' => 'text', 'text' => …] atau ['type' => 'image_url', 'image_url' => ['url' => data URI]].
+ * Model bawaan deepseek-flash bisa membaca gambar; thinking dimatikan supaya token tidak habis untuk berpikir.
+ */
+function deepseekCall(string $action, array $content, array $opts = []): array {
+  $key = dsKey();
+  if ($key === '') throw new RfError('API key DeepSeek belum diisi. Buka Admin → AI.');
+  $model = $opts['model'] ?? dsModel();
+  $payload = ['model' => $model, 'messages' => [['role' => 'user', 'content' => $content]],
+    'temperature' => 0.1, 'max_tokens' => (int)($opts['maxTokens'] ?? 4000), 'thinking' => ['type' => 'disabled']];
+  if (!empty($opts['json'])) $payload['response_format'] = ['type' => 'json_object'];
+  $t0 = microtime(true);
+  $r = httpRequest('POST', (getenv('RF_DEEPSEEK_BASE') ?: 'https://api.deepseek.com') . '/chat/completions',
+    ['Content-Type' => 'application/json', 'Authorization' => 'Bearer ' . $key], json_encode($payload), (int)($opts['timeout'] ?? 120));
+  $ms = (int)round((microtime(true) - $t0) * 1000);
+  $j = json_decode($r['body'], true);
+  if ($r['code'] !== 200 || !is_array($j)) {
+    $msg = is_array($j) ? (string)($j['error']['message'] ?? 'HTTP ' . $r['code']) : 'HTTP ' . $r['code'];
+    aiLog($action, $model, false, [], $ms, 'DeepSeek: ' . $msg);
+    if ($r['code'] === 401) throw new RfError('API key DeepSeek tidak valid.');
+    if ($r['code'] === 402) throw new RfError('Saldo DeepSeek habis. Isi ulang di platform.deepseek.com.');
+    if ($r['code'] === 429) throw new RfError('DeepSeek sedang sibuk atau batas permintaan tercapai. Coba lagi sebentar.');
+    if ($r['code'] === 404 || preg_match('/model.{0,20}(not|exist)/i', $msg)) throw new RfError("Model DeepSeek \"$model\" tidak dikenali. Cek nama model di Admin → AI.");
+    throw new RfError('DeepSeek error: ' . mb_substr($msg, 0, 200));
+  }
+  $text = (string)($j['choices'][0]['message']['content'] ?? '');
+  $u = $j['usage'] ?? [];
+  aiLog($action, $model, true, ['promptTokenCount' => $u['prompt_tokens'] ?? 0, 'candidatesTokenCount' => $u['completion_tokens'] ?? 0],
+    $ms, 'DeepSeek ' . (string)($j['choices'][0]['finish_reason'] ?? ''));
+  if (trim($text) === '') throw new RfError('DeepSeek tidak memberi jawaban.');
+  return ['text' => $text, 'ms' => $ms, 'model' => $model];
+}
+
+function dataUri(string $path): string {
+  $info = @getimagesize($path);
+  return 'data:' . ($info['mime'] ?? 'image/jpeg') . ';base64,' . base64_encode((string)file_get_contents($path));
+}
+
+/**
+ * Minta JSON dari AI berdasarkan instruksi + gambar berlabel ($images = [['label' => 'SLIDE 1', 'path' => …]]).
+ * Mesin utama mengikuti refEngine(); kalau gagal (atau jawabannya bukan JSON) langsung dicoba mesin satunya,
+ * asal key-nya terisi. 'fallback' berisi alasan mesin utama gagal supaya admin tahu.
+ */
+function aiVisionJson(string $action, string $instr, array $images): array {
+  $order = refEngine() === 'gemini' ? ['gemini', 'deepseek'] : ['deepseek', 'gemini'];
+  $order = array_values(array_filter($order, fn($e) => ($e === 'gemini' ? aiKey() : dsKey()) !== ''));
+  if (!$order) throw new RfError('Isi dulu API key DeepSeek atau Gemini di Admin → AI.');
+  $errors = [];
+  foreach ($order as $engine) {
+    $name = $engine === 'deepseek' ? 'DeepSeek' : 'Gemini';
+    try {
+      if ($engine === 'deepseek') {
+        $content = [['type' => 'text', 'text' => $instr]];
+        foreach ($images as $im) {
+          $content[] = ['type' => 'text', 'text' => $im['label'] . ':'];
+          $content[] = ['type' => 'image_url', 'image_url' => ['url' => dataUri($im['path'])]];
+        }
+        $res = deepseekCall($action, $content, ['json' => true, 'timeout' => 150]);
+      } else {
+        $parts = [['text' => $instr]];
+        foreach ($images as $im) { $parts[] = ['text' => $im['label'] . ':']; $parts[] = imagePart($im['path']); }
+        $res = geminiCall($action, $parts, ['json' => true, 'timeout' => 150]);
+      }
+      return ['json' => aiJson($res['text']), 'engine' => $name, 'model' => $res['model'], 'fallback' => implode(' · ', $errors)];
+    } catch (RfError $e) {
+      $errors[] = "$name: " . $e->getMessage();
+    }
+  }
+  throw new RfError(implode(' · ', $errors));
 }
 
 /** Ambil objek JSON dari teks jawaban. */
@@ -176,7 +254,159 @@ function saveTempImage(string $bytes): ?string {
   return "uploads/$name";
 }
 
-/** Link referensi: Gemini / ChatGPT share link → data resep. */
+/* ---------- Referensi Instagram: link postingan → caption + slide → resep ---------- */
+
+/** Kode postingan dari link Instagram (/p/, /reel/, /tv/, boleh diawali nama akun, boleh ada ?utm…). */
+function instagramCode(string $url): string {
+  if (!preg_match('#^https?://(?:www\.|m\.)?instagram\.com/(?:[A-Za-z0-9_.]+/)?(?:p|reel|reels|tv)/([A-Za-z0-9_-]{5,40})#i', trim($url), $m)) {
+    throw new RfError('Link harus link postingan Instagram, contoh: https://www.instagram.com/p/XXXX/');
+  }
+  return $m[1];
+}
+
+/** Cari objek media (punya "code" = $code dan data gambar) di dalam JSON halaman, rekursif. */
+function igFindMedia($node, string $code, int $depth = 0): ?array {
+  if (!is_array($node) || $depth > 40) return null;
+  if (($node['code'] ?? null) === $code && (isset($node['carousel_media']) || isset($node['image_versions2']))) return $node;
+  foreach ($node as $v) if (is_array($v) && ($hit = igFindMedia($v, $code, $depth + 1))) return $hit;
+  return null;
+}
+
+/** URL gambar terbesar dari satu item media Instagram. */
+function igImageUrl(array $item): string {
+  $best = ''; $bestW = -1;
+  foreach (($item['image_versions2']['candidates'] ?? []) as $i => $c) {
+    $w = (int)($c['width'] ?? 0);
+    if (!empty($c['url']) && ($w > $bestW || ($bestW <= 0 && $i === 0))) { $best = (string)$c['url']; $bestW = $w; }
+  }
+  return $best !== '' ? $best : (string)($item['display_uri'] ?? $item['display_url'] ?? '');
+}
+
+/** Ambil caption, akun, dan gambar dari HTML halaman postingan. null kalau yang datang halaman login. */
+function instagramParse(string $html, string $code): ?array {
+  $media = null;
+  if (preg_match_all('#<script type="application/json"[^>]*>(.*?)</script>#s', $html, $m)) {
+    foreach ($m[1] as $js) {
+      if (strpos($js, '"' . $code . '"') === false) continue;
+      if (($media = igFindMedia(json_decode($js, true), $code))) break;
+    }
+  }
+  if ($media) {
+    $items = !empty($media['carousel_media']) ? $media['carousel_media'] : [$media];
+    $images = [];
+    foreach ($items as $it) if (is_array($it) && ($u = igImageUrl($it)) !== '') $images[] = $u;
+    return ['code' => $code, 'caption' => (string)($media['caption']['text'] ?? ''), 'author' => (string)($media['user']['username'] ?? ''),
+      'images' => $images, 'commentCount' => (int)($media['comment_count'] ?? 0), 'via' => 'data'];
+  }
+  // Cadangan: tag og:* (caption bisa terpotong, gambar hanya slide pertama).
+  $meta = function (string $prop) use ($html): string {
+    return preg_match('#<meta property="og:' . $prop . '" content="([^"]*)"#', $html, $mm) ? html_entity_decode($mm[1], ENT_QUOTES | ENT_HTML5, 'UTF-8') : '';
+  };
+  $desc = $meta('description'); $img = $meta('image');
+  if ($desc === '' && $img === '') return null;
+  $author = ''; $caption = $desc;
+  if (preg_match('/^.*?-\s*([A-Za-z0-9_.]+) on [^:]{3,40}:\s*"(.*)"\.?\s*$/su', $desc, $mm)) { $author = $mm[1]; $caption = $mm[2]; }
+  return ['code' => $code, 'caption' => $caption, 'author' => $author, 'images' => $img !== '' ? [$img] : [], 'commentCount' => 0, 'via' => 'meta'];
+}
+
+/**
+ * Baca postingan Instagram publik tanpa login. Browser biasa dilempar ke halaman login, tapi Instagram
+ * menyajikan data postingan lengkap (caption + semua slide carousel) ke crawler mesin pencari / link preview,
+ * jadi server meminta seperti crawler. Komentar TIDAK ikut (butuh login) — admin menempelnya manual.
+ * Cara ini tidak resmi: kalau Instagram mengubahnya, jalur cadangannya mode "Prompt dari gambar".
+ */
+function instagramPost(string $url): array {
+  $code = instagramCode($url);
+  $page = (getenv('RF_IG_BASE') ?: 'https://www.instagram.com') . '/p/' . $code . '/';
+  $agents = ['Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+    'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)'];
+  $fallback = null; $status = 0;
+  foreach ($agents as $ua) {
+    try { $r = httpRequest('GET', $page, ['User-Agent' => $ua, 'Accept' => 'text/html', 'Accept-Language' => 'en-US,en;q=0.8'], null, 25, 8000000); }
+    catch (RfError $e) { continue; }
+    $status = $r['code'];
+    if ($r['code'] !== 200) continue;
+    $post = instagramParse($r['body'], $code);
+    if ($post && $post['via'] === 'data') return $post;
+    if ($post && !$fallback) $fallback = $post;
+  }
+  if ($fallback) return $fallback;
+  if ($status === 404) throw new RfError('Postingan tidak ditemukan. Cek lagi link-nya, mungkin sudah dihapus.');
+  throw new RfError('Instagram tidak mengizinkan server membaca postingan ini (diminta login, atau akunnya privat). '
+    . 'Pakai mode "Prompt dari gambar" dengan screenshot slide-nya.');
+}
+
+/** Unduh gambar dari CDN Instagram ke uploads/tmp_*.jpg. Hanya host CDN Instagram/Facebook yang diterima. */
+function igDownload(array $urls, int $max = 10): array {
+  $out = [];
+  $mock = (string)getenv('RF_IG_BASE'); // hanya alat uji, sama seperti RF_GEMINI_BASE
+  foreach ($urls as $u) {
+    if (count($out) >= $max) break;
+    $host = strtolower((string)parse_url($u, PHP_URL_HOST));
+    $cdn = strpos($u, 'https://') === 0 && preg_match('/(^|\.)(cdninstagram\.com|fbcdn\.net)$/', $host);
+    if (!$cdn && !($mock !== '' && strpos($u, $mock . '/') === 0)) continue;
+    try {
+      $g = httpRequest('GET', $u, ['User-Agent' => 'Mozilla/5.0'], null, 25, 15000000);
+      if ($g['code'] === 200 && ($p = saveTempImage($g['body']))) $out[] = $p;
+    } catch (Throwable $e) { /* slide ini dilewati */ }
+  }
+  return $out;
+}
+
+function referenceInstructions(array $post, string $extra, int $slides): string {
+  $who = $post['author'] !== '' ? '@' . $post['author'] : 'sebuah akun';
+  $t = "\n\nSUMBER KHUSUS: postingan Instagram $who."
+    . ($slides ? " Gambar terlampir adalah $slides slide postingan itu, berurutan, masing-masing diawali label \"SLIDE n\"." : ' Gambar postingan tidak berhasil diambil.')
+    . "\nCaption postingan:\n\"\"\"\n" . mb_substr($post['caption'], 0, 5000) . "\n\"\"\"";
+  if ($extra !== '') $t .= "\nTeks tambahan dari admin (biasanya komentar yang berisi prompt):\n\"\"\"\n" . $extra . "\n\"\"\"";
+  return $t . <<<TXT
+
+Langkah:
+1. Temukan PROMPT foto AI yang lengkap. Prompt bisa ada di caption, di teks tambahan dari admin, atau TERTULIS DI DALAM salah satu slide. Caption sering memberi petunjuk seperti "salin prompt di slide 5".
+2. Kalau prompt ada di gambar, baca (OCR) seluruh tulisannya dengan teliti dan lengkap — jangan ada kata yang terlewat, jangan mengarang.
+3. Abaikan teks yang bukan prompt: watermark/nama akun, ajakan follow, hashtag, langkah cara pakai ("buka Gemini, upload foto"), dan judul poster.
+4. Kalau ada beberapa prompt berbeda, ambil yang paling lengkap/utama dan sebutkan jumlahnya di "notes".
+5. title, desc, dan tips ditulis untuk pembeli ResepFoto: JANGAN menyebut slide, Instagram, caption, atau nama akun sumber.
+Tambahkan kunci:
+- "found": true/false apakah prompt ditemukan.
+- "promptSource": "image", "caption", atau "extra".
+- "promptSlide": nomor slide yang berisi prompt (0 bila bukan dari gambar).
+- "ocr": teks prompt PERSIS seperti di sumbernya (verbatim, sebelum dirapikan).
+- "exampleSlide": nomor slide terbaik sebagai contoh HASIL foto: foto orang hasil prompt yang TIDAK ditimpa judul atau teks besar. Hindari slide sampul berjudul; pilih slide foto bersih sesudahnya. 0 bila tidak ada.
+- "multiple": jumlah prompt berbeda yang terlihat di postingan.
+TXT;
+}
+
+/** Mode link Instagram: baca postingan, cari prompt-nya (caption / slide / teks tambahan), isi semua kolom resep. */
+function recipeFromInstagram(string $url, string $extra = ''): array {
+  instagramCode($url); // link salah ditolak sebelum apa pun diambil
+  if (aiKey() === '' && dsKey() === '') throw new RfError('Isi dulu API key DeepSeek atau Gemini di Admin → AI.');
+  $post = instagramPost($url);
+  $slides = igDownload($post['images']);
+  if (!$slides && trim($post['caption']) === '' && $extra === '') throw new RfError('Postingan terbaca, tapi gambar dan caption-nya kosong.');
+  $images = [];
+  foreach ($slides as $i => $p) $images[] = ['label' => 'SLIDE ' . ($i + 1), 'path' => __DIR__ . '/' . $p];
+  $ai = aiVisionJson('reference', recipeInstructions() . referenceInstructions($post, $extra, count($slides)), $images);
+  $j = $ai['json'];
+  $ocr = trim((string)($j['ocr'] ?? ''));
+  $notFound = 'Prompt tidak ditemukan di caption maupun slide. Kalau prompt-nya ada di komentar, salin komentarnya ke kolom "Teks tambahan" lalu coba lagi.';
+  if (isset($j['found']) && !$j['found'] && $ocr === '' && trim((string)($j['prompt'] ?? '')) === '') throw new RfError($notFound);
+  $rec = normalizeRecipe($j, $ocr);
+  if ($rec['prompt'] === '') throw new RfError($notFound);
+  $n = count($slides);
+  $ps = (int)($j['promptSlide'] ?? 0); $ps = ($ps >= 1 && $ps <= $n) ? $ps : 0;
+  $ex = (int)($j['exampleSlide'] ?? 0);
+  if ($ex < 1 || $ex > $n) { $ex = 0; for ($i = 1; $i <= $n; $i++) if ($i !== $ps) { $ex = $i; break; } }
+  $src = (string)($j['promptSource'] ?? '');
+  return $rec + [
+    'ocr' => mb_substr($ocr, 0, 6000),
+    'images' => $slides, 'exampleIndex' => $ex - 1, 'promptSlide' => $ps,
+    'promptSource' => in_array($src, ['image', 'caption', 'extra'], true) ? $src : '',
+    'multiple' => max(1, min(20, (int)($j['multiple'] ?? 1))),
+    'author' => $post['author'], 'source' => 'https://www.instagram.com/p/' . $post['code'] . '/', 'via' => $post['via'],
+    'engine' => $ai['engine'], 'model' => $ai['model'], 'fallback' => $ai['fallback'],
+  ];
+}
 
 /** Mode gambar: prompt ADA DI DALAM gambar (screenshot). OCR teksnya lalu buat metadata. */
 function recipeFromImagePrompt(string $imagePath): array {
@@ -205,6 +435,40 @@ function recipeFromUpload(string $prompt, ?string $imagePath): array {
   if ($imagePath) $parts[] = imagePart($imagePath);
   $res = geminiCall('analyze', $parts, ['json' => true]);
   return normalizeRecipe(aiJson($res['text']), $prompt);
+}
+
+/**
+ * Thumbnail resep BIKINAN SENDIRI: prompt resep + foto wajah + (opsional) slide referensi → foto baru 4:5.
+ * $faceFromRef = true berarti wajah diambil dari slide referensi itu sendiri (satu gambar saja dikirim);
+ * kalau false, slide hanya jadi acuan pose/cahaya/suasana dan wajahnya dari $facePath.
+ * Model gambar hanya Gemini — DeepSeek tidak bisa membuat gambar.
+ */
+function generateThumbnail(string $prompt, ?string $refPath, ?string $facePath, bool $faceFromRef): array {
+  $clean = 'The output must be a clean photograph: no text, captions, watermark, logo, username, border or collage. Vertical 4:5 portrait framing.';
+  if ($faceFromRef) {
+    $parts = [['text' => "Create a brand-new photo that follows the RECIPE PROMPT below.\n"
+      . "IMAGE 1 is the reference: keep the same person (face, facial features, skin tone, hair and identity) and match its composition, pose, lighting, color grade and mood, "
+      . "but render it as a fresh new photo — do not copy it pixel for pixel, and remove every piece of text, watermark or logo from it.\n$clean\n\nRECIPE PROMPT:\n$prompt"],
+      ['text' => 'IMAGE 1 (person + style reference):'], imagePart($refPath)];
+  } else {
+    $txt = "Create a brand-new photo that follows the RECIPE PROMPT below.\n"
+      . "IMAGE 1 is the identity reference: the person in the result MUST be this person — keep the face, facial features, skin tone and identity exactly the same.\n";
+    if ($refPath) $txt .= "IMAGE 2 is a style reference ONLY: match its composition, pose, framing, lighting, color grade and mood, but do NOT copy the person or face from IMAGE 2, "
+      . "and do not copy any text, watermark or logo from it.\n";
+    $parts = [['text' => $txt . $clean . "\n\nRECIPE PROMPT:\n" . $prompt], ['text' => 'IMAGE 1 (identity):'], imagePart($facePath)];
+    if ($refPath) { $parts[] = ['text' => 'IMAGE 2 (style reference only):']; $parts[] = imagePart($refPath); }
+  }
+  $gen = ['responseModalities' => ['TEXT', 'IMAGE'], 'imageConfig' => ['aspectRatio' => '4:5']];
+  try {
+    $res = geminiCall('thumb', $parts, ['model' => aiImageModel(), 'generationConfig' => $gen, 'timeout' => 150]);
+  } catch (RfError $e) {
+    // Model gambar lama belum mengenal imageConfig; ulang tanpa rasio — cropTo45() tetap merapikan saat disimpan.
+    if (!preg_match('/image_?config|aspect/i', $e->getMessage())) throw $e;
+    unset($gen['imageConfig']);
+    $res = geminiCall('thumb', $parts, ['model' => aiImageModel(), 'generationConfig' => $gen, 'timeout' => 150]);
+  }
+  if (!$res['images']) throw new RfError('Model tidak mengembalikan gambar' . ($res['text'] ? ': ' . mb_substr($res['text'], 0, 160) : '.'));
+  return $res;
 }
 
 /** Tes generate internal memakai model gambar Gemini. */

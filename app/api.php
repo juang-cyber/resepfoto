@@ -60,6 +60,20 @@ function tr(string $msg): string {
     'Tidak bisa mengubah super admin utama.' => 'The main super admin can\'t be changed.',
     'Pilih atau tempel gambar yang berisi prompt.' => 'Choose or paste an image that contains the prompt.',
     'Tidak menemukan teks prompt di gambar. Pastikan tulisannya jelas terbaca.' => 'No prompt text found in the image. Make sure the text is clearly legible.',
+    // link Instagram & DeepSeek
+    'Tempel link postingan Instagram dulu.' => 'Paste an Instagram post link first.',
+    'Link harus link postingan Instagram, contoh: https://www.instagram.com/p/XXXX/' => 'The link must be an Instagram post link, e.g. https://www.instagram.com/p/XXXX/',
+    'Postingan tidak ditemukan. Cek lagi link-nya, mungkin sudah dihapus.' => 'Post not found. Check the link; it may have been deleted.',
+    'Instagram tidak mengizinkan server membaca postingan ini (diminta login, atau akunnya privat). Pakai mode "Prompt dari gambar" dengan screenshot slide-nya.' => 'Instagram did not let the server read this post (login required, or the account is private). Use "Prompt from image" mode with screenshots of the slides.',
+    'Postingan terbaca, tapi gambar dan caption-nya kosong.' => 'The post was read, but its images and caption are empty.',
+    'Prompt tidak ditemukan di caption maupun slide. Kalau prompt-nya ada di komentar, salin komentarnya ke kolom "Teks tambahan" lalu coba lagi.' => 'No prompt found in the caption or slides. If the prompt is in a comment, copy it into "Extra text" and try again.',
+    'Isi dulu API key DeepSeek atau Gemini di Admin → AI.' => 'Set a DeepSeek or Gemini API key in Admin → AI first.',
+    'Format API key DeepSeek tidak valid.' => 'Invalid DeepSeek API key format.',
+    'Isi prompt resep dulu sebelum generate thumbnail.' => 'Fill in the recipe prompt before generating a thumbnail.',
+    'Pilih slide referensi dulu.' => 'Choose a reference slide first.',
+    'Tempel atau pilih foto wajah dulu.' => 'Paste or choose a face photo first.',
+    'Gambar hasil generate tidak bisa dibaca.' => 'The generated image could not be read.',
+    'Foto wajah tidak ditemukan.' => 'Face photo not found.',
     'Peran tidak valid.' => 'Invalid role.',
     'Akun ini dikelola di tab Admin.' => 'This account is managed in the Admin tab.',
     'Pilih atau tempel foto dulu.' => 'Choose or paste a photo first.',
@@ -300,6 +314,38 @@ function saveBytesImage(string $bytes, string $prefix = 't_'): string {
   imagedestroy($im);
   return $name;
 }
+/** Path gambar yang boleh dipakai ulang sebagai masukan AI: uploads/ atau model bawaan img/models/ (tanpa ../, harus ada). */
+function uploadPath(string $p): string {
+  $ok = preg_match('#^uploads/[A-Za-z0-9_]{8,40}\.jpg$#', $p) || preg_match('#^img/models/[a-z0-9_-]{2,40}\.jpg$#', $p);
+  return $ok && is_file(__DIR__ . '/' . $p) ? $p : '';
+}
+/**
+ * Model bawaan: karakter AI FIKTIF (bukan orang sungguhan) di img/models/, daftarnya di models.json.
+ * Sengaja hanya orang fiktif — repo ini publik, jadi foto orang asli (tim/model) masuk lewat upload, bukan repo.
+ */
+function builtinModels(): array {
+  $out = [];
+  foreach ((array)json_decode((string)@file_get_contents(__DIR__ . '/img/models/models.json'), true) as $m) {
+    $f = 'img/models/' . basename((string)($m['file'] ?? ''));
+    if (uploadPath($f) !== '') $out[] = ['id' => 0, 'image' => $f, 'label' => (string)($m['label'] ?? ''), 'builtin' => true];
+  }
+  return $out;
+}
+/** Pustaka wajah: upload admin (bisa dihapus) → model AI bawaan → foto input Tes generate lama. */
+function facesList(): array {
+  $out = []; $seen = [];
+  foreach (db()->query('SELECT id, image FROM faces ORDER BY id DESC LIMIT 40')->fetchAll() as $r) {
+    if (!is_file(__DIR__ . '/' . $r['image'])) continue;
+    $out[] = ['id' => (int)$r['id'], 'image' => $r['image']]; $seen[$r['image']] = 1;
+  }
+  $out = array_merge($out, builtinModels());
+  $tests = db()->query("SELECT input_image, MAX(id) AS m FROM prompt_tests WHERE input_image LIKE 'uploads/%' GROUP BY input_image ORDER BY m DESC LIMIT 20")->fetchAll();
+  foreach ($tests as $r) {
+    if (isset($seen[$r['input_image']]) || !is_file(__DIR__ . '/' . $r['input_image'])) continue;
+    $out[] = ['id' => 0, 'image' => $r['input_image']];
+  }
+  return $out;
+}
 function publicTest(array $t): array {
   return ['id' => (int)$t['id'], 'promptId' => $t['prompt_id'], 'image' => $t['image'], 'input' => (string)$t['input_image'],
     'source' => $t['source'], 'model' => (string)$t['model'], 'tool' => (string)$t['tool'], 'status' => (string)$t['status'],
@@ -330,7 +376,7 @@ try {
   switch ($a) {
     case 'me': {
       $who = currentUser();
-      $res = ['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => $who, 'cover' => coverConfig(), 'v' => 'admin-38'];
+      $res = ['ok' => true, 'csrf' => $_SESSION['csrf'], 'user' => $who, 'cover' => coverConfig(), 'v' => 'admin-39'];
       if (!$who && !empty($GLOBALS['rf_session_taken'])) $res['sessionTaken'] = true;
       out($res);
     }
@@ -1063,10 +1109,13 @@ try {
       $st->execute([$since]); $u = $st->fetch();
       $by = db()->prepare('SELECT action, COUNT(*) AS n FROM ai_log WHERE ts >= ? GROUP BY action'); $by->execute([$since]);
       $log = db()->query('SELECT ts, action, model, ok, tokens_in, tokens_out, ms, note FROM ai_log ORDER BY id DESC LIMIT 25')->fetchAll();
+      $dk = dsKey();
       out(['ok' => true, 'settings' => [
         'hasKey' => $key !== '', 'keyHint' => $key !== '' ? substr($key, -4) : '',
         'model' => aiModel(), 'imageModel' => aiImageModel(),
         'defaultModel' => AI_DEFAULT_MODEL, 'defaultImageModel' => AI_DEFAULT_IMAGE_MODEL,
+        'dsHasKey' => $dk !== '', 'dsKeyHint' => $dk !== '' ? substr($dk, -4) : '',
+        'dsModel' => dsModel(), 'dsDefaultModel' => DS_DEFAULT_MODEL, 'engine' => refEngine(),
         'curl' => function_exists('curl_init'), 'gd' => function_exists('imagecreatefromstring'),
       ], 'usage' => ['calls' => (int)$u['calls'], 'ok' => (int)$u['ok'], 'tokensIn' => (int)$u['tin'], 'tokensOut' => (int)$u['tout'],
         'avgMs' => (int)$u['ms'], 'byAction' => array_column($by->fetchAll(), 'n', 'action')],
@@ -1082,17 +1131,88 @@ try {
         setSetting('gemini_api_key', $k);
       }
       if (!empty($in['clearKey'])) setSetting('gemini_api_key', '');
-      $m = str($in, 'model', 60); $im = str($in, 'imageModel', 60);
-      foreach ([$m, $im] as $x) if ($x !== '' && !preg_match('/^[a-z0-9][a-z0-9.\-]{2,59}$/', $x)) fail('Nama model tidak valid.');
+      $dk = trim((string)($in['dsKey'] ?? ''));
+      if ($dk !== '') {
+        if (!preg_match('/^[A-Za-z0-9_.\-]{20,200}$/', $dk)) fail('Format API key DeepSeek tidak valid.');
+        setSetting('deepseek_api_key', $dk);
+      }
+      if (!empty($in['clearDsKey'])) setSetting('deepseek_api_key', '');
+      $m = str($in, 'model', 60); $im = str($in, 'imageModel', 60); $dm = str($in, 'dsModel', 60);
+      foreach ([$m, $im, $dm] as $x) if ($x !== '' && !preg_match('/^[a-z0-9][a-z0-9.\-]{2,59}$/', $x)) fail('Nama model tidak valid.');
       setSetting('gemini_model', $m);
       setSetting('gemini_image_model', $im);
+      setSetting('deepseek_model', $dm);
+      if (isset($in['engine'])) setSetting('ai_ref_engine', $in['engine'] === 'gemini' ? 'gemini' : 'deepseek');
       out(['ok' => true]);
     }
 
     case 'ai_test': {
       requireSuperAdmin();
-      $r = geminiCall('test', [['text' => 'Balas persis dengan satu kata: SIAP']]);
+      $in = input();
+      $ask = 'Balas persis dengan satu kata: SIAP';
+      $r = ($in['engine'] ?? '') === 'deepseek'
+        ? deepseekCall('test', [['type' => 'text', 'text' => $ask]], ['maxTokens' => 20, 'timeout' => 40])
+        : geminiCall('test', [['text' => $ask]]);
       out(['ok' => true, 'reply' => mb_substr(trim($r['text']), 0, 60), 'ms' => $r['ms'], 'model' => $r['model']]);
+    }
+
+    case 'ai_reference': {
+      requireAdmin();
+      @set_time_limit(180);
+      $in = input();
+      $url = str($in, 'url', 500);
+      if ($url === '') fail('Tempel link postingan Instagram dulu.');
+      out(['ok' => true, 'recipe' => recipeFromInstagram($url, str($in, 'extra', 6000))]);
+    }
+
+    case 'ai_thumb': {
+      // Thumbnail resep bikinan sendiri dari slide referensi yang dipilih admin.
+      $me = requireAdmin();
+      @set_time_limit(200);
+      $in = input();
+      $prompt = str($in, 'prompt', 6000);
+      if ($prompt === '') fail('Isi prompt resep dulu sebelum generate thumbnail.');
+      $ref = uploadPath((string)($in['ref'] ?? ''));
+      $fromRef = ($in['faceSrc'] ?? '') === 'ref';
+      if ($fromRef && $ref === '') fail('Pilih slide referensi dulu.');
+      $face = ''; $newFace = false;
+      if (!$fromRef) {
+        if (isset($_FILES['face']) && ($_FILES['face']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+          $face = saveTestImage($_FILES['face'], 'f_'); $newFace = true;
+        } else $face = uploadPath((string)($in['face_path'] ?? ''));
+        if ($face === '') fail('Tempel atau pilih foto wajah dulu.');
+      }
+      try { $res = generateThumbnail($prompt, $ref !== '' ? __DIR__ . '/' . $ref : null, $face !== '' ? __DIR__ . '/' . $face : null, $fromRef); }
+      catch (Throwable $e) { if ($newFace) @unlink(__DIR__ . '/' . $face); throw $e; }
+      $img = saveTempImage(base64_decode($res['images'][0]['data']));
+      if (!$img) fail('Gambar hasil generate tidak bisa dibaca.');
+      if ($newFace) db()->prepare('INSERT INTO faces (image, created_by, created_at) VALUES (?,?,?)')->execute([$face, $me['username'] ?? '', gmdate('c')]);
+      out(['ok' => true, 'image' => $img, 'face' => $face, 'faces' => facesList(), 'ms' => $res['ms'], 'model' => $res['model']]);
+    }
+
+    case 'faces': {
+      requireAdmin();
+      out(['ok' => true, 'faces' => facesList()]);
+    }
+
+    case 'face_add': {
+      // Tambah foto wajah tim/model yang sudah setuju ke pustaka, tanpa harus generate dulu.
+      $me = requireAdmin();
+      if (!isset($_FILES['face']) || ($_FILES['face']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) fail('Tempel atau pilih foto wajah dulu.');
+      $face = saveTestImage($_FILES['face'], 'f_');
+      db()->prepare('INSERT INTO faces (image, created_by, created_at) VALUES (?,?,?)')->execute([$face, $me['username'] ?? '', gmdate('c')]);
+      out(['ok' => true, 'face' => $face, 'faces' => facesList()]);
+    }
+
+    case 'face_delete': {
+      requireAdmin();
+      $id = (int)(input()['id'] ?? 0);
+      $st = db()->prepare('SELECT image FROM faces WHERE id = ?'); $st->execute([$id]);
+      $img = (string)$st->fetchColumn();
+      if ($img === '') fail('Foto wajah tidak ditemukan.', 404);
+      db()->prepare('DELETE FROM faces WHERE id = ?')->execute([$id]);
+      delUpload($img);
+      out(['ok' => true, 'faces' => facesList()]);
     }
 
     case 'ai_analyze': {

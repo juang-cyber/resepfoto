@@ -19,7 +19,7 @@ app/            ← yang di-deploy ke document root website
   ai.php        integrasi Gemini (link referensi, analisis, OCR, tes generate)
   xlsx.php      penulis & pembaca .xlsx tanpa pustaka luar (dipakai tab Konten)
   admin-ext.js      tab Pesanan (Mayar)                   [super admin]
-  admin-ai.js       tab AI Gemini (API key, model, log)   [super admin]
+  admin-ai.js       tab AI (key & model Gemini + DeepSeek, mesin utama, log)   [super admin]
   admin-reports.js  tab Pengguna & Iklan (laporan)        [super admin]
   admin-team.js     tab Admin (kelola akun admin)         [super admin]
   admin-cover.js    tab Cover (foto/teks halaman login)   [admin & super]
@@ -136,6 +136,12 @@ Tanpa token cocok, pesanan tetap tercatat tapi hanya `notifyAdmin()` yang jalan 
     Resep di luar jatah tetap tampil sebagai thumbnail bertanda gembok, tapi `prompt`/`tips` **tidak pernah
     dikirim** ke klien — dikosongkan di `rowToPrompt()`. Pemilihannya deterministik (jatah kurasi dari `ord`,
     jatah acak Trial di-seed username) supaya katalog tidak berubah tiap halaman dimuat.
+  - **"Tren viral" = KATEGORI `Tren Viral` (`VIRAL_CAT`), bukan tanda terpisah** seperti `popular`. Ember jatah di
+    atas memakai `cat === VIRAL_CAT`, termasuk jatah dinamis member Standard lama (10 Tren Viral + semua reguler).
+    Checkbox "Tren viral" di studio (26 Sep 2026) karena itu hanya **jalan pintas kategori**: dicentang → kategori
+    jadi Tren Viral (kategori sebelumnya diingat), dilepas → kembali. **Jangan** mengubahnya jadi kolom/flag
+    terpisah tanpa menghitung ulang aturan jatah: resep reguler yang ditandai viral akan pindah ember dan bisa
+    MENGHILANGKAN akses member Standard lama.
   - `currentUser()` mengembalikan `role` (`admin`|`member`) + `adminRole` (`super_admin`|`admin`|``).
 - **Frontend:** SPA vanilla JS di `index.html`. Modul admin terpisah menempel lewat `window.RFAPP` (`api, toast, esc,
   copyText, openSheet, closeSheet, isAdmin, fmtDate, state, renderAll, t, lang, setLang, addAdminTab, openPromptForm,
@@ -151,11 +157,61 @@ Tanpa token cocok, pesanan tetap tercatat tapi hanya `notifyAdmin()` yang jalan 
   (`img/pNN.jpg`, ikut repo); `imgSrc()` hanya menerima pola `^(img|uploads)/[\w.-]+$`.
 - **AI (Gemini):** `ai.php`. Model teks `gemini-3.8-flash` (default, bisa diganti di setting), model gambar
   `gemini-3.1-flash-image`. Fungsi: `recipeFromUpload()`, `recipeFromImagePrompt()` (OCR prompt dari screenshot),
-  `generateTestImage()`. Mode **link referensi sudah dihapus** (17 Sep 2026) — hampir tidak pernah dipakai. Error
-  aman-ditampilkan dilempar sebagai `RfError` → HTTP 422. Log ke tabel `ai_log` (maks 300 baris).
+  `generateTestImage()`. Mode **link referensi** (share link Gemini/ChatGPT) **sudah dihapus** (17 Sep 2026) —
+  hampir tidak pernah dipakai; jangan dikira sama dengan mode Link Instagram di bawah. Error aman-ditampilkan
+  dilempar sebagai `RfError` → HTTP 422. Log ke tabel `ai_log` (maks 300 baris; baris DeepSeek diberi catatan `DeepSeek …`).
+- **AI (DeepSeek) + mode Link Instagram (26 Sep 2026):** studio resep punya mode ketiga — admin menempel link
+  postingan Instagram (`/p/`, `/reel/`, `/tv/`, boleh ada `?utm…&stkn=…`), endpoint `ai_reference` →
+  `recipeFromInstagram()` mengisi SEMUA kolom. Alurnya:
+  1. `instagramPost()` meminta halaman postingan dengan UA **Googlebot**, cadangannya **facebookexternalhit**.
+     Browser biasa dilempar ke halaman login, tapi crawler diberi data postingan lengkap di
+     `<script type="application/json">` (objek ber-`code` = kode postingan, berisi `caption.text`, `user.username`,
+     `carousel_media[].image_versions2.candidates[]`). Kalau data itu tidak ada, jatuh ke tag `og:` (caption bisa
+     terpotong, gambar hanya slide pertama). **Cara ini tidak resmi** — kalau Instagram mengubahnya, pesan errornya
+     mengarahkan admin ke mode "Prompt dari gambar". Jalur resminya (belum dibuat) Instagram Graph API
+     Business Discovery, yang butuh app Meta + token akun IG bisnis.
+  2. **Komentar TIDAK bisa diambil** tanpa login (`/api/v1/media/{pk}/comments/` dan `/comments/` → 302 ke login,
+     dicek 26 Sep 2026). Karena itu ada kolom "Teks tambahan" untuk menempel komentar yang berisi prompt.
+  3. `igDownload()` mengunduh maks 10 slide ke `uploads/tmp_*.jpg`, **hanya** dari host `*.cdninstagram.com` /
+     `*.fbcdn.net` lewat https (URL dari halaman orang lain = masukan tak tepercaya; jangan longgarkan).
+  4. `aiVisionJson()` mengirim instruksi + caption + slide berlabel `SLIDE n` ke mesin utama (`refEngine()`,
+     setting `ai_ref_engine`, bawaan **DeepSeek**); kalau gagal atau key-nya kosong, otomatis mesin satunya.
+     DeepSeek: format OpenAI `POST /chat/completions`, model bawaan **`deepseek-flash`** (bisa membaca gambar lewat
+     `image_url` data URI), `thinking: {type: disabled}`, `response_format: json_object`. Dicek dengan postingan
+     asli 26 Sep 2026: prompt yang tertulis di slide 5 terbaca kata per kata dalam ±4 detik (±6.300 token input
+     untuk 6 slide).
+  5. AI juga mengembalikan `promptSlide`, `exampleSlide` (slide terbaik sebagai contoh hasil), `promptSource`
+     (`image|caption|extra`), dan `multiple` (jumlah prompt di postingan — yang diambil hanya satu).
+  **Banyak link sekaligus (wizard):** kolom link menerima banyak link (satu per baris; duplikat disaring lewat
+  kode postingan, maks 20). Semua dibaca di latar belakang, **2 sekaligus** (`WIZ_PARALLEL`), lalu direview satu
+  per satu: bar nomor berwarna per status, Sebelumnya/Berikutnya/Lewati/Ambil ulang, dan tombol simpan jadi
+  "Simpan & lanjut". Isian tiap link dipotret (`snapForm`/`restoreForm`) supaya pindah-pindah tidak menghilangkan
+  suntingan. Token `wiz.run` membatalkan hasil lama saat wizard dihentikan/dimulai ulang. Menutup sheet membuang
+  wizard (belum ada peringatan).
+  Slide **tidak** langsung dipasang. Studio menampilkan kotak **review slide** (grid, bertanda "Saran AI" dan
+  "Berisi prompt"), lalu admin memilih salah satu dari dua jalan:
+  - **Pakai apa adanya** → slide jadi gambar contoh lewat jalur `image_temp`. Itu foto milik akun sumber
+    (lihat backlog hak cipta).
+  - **Generate versi sendiri** → endpoint `ai_thumb` → `generateThumbnail()` di model gambar Gemini
+    (`imageConfig.aspectRatio = 4:5`; kalau model menolak `imageConfig`, diulang tanpa rasio — `cropTo45()` tetap
+    merapikan saat disimpan). Sumber wajah dipilih admin: **Foto wajah kita** (bawaan; slide hanya jadi acuan
+    pose/cahaya/suasana, instruksinya melarang menyalin orang, teks, watermark) atau **Wajah dari slide**
+    (keputusan pemilik 26 Sep 2026: boleh, tapi UI menampilkan peringatan izin). Foto wajah baru disimpan ke
+    tabel **`faces`** (`uploads/f_*.jpg`) jadi pustaka wajah; daftar `faces` juga memuat foto input Tes generate
+    lama (`prompt_tests.input_image`, tidak bisa dihapus dari sini). Foto yang ditempel/dipilih (boleh banyak
+    sekaligus) langsung diunggah lewat `face_add`, tanpa perlu generate dulu.
+    **Model bawaan** = 8 karakter **AI fiktif** di `app/img/models/` (`models.json` berisi file + label "AI · …"),
+    dibuat 26 Sep 2026 dengan Gemini dan instruksi "orang fiktif, tidak mirip tokoh publik". `uploadPath()` hanya
+    menerima `uploads/…` dan `img/models/…` sebagai wajah/referensi. **Aturan:** repo ini PUBLIK, jadi foto orang
+    sungguhan (tim/model yang sudah setuju) masuk lewat upload ke server, **jangan pernah di-commit**. Wajah tokoh
+    publik (presiden, menteri, artis) **tidak dipakai** sama sekali: UU Hak Cipta Pasal 12 melarang penggunaan
+    komersial potret seseorang tanpa persetujuan tertulis, dan deepfake tokoh politik berisiko untuk akun iklan
+    Meta. Permintaan itu pernah datang 26 Sep 2026 dan ditolak; yang dipakai sebagai gantinya model AI fiktif. Hasil generate = `uploads/tmp_*.jpg`, bisa
+    diulang, dan dipilih dari grid hasil. Dicek dengan Gemini asli 26 Sep 2026: ±11 detik, 928×1152, watermark
+    sumber hilang.
 
 ## Data
-Tabel: `prompts, prompts_trash, members, attempts, settings, orders, webhook_log, ai_log, prompt_tests, events,
+Tabel: `prompts, prompts_trash, members, attempts, settings, orders, webhook_log, ai_log, prompt_tests, faces, events,
 lt_events, presence, ad_spend, vouchers`.
 Kolom penting `members`: `username, name, code_hash, code_hint, plan, expires, active, email, phone, role, avatar, session_token, plan_cap, allow_ids`.
 Kolom penting `prompts`: `id, ord, cat, title, descr, popular, tools, prompt, tips, image, created_at,
@@ -171,7 +227,7 @@ dua kolom `*_err` menyimpan sebab kegagalan tiap kanal, dan kosong berarti kanal
 `qc_status` = `''|lolos|review|gagal`, `result_status` = `''|cocok|kurang` — dipakai menyaring di panel admin,
 tidak pernah tampil ke member. Resep yang dihapus pindah ke tabel **`prompts_trash`** (barisnya disimpan utuh
 sebagai JSON); gambar dan galeri tesnya baru benar-benar dibuang saat sampah dikosongkan.
-Kunci `settings`: `admin_hash, admin_avatar, admin_email, mail_from, mayar_webhook_token, auto_without_token, mayar_coupon_shape, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass, fonnte_token, admin_wa, meta_pixel_id, mayar_api_key, gemini_api_key, gemini_model, gemini_image_model, cover_title, cover_sub, cover_title_en, cover_sub_en, cover_chip, cover_img1..3, msg_paid_subject, msg_paid, msg_pending_subject, msg_pending`.
+Kunci `settings`: `admin_hash, admin_avatar, admin_email, mail_from, mayar_webhook_token, auto_without_token, mayar_coupon_shape, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass, fonnte_token, admin_wa, meta_pixel_id, mayar_api_key, gemini_api_key, gemini_model, gemini_image_model, deepseek_api_key, deepseek_model, ai_ref_engine, cover_title, cover_sub, cover_title_en, cover_sub_en, cover_chip, cover_img1..3, msg_paid_subject, msg_paid, msg_pending_subject, msg_pending`.
 
 **Satu template, tiga kanal.** Teks pesan ke pembeli ditulis SEKALI di Admin -> Pesanan -> "Teks pesan ke
 pembeli", dengan format WhatsApp (`*tebal*`, `_miring_`, daftar bernomor). Dari satu template itu `lib.php`
@@ -375,12 +431,12 @@ sebagai **teks ISO**, bukan tanggal Excel, supaya tidak bergeser sehari saat bol
 |---|---|
 | publik | `me` (juga mengembalikan `cover` & `v`), `login`, `logout`, `recent_orders` (pesanan asli + aktivitas keranjang asli, keduanya anonim), `lt` (tracking halaman iklan), `live` (`?page=` opsional), `pixel` (Meta Pixel ID untuk `/promo`) |
 | user | `prompts`, `track`, `avatar_save` (admin boleh isi `username` untuk member lain) |
-| admin | `prompt_save`, `prompt_review` (ubah status QC/hasil dari daftar), `prompt_cover_from_test` (hasil tes jadi gambar contoh), `prompt_delete` (→ tempat sampah), `trash`, `trash_restore`, `trash_purge`, `members`, `member_save` (FormData, boleh `avatar`/`clearAvatar`), `member_delete`, `cover_save`, `ai_analyze`, `ai_ocr`, `prompt_tests`, `prompt_test_add/generate/update/delete` |
-| super | `admins`, `admin_save`, `admin_delete`, `admin_change_code`, `orders`, `order_action` (`approve/resend/newcode/remind/reject`), `settings_save`, `test_email`, `test_wa`, `ai_settings`, `ai_settings_save`, `ai_test`, `report_users`, `report_ads`, `ad_spend_save`, `vouchers`, `voucher_create` (buat kupon di Mayar), `voucher_sync` (baca status dari Mayar), `voucher_save` (catat kode saja), `voucher_delete`, `mayar_coupons` (lihat daftar kupon Mayar apa adanya — alat diagnosis), `prompts_export` (unduh katalog sebagai .xlsx), `prompts_import` (impor balik; `dryRun=1` = pratinjau) |
+| admin | `prompt_save`, `prompt_review` (ubah status QC/hasil dari daftar), `prompt_cover_from_test` (hasil tes jadi gambar contoh), `prompt_delete` (→ tempat sampah), `trash`, `trash_restore`, `trash_purge`, `members`, `member_save` (FormData, boleh `avatar`/`clearAvatar`), `member_delete`, `cover_save`, `ai_analyze`, `ai_ocr`, `ai_reference` (link Instagram → resep), `ai_thumb` (thumbnail sendiri dari slide referensi), `faces`, `face_add`, `face_delete`, `prompt_tests`, `prompt_test_add/generate/update/delete` |
+| super | `admins`, `admin_save`, `admin_delete`, `admin_change_code`, `orders`, `order_action` (`approve/resend/newcode/remind/reject`), `settings_save`, `test_email`, `test_wa`, `ai_settings`, `ai_settings_save`, `ai_test` (`engine: gemini|deepseek`), `report_users`, `report_ads`, `ad_spend_save`, `vouchers`, `voucher_create` (buat kupon di Mayar), `voucher_sync` (baca status dari Mayar), `voucher_save` (catat kode saja), `voucher_delete`, `mayar_coupons` (lihat daftar kupon Mayar apa adanya — alat diagnosis), `prompts_export` (unduh katalog sebagai .xlsx), `prompts_import` (impor balik; `dryRun=1` = pratinjau) |
 
 ## Fitur yang sudah ada (jangan dibuat ulang)
 Login & katalog resep (kategori, cari, favorit, populer), detail resep + salin prompt (tombol pil), tombol Buka Gemini/ChatGPT dengan deep-link app (Android `intent://` + fallback Play Store; iOS Universal Link + tautan App Store), section **Tren viral** di bawah best seller, **slider ukuran thumbnail** 1–5 kolom, panduan & FAQ, profil (foto: upload → **editor crop 1:1** → simpan; klik foto → lightbox), bahasa & tema.
-Panel admin: Resep (toolbar cari + chip kategori + **filter review**: status QC, penilaian hasil, penulis, tanpa deskripsi, belum ada EN, English saja; tombol status cepat per baris; **tempat sampah** dengan pulihkan/hapus permanen), studio resep dengan 2 mode (upload sendiri / **prompt dari gambar—OCR**) dan galeri tes internal yang hasilnya bisa **dijadikan gambar contoh resep**; Member (foto, paket, masa aktif, kode akses); Pesanan Mayar + email akses + **WhatsApp otomatis via Fonnte** (pengaturan SMTP & Fonnte ada di tab Pesanan, lengkap dengan tombol kirim tes); AI Gemini; Pengguna & Iklan (laporan, UTM, biaya iklan, ROAS); Admin (akun admin/super admin, ganti kode akses admin utama); Cover (3 foto + teks halaman login); **Konten** (ekspor/impor resep lewat Excel).
+Panel admin: Resep (toolbar cari + chip kategori + **filter review**: status QC, penilaian hasil, penulis, tanpa deskripsi, belum ada EN, English saja; tombol status cepat per baris; **tempat sampah** dengan pulihkan/hapus permanen), studio resep dengan 3 mode (upload sendiri / **prompt dari gambar—OCR** / **link Instagram**—DeepSeek, cadangan Gemini; banyak link = wizard; review slide + thumbnail sendiri; checkbox Tren viral = jalan pintas kategori) dan galeri tes internal yang hasilnya bisa **dijadikan gambar contoh resep**; Member (foto, paket, masa aktif, kode akses); Pesanan Mayar + email akses + **WhatsApp otomatis via Fonnte** (pengaturan SMTP & Fonnte ada di tab Pesanan, lengkap dengan tombol kirim tes); AI Gemini; Pengguna & Iklan (laporan, UTM, biaya iklan, ROAS); Admin (akun admin/super admin, ganti kode akses admin utama); Cover (3 foto + teks halaman login); **Konten** (ekspor/impor resep lewat Excel).
 Halaman iklan `/promo` dengan pelacakan corong lengkap, penghitung pengunjung aktif, dan notifikasi aktivitas
 (pesanan + keranjang) — **semuanya dari data asli**, lihat `landing/CLAUDE.md` bagian bukti sosial.
 **Meta Pixel** opsional di `/promo`: ID-nya diisi di Admin → Iklan (kunci `meta_pixel_id`), halaman membacanya lewat
@@ -442,6 +498,9 @@ Tes Gemini butuh API key sungguhan; `RF_GEMINI_BASE` env bisa mengarahkan ke moc
 bash test/uji-pesan-voucher.sh   # template pesan 3 kanal, email multipart, pengingat,
                                  #   jatah Standard, voucher_save/voucher_delete (lokal)
 bash test/uji-voucher-mayar.sh   # voucher_create + voucher_sync lewat Mayar TIRUAN
+bash test/uji-link-instagram.sh  # mode Link Instagram + setelan DeepSeek lewat Instagram/DeepSeek/Gemini
+                                 #   + thumbnail sendiri (ai_thumb, pustaka wajah) lewat server TIRUAN
+                                 #   (RF_IG_BASE, RF_DEEPSEEK_BASE, RF_GEMINI_BASE) — 86 cek
 bash test/uji-konten-excel.sh    # ekspor/impor resep lewat Excel (tab Konten)
 ```
 `uji-voucher-mayar.sh` menjalankan server tiruan dan mengarahkan aplikasi ke situ lewat
@@ -508,7 +567,8 @@ env itu basisnya tetap `api.mayar.id` — override ini **hanya** alat uji, bukan
 ## Checklist serah-terima ke pembeli
 1. Ganti kode akses admin utama (tab Admin → "Ganti kode akses admin utama").
 2. Hapus member contoh `demo` (tab Member).
-3. Isi API key Gemini (tab AI Gemini, key `AIza…` dari aistudio.google.com).
+3. Isi API key Gemini (tab AI, key `AIza…` dari aistudio.google.com) dan DeepSeek (key `sk-…` dari
+   platform.deepseek.com) — DeepSeek dipakai mode Link Instagram.
 4. Isi token webhook Mayar + email admin (tab Pesanan); daftarkan URL webhook di Mayar.
 5. Isi token Fonnte + nomor WhatsApp admin (tab Pesanan → WhatsApp otomatis), lalu tekan "Kirim WA tes".
 6. Ganti foto & teks cover login (tab Cover).
