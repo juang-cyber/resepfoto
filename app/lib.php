@@ -105,6 +105,10 @@ function db(): PDO {
   // Prompt versi Inggris untuk etalase internasional (imagine.kitlab.id). Diisi HANYA kalau prompt utamanya
   // berbahasa Indonesia; prompt utama sendiri tidak pernah diubah, jadi resep di ResepFoto tetap sama persis.
   if (!in_array('prompt_en', $cols, true)) $pdo->exec("ALTER TABLE prompts ADD COLUMN prompt_en TEXT DEFAULT ''");
+  // Teks Thai untuk etalase imagine.kitlab.id/th. Prompt sengaja tidak diterjemahkan ke Thai: model gambar paling patuh
+  // pada prompt Inggris, jadi di /th yang dipakai tetap prompt Inggris (prompt_en atau prompt utama).
+  foreach (['cat_th', 'title_th', 'descr_th', 'tips_th'] as $c)
+    if (!in_array($c, $cols, true)) $pdo->exec("ALTER TABLE prompts ADD COLUMN $c TEXT DEFAULT ''");
   $mcols = array_column($pdo->query('PRAGMA table_info(members)')->fetchAll(), 'name');
   if (!in_array('email', $mcols, true)) $pdo->exec('ALTER TABLE members ADD COLUMN email TEXT');
   if (!in_array('phone', $mcols, true)) $pdo->exec('ALTER TABLE members ADD COLUMN phone TEXT');
