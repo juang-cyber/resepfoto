@@ -22,7 +22,7 @@ Cron menyalin `landing/index.html` + `landing/img/` ke `promo/`; `mockup.html` s
 |---|---|
 | `mockup.html` | **Sumber desain** (≈128 KB, CSS & JS inline, tanpa framework). `MOCKUP = true` → pembayaran nonaktif, semua data berlabel ILUSTRASI. Dipublikasikan sebagai Artifact untuk presentasi |
 | `build-promo.mjs` | Membangkitkan `index.html` dari `mockup.html`. Tanpa dependency, jalan dengan `node` biasa |
-| `img/` | 122 file: **100** gambar katalog resep (`pNN.jpg` / `rtl*.jpg`, 600×750 q78 mozjpeg, rata-rata 46 KB) + `rb1-6`/`ra1-6` pasangan before/after hero + `av1-5` avatar testimoni + `tr1-5` foto hasil testimoni |
+| `img/` | 122 gambar sumber `.jpg`: **100** gambar katalog resep (`pNN` / `rtl*`, 600×750) + `rb1-6`/`ra1-6` pasangan before/after hero + `av1-5` avatar testimoni + `tr1-5` foto hasil testimoni. **Halaman memakai `.webp`, bukan `.jpg`** (sejak 26 Sep 2026): tiap `.jpg` punya `.webp` (q68, `ra/rb/tr` diperkecil ke lebar 720) dan `-t.webp` (thumbnail 240 px, kecuali `av*`) untuk slot kecil — kartu di mockup HP, bubble chat, kolase penutup, "Cocok untuk siapa". Gambar baru: simpan `.jpg` sumbernya, buat `.webp` + `-t.webp` dengan setelan yang sama, rujuk `.webp` di mockup |
 | `index.html` | **Halaman yang tayang di `/promo`.** Dibangkitkan oleh `build-promo.mjs` — jangan diedit tangan, perubahannya akan tertimpa build berikutnya |
 | `../app/promo-live/index.html` | **Halaman yang tayang di `/promo-live`** — selalu build PRODUKSI, ikut dibangkitkan tiap `build-promo.mjs` jalan. Rujukan gambarnya `/promo/img/…`. Jangan diedit tangan |
 
@@ -193,6 +193,19 @@ dibangun.
   `meta_pixel_id` di tabel `settings`. Diisi dari **Admin → Iklan → Meta Pixel**. Satu Pixel ID berlaku untuk semua
   kampanye di akun iklan yang sama, jadi bikin kampanye baru **tidak** perlu menyentuh kode.
 - **Kolom kosong = pixel mati total** — tidak ada permintaan ke `connect.facebook.net` sama sekali. Sudah diuji.
+- **PageView dikirim dari `<head>`** (`window.__rfPixel`, disuntik `build-promo.mjs`), bukan dari skrip di akhir
+  halaman. Sebelumnya PageView menunggu seluruh halaman dan berebut jaringan dengan gambar, sehingga pengunjung iklan
+  yang cepat pergi tidak tercatat sebagai *landing page view* (26 Sep 2026: 19 klik iklan, hanya 11 tercatat).
+  Peristiwa lain tetap lewat `fbSend`, yang sekarang menunggu `window.__rfPixel` alih-alih mengambil ID sendiri.
+
+### Pemuatan gambar (26 Sep 2026)
+Halaman iklan dibuka dari browser bawaan Instagram/Threads dengan data seluler, jadi berat awal dijaga kecil:
+- Saat dibuka hanya hero (`fetchpriority="high"`, pasangan pertama = `EXAMPLES[0]`) dan mockup HP yang dimuat —
+  ±200 KB, dulu ±1,3 MB. Gambar lain `loading="lazy"`.
+- Slider hero menyiapkan **pasangan berikutnya saja**, 1,5 detik sesudah slide tampil. Jangan kembalikan pra-muat
+  ke-12 foto sekaligus.
+- 2 detik sesudah `load`, blok "gambar: bertahap" mengisi sisa gambar lazy di latar belakang (2 sekaligus, urut dari
+  atas) supaya waktu di-scroll gambarnya sudah siap. Dilewati kalau pengunjung memakai mode hemat data (`saveData`).
 - Peristiwa yang dikirim, dipetakan dari `trk()` yang sudah ada: `PageView` + `ViewContent` saat halaman dibuka,
   `CTAClick` (custom) dari `cta`, `InitiateCheckout` dari `checkout`, `AddPaymentInfo` dari `pay`. `value` &
   `currency` diambil dari `PLANS`, jadi otomatis ikut kalau harga berubah. Tiap peristiwa membawa `eventID` unik.

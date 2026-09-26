@@ -109,6 +109,26 @@ rep('function openSheet(p){\n  if (p) setPlan(p);',
 rep('  if (MOCKUP){ toast("Mockup presentasi: pembayaran dinonaktifkan"); return; }\n  const url = CHECKOUT[plan];',
     '  const url = CHECKOUT[plan];\n  trk("pay", {plan});', "event pay");
 
+/* Meta Pixel dimulai di <head>, bukan di akhir halaman. Dulu PageView baru terkirim sesudah seluruh
+   skrip halaman jalan dan berebut jaringan dengan gambar, jadi pengunjung iklan yang cepat pergi
+   tidak tercatat sebagai "landing page view" (26 Sep 2026: 19 klik, hanya 11 tercatat). ID tetap
+   diambil dari api.php?a=pixel, jadi masih diatur dari Admin -> Iklan tanpa membangun ulang. */
+rep('<link rel="preconnect" href="https://fonts.googleapis.com">',
+`<link rel="preconnect" href="https://connect.facebook.net">
+<script>
+window.__rfPixel = fetch("/api.php?a=pixel", {credentials: "omit"}).then(r => r.json()).then(d => {
+  const id = String((d && d.id) || "").replace(/[^0-9]/g, "");
+  if (!id) return "";
+  !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version="2.0";n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;
+  s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,"script","https://connect.facebook.net/en_US/fbevents.js");
+  fbq("init", id);
+  fbq("track", "PageView", {}, {eventID: Date.now().toString(36) + Math.random().toString(36).slice(2, 8)});
+  return id;
+}).catch(() => "");
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">`, "pixel di head");
+
 /* blok pelacakan */
 rep('/* ---- init ---- */',
 `/* ---- Meta Pixel (opsional; ID diisi di Admin -> Iklan) ----
@@ -134,13 +154,10 @@ const fbSend = (() => {
     else if (type === "pay") fire("AddPaymentInfo", money(extra.plan));
   };
   const off = () => { ready = false; queue.length = 0; };
-  fetch(TRACK_URL + "?a=pixel", {credentials: "omit"}).then(r => r.json()).then(d => {
-    const id = String((d && d.id) || "").replace(/[^0-9]/g, "");
+  // pixel + PageView sudah dimulai di <head> (window.__rfPixel); di sini tinggal menunggu ID-nya
+  (window.__rfPixel || Promise.resolve("")).then(id => {
     if (!id) return off();
-    !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version="2.0";n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;
-    s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,"script","https://connect.facebook.net/en_US/fbevents.js");
-    fbq("init", id); fire("PageView", {}); ready = true;
+    ready = true;
     queue.splice(0).forEach(a => map(a[0], a[1]));
   }).catch(off);
   return (type, extra) => { if (ready) map(type, extra || {}); else if (ready === null) queue.push([type, extra || {}]); };

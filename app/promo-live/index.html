@@ -7,6 +7,19 @@
 </head>
 <body>
 <title>ResepFoto — Resep foto AI siap pake</title>
+<link rel="preconnect" href="https://connect.facebook.net">
+<script>
+window.__rfPixel = fetch("/api.php?a=pixel", {credentials: "omit"}).then(r => r.json()).then(d => {
+  const id = String((d && d.id) || "").replace(/[^0-9]/g, "");
+  if (!id) return "";
+  !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version="2.0";n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;
+  s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,"script","https://connect.facebook.net/en_US/fbevents.js");
+  fbq("init", id);
+  fbq("track", "PageView", {}, {eventID: Date.now().toString(36) + Math.random().toString(36).slice(2, 8)});
+  return id;
+}).catch(() => "");
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&family=Caveat:wght@500;600&display=swap">
@@ -543,8 +556,8 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
     <p class="sub">Cukup <strong>1 resep</strong>, fotomu auto jadi di <strong>Gemini</strong> atau <strong>ChatGPT</strong>.</p>
 
     <div class="compare" id="compare" style="--pos:50%">
-      <img id="cmp-after" src="/promo/img/ra2.jpg" alt="Sesudah: foto hasil resep">
-      <img id="cmp-before" class="before" src="/promo/img/rb2.jpg" alt="Sebelum: foto asli">
+      <img id="cmp-after" src="/promo/img/ra3.webp" fetchpriority="high" alt="Sesudah: foto hasil resep">
+      <img id="cmp-before" class="before" src="/promo/img/rb3.webp" fetchpriority="high" alt="Sebelum: foto asli">
       <span class="tag l">Sebelum</span><span class="tag r">Sesudah</span>
       <div class="handle"><button class="knob" id="knob" aria-label="Geser untuk membandingkan sebelum dan sesudah"><svg class="ico"><use href="#i-arrows"/></svg></button></div>
       <span class="hint" id="cmp-hint">Geser untuk lihat</span>
@@ -603,22 +616,22 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
         <span class="island" aria-hidden="true"><i class="cam"></i></span>
         <div class="scene on" data-scene="0">
           <div class="app-h">Paling laris</div>
-          <div class="rcard active" style="position:relative"><img src="/promo/img/9e64523b9aa07e1a.jpg" alt=""><div>Potret Studio Sinematik Gelap<small>Profesional</small></div><span class="cp">Salin</span><span class="tap" style="right:6px;top:6px"></span></div>
-          <div class="rcard"><img src="/promo/img/8c3b666b3d257c3d.jpg" alt=""><div>Foto Pasangan Sinematik Film 35mm<small>Couple</small></div><span class="cp">Salin</span></div>
-          <div class="rcard"><img src="/promo/img/p25.jpg" alt=""><div>Doodle Sketsa Lucu<small>Kartun & Ilustrasi</small></div><span class="cp">Salin</span></div>
-          <div class="rcard"><img src="/promo/img/df1e914edf146ea8.jpg" alt=""><div>Potret Retro Jakarta Era 80-an<small>Foto Jadul</small></div><span class="cp">Salin</span></div>
-          <div class="rcard"><img src="/promo/img/p45.jpg" alt=""><div>Senja di Peron Stasiun<small>Jalan-jalan</small></div><span class="cp">Salin</span></div>
+          <div class="rcard active" style="position:relative"><img src="/promo/img/9e64523b9aa07e1a-t.webp" alt=""><div>Potret Studio Sinematik Gelap<small>Profesional</small></div><span class="cp">Salin</span><span class="tap" style="right:6px;top:6px"></span></div>
+          <div class="rcard"><img src="/promo/img/8c3b666b3d257c3d-t.webp" alt=""><div>Foto Pasangan Sinematik Film 35mm<small>Couple</small></div><span class="cp">Salin</span></div>
+          <div class="rcard"><img src="/promo/img/p25-t.webp" alt=""><div>Doodle Sketsa Lucu<small>Kartun & Ilustrasi</small></div><span class="cp">Salin</span></div>
+          <div class="rcard"><img src="/promo/img/df1e914edf146ea8-t.webp" alt=""><div>Potret Retro Jakarta Era 80-an<small>Foto Jadul</small></div><span class="cp">Salin</span></div>
+          <div class="rcard"><img src="/promo/img/p45-t.webp" alt=""><div>Senja di Peron Stasiun<small>Jalan-jalan</small></div><span class="cp">Salin</span></div>
           <span class="copied"><svg class="ico" style="width:13px;height:13px"><use href="#i-check"/></svg>Resep tersalin</span>
         </div>
         <div class="scene" data-scene="1">
           <div class="chat-top"><i></i>Gemini / ChatGPT</div>
-          <div class="bub me"><img src="/promo/img/rb2.jpg" alt=""></div>
+          <div class="bub me"><img src="/promo/img/rb2-t.webp" alt=""></div>
           <div class="bub me mono">Turn my uploaded photo into a dark cinematic studio portrait with one dramatic key light. Keep my face exactly the same…</div>
           <div class="bub ai"><span class="typing"><i></i><i></i><i></i></span></div>
         </div>
         <div class="scene" data-scene="2">
           <div class="chat-top"><i></i>Gemini / ChatGPT</div>
-          <div class="result"><img src="/promo/img/ra2.jpg" alt="Contoh hasil potret studio sinematik gelap"><span class="spark"></span></div>
+          <div class="result"><img src="/promo/img/ra2.webp" alt="Contoh hasil potret studio sinematik gelap"><span class="spark"></span></div>
           <div class="saved"><span>Simpan</span><span>Bagikan</span></div>
         </div>
       </div>
@@ -824,7 +837,7 @@ footer{background:var(--ink);color:#A9B4CF;font-size:12px;padding:22px 20px 28px
     <span class="glass g4" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#g-photo-plus"/></svg></span>
     <span class="eyebrow" style="color:var(--sun)">Tunggu apa lagi</span>
     <h2>Fotomu berikutnya bisa jadi foto terbaikmu.</h2>
-    <div class="collage"><img src="/promo/img/1743d9195b3e3bad.jpg" alt="Hasil resep Potret Sinematik Noir Korek Api"><img src="/promo/img/50ab0fd2a6efb6dd.jpg" alt="Hasil resep Foto Anggun di Akuarium Bawah Laut"><img src="/promo/img/p58.jpg" alt="Hasil resep Prajurit Steampunk Selfie"></div>
+    <div class="collage"><img loading="lazy" src="/promo/img/1743d9195b3e3bad-t.webp" alt="Hasil resep Potret Sinematik Noir Korek Api"><img loading="lazy" src="/promo/img/50ab0fd2a6efb6dd-t.webp" alt="Hasil resep Foto Anggun di Akuarium Bawah Laut"><img loading="lazy" src="/promo/img/p58-t.webp" alt="Hasil resep Prajurit Steampunk Selfie"></div>
     <button class="btn btn-main btn-block" data-buy="premium">Ambil Premium Sekarang</button>
     <p class="honest"><svg class="ico"><use href="#i-info"/></svg>Resep Photo siap pake untuk Gemini/ChatGPT</p>
   </section>
@@ -900,117 +913,117 @@ function toast(msg){ const t = $("#toast"); t.textContent = msg; t.classList.add
 
 /* ---- data (ganti gambar before/after dengan hasil asli) ---- */
 const EXAMPLES = [
-  {label: "Motion Blur", title: "Potret Sinematik Motion Blur Kota", sub: "Foto studio biasa → jalanan kota sinematik", before: "/promo/img/rb3.jpg", after: "/promo/img/ra3.jpg"},
-  {label: "Fisheye", title: "Potret Fisheye Sudut Atas", sub: "Foto di gunung → potret studio fisheye", before: "/promo/img/rb6.jpg", after: "/promo/img/ra6.jpg"},
-  {label: "Mini Chibi", title: "Mini Chibi Gemas di Telapak Tangan", sub: "Selfie di kamar → figur mini di telapak tangan", before: "/promo/img/rb5.jpg", after: "/promo/img/ra5.jpg"},
-  {label: "Gaya 1985", title: "Potret Gaya 1985", sub: "Selfie di meja kerja → potret film jadul", before: "/promo/img/rb4.jpg", after: "/promo/img/ra4.jpg"},
-  {label: "Scrapbook", title: "Foto Scrapbook Chibi 3D Gemas", sub: "Foto berdiri → satu lembar scrapbook chibi", before: "/promo/img/rb1.jpg", after: "/promo/img/ra1.jpg"},
-  {label: "Studio Gelap", title: "Potret Studio Sinematik Gelap", sub: "Foto duduk biasa → potret studio dramatis", before: "/promo/img/rb2.jpg", after: "/promo/img/ra2.jpg"}
+  {label: "Motion Blur", title: "Potret Sinematik Motion Blur Kota", sub: "Foto studio biasa → jalanan kota sinematik", before: "/promo/img/rb3.webp", after: "/promo/img/ra3.webp"},
+  {label: "Fisheye", title: "Potret Fisheye Sudut Atas", sub: "Foto di gunung → potret studio fisheye", before: "/promo/img/rb6.webp", after: "/promo/img/ra6.webp"},
+  {label: "Mini Chibi", title: "Mini Chibi Gemas di Telapak Tangan", sub: "Selfie di kamar → figur mini di telapak tangan", before: "/promo/img/rb5.webp", after: "/promo/img/ra5.webp"},
+  {label: "Gaya 1985", title: "Potret Gaya 1985", sub: "Selfie di meja kerja → potret film jadul", before: "/promo/img/rb4.webp", after: "/promo/img/ra4.webp"},
+  {label: "Scrapbook", title: "Foto Scrapbook Chibi 3D Gemas", sub: "Foto berdiri → satu lembar scrapbook chibi", before: "/promo/img/rb1.webp", after: "/promo/img/ra1.webp"},
+  {label: "Studio Gelap", title: "Potret Studio Sinematik Gelap", sub: "Foto duduk biasa → potret studio dramatis", before: "/promo/img/rb2.webp", after: "/promo/img/ra2.webp"}
 ];
 const RECIPES = [
-  ["p16","Profesional","Potret Pebisnis Modern","/promo/img/p16.jpg"],
-  ["p17","Tren Viral","Potret Neon Sinematik","/promo/img/p17.jpg"],
-  ["rtlhqfm5b68","Jalan-jalan","Potret Sinematik Motion Blur Kota","/promo/img/77b7c14277850ca3.jpg"],
-  ["rtlhql02003","Profesional","Potret Hitam Putih Dramatis","/promo/img/dc4ceb130cd4faf0.jpg"],
-  ["rtlhwfsf0fd","Entertainment","OOTD Bersama Mini Me","/promo/img/a989967fcdae0f63.jpg"],
-  ["rtlhwlo6ac4","Entertainment","Foto Scrapbook Chibi 3D Gemas","/promo/img/41ce0bd7c7d56af9.jpg"],
-  ["rtlhwnq0386","Entertainment","Mini Chibi Gemas di Telapak Tangan","/promo/img/a6da59b97742d195.jpg"],
-  ["rtlhwqx0237","Entertainment","Foto Unik Mini Me Chibi","/promo/img/33b1a4e684214d52.jpg"],
-  ["rtlhwub484d","Entertainment","Poster Zodiak Chibi Karakter Lucu","/promo/img/d761fcd63d08949d.jpg"],
-  ["rtlhwx8cb88","Entertainment","Dunia Kartun Tiny Planet","/promo/img/23bc9ae4209a057d.jpg"],
-  ["rtlhx0cf87b","Entertainment","Cosplay Polisi Kelinci Fantasi","/promo/img/ae6121ff516ff038.jpg"],
-  ["rtlhx4154b6","Profesional","Potret Fisheye Sudut Atas","/promo/img/31e6f543b4ef4be8.jpg"],
-  ["rtlhx9g6773","Keluarga","Foto Studio Ayah & Anak Monokrom","/promo/img/a5f03d013e7a01f7.jpg"],
-  ["rtlhxfg41e2","Jalan-jalan","Candid Sinematik Golden Hour","/promo/img/e09183b6be3b2db0.jpg"],
-  ["rtlhxhv6170","Jalan-jalan","Potret Sinematik Jalanan Kota","/promo/img/41426d67aad46379.jpg"],
-  ["rtlhxku1b73","Entertainment","Selfie Bersama Karakter Mainan 3D","/promo/img/555773730623622a.jpg"],
-  ["rtlhxp6cc8c","Profesional","Potret Studio Editorial Hijab","/promo/img/931935911be41516.jpg"],
-  ["rtlhxst1c7e","Profesional","Potret Editorial Majalah Mewah","/promo/img/942a7d4c1c4d417e.jpg"],
-  ["rtlhxxc2199","Profesional","Potret Editorial Blazer Mewah","/promo/img/47001368a27e54ca.jpg"],
-  ["rtlhy2z7267","Profesional","Potret Studio Sinematik Gelap","/promo/img/9e64523b9aa07e1a.jpg"],
-  ["rtlhy6l10d7","Entertainment","Foto POV Intip Tas Resleting Berdua","/promo/img/c47f63ea6d3080bc.jpg"],
-  ["rtlhybg6396","Jalan-jalan","Gaya Santai Jalanan Tokyo","/promo/img/02fde47ad65cd527.jpg"],
-  ["rtlhygk1305","Profesional","Potret Estetik Kain Linen","/promo/img/837050fd6113af3d.jpg"],
-  ["p21","Foto Jadul","Potret Gaya 1985","/promo/img/p21.jpg"],
-  ["p22","Editorial","Potret Studio Ivory","/promo/img/p22.jpg"],
+  ["p16","Profesional","Potret Pebisnis Modern","/promo/img/p16.webp"],
+  ["p17","Tren Viral","Potret Neon Sinematik","/promo/img/p17.webp"],
+  ["rtlhqfm5b68","Jalan-jalan","Potret Sinematik Motion Blur Kota","/promo/img/77b7c14277850ca3.webp"],
+  ["rtlhql02003","Profesional","Potret Hitam Putih Dramatis","/promo/img/dc4ceb130cd4faf0.webp"],
+  ["rtlhwfsf0fd","Entertainment","OOTD Bersama Mini Me","/promo/img/a989967fcdae0f63.webp"],
+  ["rtlhwlo6ac4","Entertainment","Foto Scrapbook Chibi 3D Gemas","/promo/img/41ce0bd7c7d56af9.webp"],
+  ["rtlhwnq0386","Entertainment","Mini Chibi Gemas di Telapak Tangan","/promo/img/a6da59b97742d195.webp"],
+  ["rtlhwqx0237","Entertainment","Foto Unik Mini Me Chibi","/promo/img/33b1a4e684214d52.webp"],
+  ["rtlhwub484d","Entertainment","Poster Zodiak Chibi Karakter Lucu","/promo/img/d761fcd63d08949d.webp"],
+  ["rtlhwx8cb88","Entertainment","Dunia Kartun Tiny Planet","/promo/img/23bc9ae4209a057d.webp"],
+  ["rtlhx0cf87b","Entertainment","Cosplay Polisi Kelinci Fantasi","/promo/img/ae6121ff516ff038.webp"],
+  ["rtlhx4154b6","Profesional","Potret Fisheye Sudut Atas","/promo/img/31e6f543b4ef4be8.webp"],
+  ["rtlhx9g6773","Keluarga","Foto Studio Ayah & Anak Monokrom","/promo/img/a5f03d013e7a01f7.webp"],
+  ["rtlhxfg41e2","Jalan-jalan","Candid Sinematik Golden Hour","/promo/img/e09183b6be3b2db0.webp"],
+  ["rtlhxhv6170","Jalan-jalan","Potret Sinematik Jalanan Kota","/promo/img/41426d67aad46379.webp"],
+  ["rtlhxku1b73","Entertainment","Selfie Bersama Karakter Mainan 3D","/promo/img/555773730623622a.webp"],
+  ["rtlhxp6cc8c","Profesional","Potret Studio Editorial Hijab","/promo/img/931935911be41516.webp"],
+  ["rtlhxst1c7e","Profesional","Potret Editorial Majalah Mewah","/promo/img/942a7d4c1c4d417e.webp"],
+  ["rtlhxxc2199","Profesional","Potret Editorial Blazer Mewah","/promo/img/47001368a27e54ca.webp"],
+  ["rtlhy2z7267","Profesional","Potret Studio Sinematik Gelap","/promo/img/9e64523b9aa07e1a.webp"],
+  ["rtlhy6l10d7","Entertainment","Foto POV Intip Tas Resleting Berdua","/promo/img/c47f63ea6d3080bc.webp"],
+  ["rtlhybg6396","Jalan-jalan","Gaya Santai Jalanan Tokyo","/promo/img/02fde47ad65cd527.webp"],
+  ["rtlhygk1305","Profesional","Potret Estetik Kain Linen","/promo/img/837050fd6113af3d.webp"],
+  ["p21","Foto Jadul","Potret Gaya 1985","/promo/img/p21.webp"],
+  ["p22","Editorial","Potret Studio Ivory","/promo/img/p22.webp"],
   // p23 & p24 sengaja bersilang: isi p23.jpg = selfie Spider-Man, p24.jpg = lift mewah (tertukar
   // sejak impor). Rujukan yang ditukar, bukan filenya, karena gambar di-cache 30 hari — lihat
   // fixSwappedImages() di app/lib.php. Jangan "dirapikan" balik.
-  ["p23","Editorial","Lift Mewah Ala 90-an","/promo/img/p24.jpg"],
-  ["p24","Tren Viral","Selfie Spider-Man","/promo/img/p23.jpg"],
-  ["p25","Kartun & Ilustrasi","Doodle Sketsa Lucu","/promo/img/p25.jpg"],
-  ["p26","Tren Viral","Candid Malam Tertangkap Kamera","/promo/img/p26.jpg"],
-  ["p27","Tren Viral","Singgasana Shinobi Gelap","/promo/img/p27.jpg"],
-  ["p28","Momen Spesial","Layar MacBook Berdua","/promo/img/p28.jpg"],
-  ["p29","Tren Viral","Mirror Selfie Kamera Digital","/promo/img/p29.jpg"],
-  ["p30","Editorial","Sorot Cahaya Hitam Putih","/promo/img/p30.jpg"],
-  ["p31","Editorial","Potret Sweater Krem","/promo/img/p31.jpg"],
-  ["p32","Editorial","Sampul Majalah Gelap","/promo/img/p32.jpg"],
-  ["p33","Tren Viral","Photobooth Spider-Man","/promo/img/p33.jpg"],
-  ["p34","Profesional","Iklan Produk Jaring Laba-laba","/promo/img/p34.jpg"],
-  ["p35","Foto Jadul","Kamera Sekali Pakai 90-an","/promo/img/p35.jpg"],
-  ["p36","Tren Viral","Selfie Cermin Cembung Minimarket","/promo/img/p36.jpg"],
-  ["p37","Foto Jadul","Jersey Bola di Pesta Rumah","/promo/img/p37.jpg"],
-  ["p38","Momen Spesial","Santai di Kursi Bioskop","/promo/img/p38.jpg"],
-  ["p39","Jalan-jalan","Ladang Bunga Kuning","/promo/img/p39.jpg"],
-  ["p40","Editorial","Studio Oranye Gelap","/promo/img/p40.jpg"],
-  ["p41","Editorial","Studio Beige Tenang","/promo/img/p41.jpg"],
-  ["p42","Editorial","Studio Hijau Santai","/promo/img/p42.jpg"],
-  ["p43","Editorial","Kontras Merah Tajam","/promo/img/p43.jpg"],
-  ["p44","Gaya Jalanan","Depan Kulkas Minimarket","/promo/img/p44.jpg"],
-  ["p45","Jalan-jalan","Senja di Peron Stasiun","/promo/img/p45.jpg"],
-  ["p46","Gaya Jalanan","Jalan Kota Sehabis Hujan","/promo/img/p46.jpg"],
-  ["p47","Editorial","Kolase Tiga Panel","/promo/img/p47.jpg"],
-  ["p48","Editorial","Template Potret Sinematik","/promo/img/p48.jpg"],
-  ["p49","Editorial","Profil Oranye Bergerak","/promo/img/p49.jpg"],
-  ["p50","Gaya Jalanan","Lari Sore di Kota","/promo/img/p50.jpg"],
-  ["p51","Editorial","Mengapung di Air Bunga","/promo/img/p51.jpg"],
-  ["p52","Jalan-jalan","Gunung dan Sungai Ala Vogue","/promo/img/p52.jpg"],
-  ["p53","Jalan-jalan","Papan Loncat di Atas Laut","/promo/img/p53.jpg"],
-  ["p54","Editorial","Di Balik Kaca Akuarium","/promo/img/p54.jpg"],
-  ["p55","Kartun & Ilustrasi","Ilustrasi Buku Anak","/promo/img/p55.jpg"],
-  ["p56","Kartun & Ilustrasi","Karakter Piksel Everskies","/promo/img/p56.jpg"],
-  ["p57","Kartun & Ilustrasi","Kartun Sketsa Charlie & Lola","/promo/img/p57.jpg"],
-  ["p58","Tren Viral","Prajurit Steampunk Selfie","/promo/img/p58.jpg"],
-  ["p59","Gaya Jalanan","Diam di Tengah Zebra Cross","/promo/img/p59.jpg"],
-  ["p60","Jalan-jalan","Negeri di Atas Awan","/promo/img/p60.jpg"],
-  ["p61","Kartun & Ilustrasi","Ditarik Doodle Kecil","/promo/img/p61.jpg"],
-  ["p62","Kartun & Ilustrasi","Jalan Bareng Versi Sketsa","/promo/img/p62.jpg"],
-  ["p63","Editorial","Poster Fashion Sinematik","/promo/img/p63.jpg"],
-  ["p64","Kartun & Ilustrasi","Dikejar Doodle","/promo/img/p64.jpg"],
-  ["p65","Editorial","Taksi Kuning Malam Hari","/promo/img/p65.jpg"],
-  ["p66","Gaya Jalanan","Senja di Rooftop Parkir","/promo/img/p66.jpg"],
-  ["rtlhyuo71b3","Profesional","Foto Editorial Musim Semi Anak","/promo/img/6991eabc240f077e.jpg"],
-  ["rtlhyzmfbab","Jalan-jalan","OOTD Pria Sinematik High-Angle","/promo/img/174d4627ccf7acdc.jpg"],
-  ["rtlhz3r3787","Jalan-jalan","Kolase Editorial Pasangan Jepang","/promo/img/ce188dcb0b7c28c6.jpg"],
-  ["rtlhz6n2e40","Keluarga","Foto Keluarga Kejar-kejaran Lucu","/promo/img/dbbeedb995fe89e5.jpg"],
-  ["rtlhz9x669f","Keluarga","Foto Prewed Vintage di Padang Rumput","/promo/img/4ff8b7296d5208f1.jpg"],
-  ["rtlhzekd64d","Couple","Foto Pasangan Sinematik Film 35mm","/promo/img/8c3b666b3d257c3d.jpg"],
-  ["rtlhzgyfb75","Couple","Film Strip Estetik Berdua","/promo/img/fdcde6c7306fbd4d.jpg"],
-  ["rtlhzjgcd10","Couple","Foto Pasangan Sinematik 35mm","/promo/img/3c32088fc6495914.jpg"],
-  ["rtlhzkx2abf","Couple","Candid Romantis Sinematik 35mm","/promo/img/0751bc20430da6c7.jpg"],
-  ["rtlhznw25f6","Couple","Foto Pasangan Sinematik 35mm","/promo/img/eda8bab27405a82b.jpg"],
-  ["rtlhzp2cc23","Couple","Strip Film Jadul Couple","/promo/img/97a518b61c174582.jpg"],
-  ["rtlhzs47c09","Couple","Foto Sinematik Pasangan Indie Film","/promo/img/9f3f6298ef681e38.jpg"],
-  ["rtlhzvp67db","Couple","Prewed Editorial Urban Keren","/promo/img/e755549f861a8469.jpg"],
-  ["rtli00l0ac9","Jalan-jalan","Sorot Sinematik Pameran Seni","/promo/img/67bd33e340a8ce2e.jpg"],
-  ["rtli0bg957b","Profesional","Foto Editorial Jas Burgundy Elegan","/promo/img/9b8fbd21dbf21c2f.jpg"],
-  ["rtli0gid54e","Profesional","Potret Motion Blur Sinematik","/promo/img/d54807e11ccdbec0.jpg"],
-  ["rtli0km2d6e","Foto Jadul","Gaya Fisheye 90an Kamera Retro","/promo/img/292abb23da6cd750.jpg"],
-  ["rtli0p483d7","Foto Jadul","Potret Retro Jakarta Era 80-an","/promo/img/df1e914edf146ea8.jpg"],
-  ["rtli0qu6778","Foto Jadul","Foto Keren Vintage 1980-an","/promo/img/f68cef53482c26d4.jpg"],
-  ["rtli0t24a3d","Foto Jadul","Gaya Retro 80an di Warung Kopi","/promo/img/44b0e8d893f7365e.jpg"],
-  ["rtli0ukacf7","Profesional","Malam Bintang & Api Unggun","/promo/img/df668492bcf123f3.jpg"],
-  ["rtli0z55026","Tren Viral","Action Figure Kustom di Meja Kerja","/promo/img/006403e96d92933f.jpg"],
-  ["rtli12x0839","Entertainment","Ngopi Bareng Bintang Sepak Bola","/promo/img/f9de06f4b0731847.jpg"],
-  ["rtli13ob41a","Profesional","Potret Hitam Putih Sinematik","/promo/img/dea0898a21ad8417.jpg"],
-  ["rtli161edbf","Jalan-jalan","Selfie Fisheye Puncak Gunung","/promo/img/720bf73c3613f0ba.jpg"],
-  ["rtli1688c19","Profesional","Potret Sinematik Noir Korek Api","/promo/img/1743d9195b3e3bad.jpg"],
-  ["rtli17r707b","Profesional","Potret Editorial Gelap Dramatis","/promo/img/277b23e45aa3aeda.jpg"],
-  ["rtli19y2f54","Jalan-jalan","Foto Anggun di Akuarium Bawah Laut","/promo/img/50ab0fd2a6efb6dd.jpg"],
-  ["rtli1a1e133","Entertainment","Latar Kartun Dunia Game 3D","/promo/img/ca8f2e4909404e86.jpg"],
-  ["rtli1caaa70","Editorial","Putri Salju Fantasi Hijab","/promo/img/a3add10c2e28860f.jpg"],
-  ["rtli1cr5cd3","Entertainment","Foto Doodle Lucu Penuh Warna","/promo/img/99f9dd76d71df43a.jpg"]
+  ["p23","Editorial","Lift Mewah Ala 90-an","/promo/img/p24.webp"],
+  ["p24","Tren Viral","Selfie Spider-Man","/promo/img/p23.webp"],
+  ["p25","Kartun & Ilustrasi","Doodle Sketsa Lucu","/promo/img/p25.webp"],
+  ["p26","Tren Viral","Candid Malam Tertangkap Kamera","/promo/img/p26.webp"],
+  ["p27","Tren Viral","Singgasana Shinobi Gelap","/promo/img/p27.webp"],
+  ["p28","Momen Spesial","Layar MacBook Berdua","/promo/img/p28.webp"],
+  ["p29","Tren Viral","Mirror Selfie Kamera Digital","/promo/img/p29.webp"],
+  ["p30","Editorial","Sorot Cahaya Hitam Putih","/promo/img/p30.webp"],
+  ["p31","Editorial","Potret Sweater Krem","/promo/img/p31.webp"],
+  ["p32","Editorial","Sampul Majalah Gelap","/promo/img/p32.webp"],
+  ["p33","Tren Viral","Photobooth Spider-Man","/promo/img/p33.webp"],
+  ["p34","Profesional","Iklan Produk Jaring Laba-laba","/promo/img/p34.webp"],
+  ["p35","Foto Jadul","Kamera Sekali Pakai 90-an","/promo/img/p35.webp"],
+  ["p36","Tren Viral","Selfie Cermin Cembung Minimarket","/promo/img/p36.webp"],
+  ["p37","Foto Jadul","Jersey Bola di Pesta Rumah","/promo/img/p37.webp"],
+  ["p38","Momen Spesial","Santai di Kursi Bioskop","/promo/img/p38.webp"],
+  ["p39","Jalan-jalan","Ladang Bunga Kuning","/promo/img/p39.webp"],
+  ["p40","Editorial","Studio Oranye Gelap","/promo/img/p40.webp"],
+  ["p41","Editorial","Studio Beige Tenang","/promo/img/p41.webp"],
+  ["p42","Editorial","Studio Hijau Santai","/promo/img/p42.webp"],
+  ["p43","Editorial","Kontras Merah Tajam","/promo/img/p43.webp"],
+  ["p44","Gaya Jalanan","Depan Kulkas Minimarket","/promo/img/p44.webp"],
+  ["p45","Jalan-jalan","Senja di Peron Stasiun","/promo/img/p45.webp"],
+  ["p46","Gaya Jalanan","Jalan Kota Sehabis Hujan","/promo/img/p46.webp"],
+  ["p47","Editorial","Kolase Tiga Panel","/promo/img/p47.webp"],
+  ["p48","Editorial","Template Potret Sinematik","/promo/img/p48.webp"],
+  ["p49","Editorial","Profil Oranye Bergerak","/promo/img/p49.webp"],
+  ["p50","Gaya Jalanan","Lari Sore di Kota","/promo/img/p50.webp"],
+  ["p51","Editorial","Mengapung di Air Bunga","/promo/img/p51.webp"],
+  ["p52","Jalan-jalan","Gunung dan Sungai Ala Vogue","/promo/img/p52.webp"],
+  ["p53","Jalan-jalan","Papan Loncat di Atas Laut","/promo/img/p53.webp"],
+  ["p54","Editorial","Di Balik Kaca Akuarium","/promo/img/p54.webp"],
+  ["p55","Kartun & Ilustrasi","Ilustrasi Buku Anak","/promo/img/p55.webp"],
+  ["p56","Kartun & Ilustrasi","Karakter Piksel Everskies","/promo/img/p56.webp"],
+  ["p57","Kartun & Ilustrasi","Kartun Sketsa Charlie & Lola","/promo/img/p57.webp"],
+  ["p58","Tren Viral","Prajurit Steampunk Selfie","/promo/img/p58.webp"],
+  ["p59","Gaya Jalanan","Diam di Tengah Zebra Cross","/promo/img/p59.webp"],
+  ["p60","Jalan-jalan","Negeri di Atas Awan","/promo/img/p60.webp"],
+  ["p61","Kartun & Ilustrasi","Ditarik Doodle Kecil","/promo/img/p61.webp"],
+  ["p62","Kartun & Ilustrasi","Jalan Bareng Versi Sketsa","/promo/img/p62.webp"],
+  ["p63","Editorial","Poster Fashion Sinematik","/promo/img/p63.webp"],
+  ["p64","Kartun & Ilustrasi","Dikejar Doodle","/promo/img/p64.webp"],
+  ["p65","Editorial","Taksi Kuning Malam Hari","/promo/img/p65.webp"],
+  ["p66","Gaya Jalanan","Senja di Rooftop Parkir","/promo/img/p66.webp"],
+  ["rtlhyuo71b3","Profesional","Foto Editorial Musim Semi Anak","/promo/img/6991eabc240f077e.webp"],
+  ["rtlhyzmfbab","Jalan-jalan","OOTD Pria Sinematik High-Angle","/promo/img/174d4627ccf7acdc.webp"],
+  ["rtlhz3r3787","Jalan-jalan","Kolase Editorial Pasangan Jepang","/promo/img/ce188dcb0b7c28c6.webp"],
+  ["rtlhz6n2e40","Keluarga","Foto Keluarga Kejar-kejaran Lucu","/promo/img/dbbeedb995fe89e5.webp"],
+  ["rtlhz9x669f","Keluarga","Foto Prewed Vintage di Padang Rumput","/promo/img/4ff8b7296d5208f1.webp"],
+  ["rtlhzekd64d","Couple","Foto Pasangan Sinematik Film 35mm","/promo/img/8c3b666b3d257c3d.webp"],
+  ["rtlhzgyfb75","Couple","Film Strip Estetik Berdua","/promo/img/fdcde6c7306fbd4d.webp"],
+  ["rtlhzjgcd10","Couple","Foto Pasangan Sinematik 35mm","/promo/img/3c32088fc6495914.webp"],
+  ["rtlhzkx2abf","Couple","Candid Romantis Sinematik 35mm","/promo/img/0751bc20430da6c7.webp"],
+  ["rtlhznw25f6","Couple","Foto Pasangan Sinematik 35mm","/promo/img/eda8bab27405a82b.webp"],
+  ["rtlhzp2cc23","Couple","Strip Film Jadul Couple","/promo/img/97a518b61c174582.webp"],
+  ["rtlhzs47c09","Couple","Foto Sinematik Pasangan Indie Film","/promo/img/9f3f6298ef681e38.webp"],
+  ["rtlhzvp67db","Couple","Prewed Editorial Urban Keren","/promo/img/e755549f861a8469.webp"],
+  ["rtli00l0ac9","Jalan-jalan","Sorot Sinematik Pameran Seni","/promo/img/67bd33e340a8ce2e.webp"],
+  ["rtli0bg957b","Profesional","Foto Editorial Jas Burgundy Elegan","/promo/img/9b8fbd21dbf21c2f.webp"],
+  ["rtli0gid54e","Profesional","Potret Motion Blur Sinematik","/promo/img/d54807e11ccdbec0.webp"],
+  ["rtli0km2d6e","Foto Jadul","Gaya Fisheye 90an Kamera Retro","/promo/img/292abb23da6cd750.webp"],
+  ["rtli0p483d7","Foto Jadul","Potret Retro Jakarta Era 80-an","/promo/img/df1e914edf146ea8.webp"],
+  ["rtli0qu6778","Foto Jadul","Foto Keren Vintage 1980-an","/promo/img/f68cef53482c26d4.webp"],
+  ["rtli0t24a3d","Foto Jadul","Gaya Retro 80an di Warung Kopi","/promo/img/44b0e8d893f7365e.webp"],
+  ["rtli0ukacf7","Profesional","Malam Bintang & Api Unggun","/promo/img/df668492bcf123f3.webp"],
+  ["rtli0z55026","Tren Viral","Action Figure Kustom di Meja Kerja","/promo/img/006403e96d92933f.webp"],
+  ["rtli12x0839","Entertainment","Ngopi Bareng Bintang Sepak Bola","/promo/img/f9de06f4b0731847.webp"],
+  ["rtli13ob41a","Profesional","Potret Hitam Putih Sinematik","/promo/img/dea0898a21ad8417.webp"],
+  ["rtli161edbf","Jalan-jalan","Selfie Fisheye Puncak Gunung","/promo/img/720bf73c3613f0ba.webp"],
+  ["rtli1688c19","Profesional","Potret Sinematik Noir Korek Api","/promo/img/1743d9195b3e3bad.webp"],
+  ["rtli17r707b","Profesional","Potret Editorial Gelap Dramatis","/promo/img/277b23e45aa3aeda.webp"],
+  ["rtli19y2f54","Jalan-jalan","Foto Anggun di Akuarium Bawah Laut","/promo/img/50ab0fd2a6efb6dd.webp"],
+  ["rtli1a1e133","Entertainment","Latar Kartun Dunia Game 3D","/promo/img/ca8f2e4909404e86.webp"],
+  ["rtli1caaa70","Editorial","Putri Salju Fantasi Hijab","/promo/img/a3add10c2e28860f.webp"],
+  ["rtli1cr5cd3","Entertainment","Foto Doodle Lucu Penuh Warna","/promo/img/99f9dd76d71df43a.webp"]
 ].map(([id, cat, title, img]) => ({id, cat, title, img}));
 const byId = Object.fromEntries(RECIPES.map(r => [r.id, r]));
 const BESTSELLERS = ["rtlhqfm5b68", "rtlhwlo6ac4", "rtlhwnq0386", "rtlhx4154b6", "rtlhxp6cc8c", "p21", "p23", "p24", "p27", "p29", "p33", "p36", "p39", "p65"].map(id => byId[id]);
@@ -1041,6 +1054,9 @@ function showExample(i){
   exIdx = (i + EXAMPLES.length) % EXAMPLES.length;
   const ex = EXAMPLES[exIdx];
   $("#cmp-after").src = ex.after; $("#cmp-before").src = ex.before;
+  // siapkan pasangan berikutnya selagi slide ini tampil (autoplay 4,5 detik), bukan 12 foto sekaligus
+  const nx = EXAMPLES[(exIdx + 1) % EXAMPLES.length];
+  setTimeout(() => { new Image().src = nx.before; new Image().src = nx.after; }, 1500);
   $("#cmp-title").textContent = ex.title; $("#cmp-sub").textContent = ex.sub;
   $$(".ex-tab").forEach((t, j) => { t.setAttribute("aria-pressed", j === exIdx); t.classList.remove("paused"); t.style.animation = "none"; t.offsetHeight; t.style.animation = ""; });
   if (!reduce && !userDragged) sweep();
@@ -1074,7 +1090,6 @@ $("#knob").addEventListener("keydown", ev => {
   if (ev.key === "ArrowLeft"){ userDragged = true; clearInterval(exTimer); setPos(cur - 5); ev.preventDefault(); }
   if (ev.key === "ArrowRight"){ userDragged = true; clearInterval(exTimer); setPos(cur + 5); ev.preventDefault(); }
 });
-EXAMPLES.forEach(e => { new Image().src = e.before; new Image().src = e.after; });
 showExample(0); autoplay();
 
 /* ---- marquee ---- */
@@ -1140,7 +1155,7 @@ let aud = 0;
 function renderAud(){
   $("#aud").innerHTML = AUDIENCE.map((a, i) => `<button aria-pressed="${i === aud}" data-aud="${i}">${a.k}</button>`).join("");
   const a = AUDIENCE[aud], r = RECIPES.find(x => x.id === a.rec);
-  $("#aud-out").innerHTML = `<img src="${r.img}" alt=""><div><strong>Resep pas: ${r.title}</strong><p>${a.text}</p></div>`;
+  $("#aud-out").innerHTML = `<img loading="lazy" src="${r.img.replace(".webp", "-t.webp")}" alt=""><div><strong>Resep pas: ${r.title}</strong><p>${a.text}</p></div>`;
 }
 $("#aud").addEventListener("click", e => { const b = e.target.closest("[data-aud]"); if (!b) return; aud = +b.dataset.aud; renderAud();
   if (!reduce) $("#aud-out").animate([{transform: "scale(.97)", opacity: .5}, {transform: "none", opacity: 1}], {duration: 300}); });
@@ -1283,11 +1298,11 @@ const demoTag = "";   // sengaja kosong: yang menandai halaman contoh cukup labe
 const DEMO_NAMES = ["And** *****", "Rin** ****", "Bag** *****", "Sit** ****", "Fah** *****",
                     "Nov** ****", "Yud** *****", "Ind** ****", "Rez** *****", "Wul** ****"];
 const SAMPLE_T = [
-  {photo:"/promo/img/p22.jpg", title:"Judul testimoni #1"},
-  {photo:"/promo/img/p46.jpg", title:"Judul testimoni #2"},
-  {photo:"/promo/img/p50.jpg", title:"Judul testimoni #3"},
-  {photo:"/promo/img/23bc9ae4209a057d.jpg", title:"Judul testimoni #4"},
-  {photo:"/promo/img/9b8fbd21dbf21c2f.jpg", title:"Judul testimoni #5"}
+  {photo:"/promo/img/p22.webp", title:"Judul testimoni #1"},
+  {photo:"/promo/img/p46.webp", title:"Judul testimoni #2"},
+  {photo:"/promo/img/p50.webp", title:"Judul testimoni #3"},
+  {photo:"/promo/img/23bc9ae4209a057d.webp", title:"Judul testimoni #4"},
+  {photo:"/promo/img/9b8fbd21dbf21c2f.webp", title:"Judul testimoni #5"}
 ].map((x, i) => ({...x, name:"Nama Pembeli " + (i+1), ig:"akun_ig_" + (i+1), stars:5, text:"Tulis komentar asli dari pembeli di sini (sudah minta izin). Ganti isi ini di bagian TESTIMONIALS.", plan:"Premium", date:"—", demo:true}));
 const tList = TESTIMONIALS.length ? TESTIMONIALS.map(t => MOCKUP ? {...t, demo:true} : t).slice().sort((a,b) => (b.stars||0) - (a.stars||0)).slice(0,5) : (PREVIEW ? SAMPLE_T : []);
 
@@ -1336,7 +1351,7 @@ const tList = TESTIMONIALS.length ? TESTIMONIALS.map(t => MOCKUP ? {...t, demo:t
   track.innerHTML = tList.map((t, i) => `
     <article class="t-card" aria-roledescription="slide" aria-label="${i+1} dari ${tList.length}">
       <div class="t-top">
-        <span class="t-ava"><img src="${escH(t.avatar || t.photo)}" alt="" data-fb="${escH(t.photo)}"></span>
+        <span class="t-ava"><img loading="lazy" src="${escH(t.avatar || t.photo)}" alt="" data-fb="${escH(t.photo)}"></span>
         <div class="t-who"><strong>${escH(t.name)}</strong>${t.ig ? `<a href="https://instagram.com/${encodeURIComponent(t.ig)}" target="_blank" rel="noopener">@${escH(t.ig)}</a>` : ""}${starSvg(t.stars || 5)}</div>
         ${t.demo ? demoTag : ""}
       </div>
@@ -1426,6 +1441,28 @@ const tList = TESTIMONIALS.length ? TESTIMONIALS.map(t => MOCKUP ? {...t, demo:t
   }
 })();
 
+/* ---- gambar: bertahap, sisanya diisi di latar belakang ----
+   Buka halaman hanya mengunduh yang dekat layar pertama; gambar lain memakai loading="lazy".
+   Sesudah halaman siap (+2 detik), sisanya diunduh 2 sekaligus dari atas ke bawah, jadi waktu
+   pengunjung scroll gambarnya sudah ada dan tidak perlu menunggu. Mode hemat data: tidak diisi. */
+(() => {
+  if (navigator.connection && navigator.connection.saveData) return;
+  const fill = () => {
+    const rest = [...document.querySelectorAll('img[loading="lazy"]')].filter(im => !im.complete);
+    const next = () => {
+      const im = rest.shift(); if (!im) return;
+      if (im.complete) return next();
+      const go = () => setTimeout(next, 120);
+      im.addEventListener("load", go, {once: true}); im.addEventListener("error", go, {once: true});
+      im.loading = "eager";
+    };
+    next(); next();
+    EXAMPLES.forEach(e => { new Image().src = e.before; new Image().src = e.after; });   // slide hero lainnya
+  };
+  const start = () => setTimeout(fill, 2000);
+  if (document.readyState === "complete") start(); else addEventListener("load", start);
+})();
+
 /* ---- latar CTA penutup: pakai gambar asli kalau tersedia ---- */
 (() => {
   const el = $(".final");
@@ -1438,7 +1475,7 @@ const tList = TESTIMONIALS.length ? TESTIMONIALS.map(t => MOCKUP ? {...t, demo:t
     im.onerror = tryNext;
     im.src = src;
   };
-  tryNext();
+  if (document.readyState === "complete") tryNext(); else addEventListener("load", tryNext);
 })();
 
 /* ---- Meta Pixel (opsional; ID diisi di Admin -> Iklan) ----
@@ -1464,13 +1501,10 @@ const fbSend = (() => {
     else if (type === "pay") fire("AddPaymentInfo", money(extra.plan));
   };
   const off = () => { ready = false; queue.length = 0; };
-  fetch(TRACK_URL + "?a=pixel", {credentials: "omit"}).then(r => r.json()).then(d => {
-    const id = String((d && d.id) || "").replace(/[^0-9]/g, "");
+  // pixel + PageView sudah dimulai di <head> (window.__rfPixel); di sini tinggal menunggu ID-nya
+  (window.__rfPixel || Promise.resolve("")).then(id => {
     if (!id) return off();
-    !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version="2.0";n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;
-    s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,"script","https://connect.facebook.net/en_US/fbevents.js");
-    fbq("init", id); fire("PageView", {}); ready = true;
+    ready = true;
     queue.splice(0).forEach(a => map(a[0], a[1]));
   }).catch(off);
   return (type, extra) => { if (ready) map(type, extra || {}); else if (ready === null) queue.push([type, extra || {}]); };
